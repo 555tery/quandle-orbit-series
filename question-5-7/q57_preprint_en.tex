@@ -1,0 +1,686 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T2A]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else
+  \usepackage{fontspec}
+  \setmainfont{cmunrm.otf}[
+    BoldFont=cmunbx.otf,
+    ItalicFont=cmunti.otf,
+    BoldItalicFont=cmunbi.otf,
+    Ligatures=TeX]
+\fi
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[unicode]{hyperref}
+\hypersetup{
+  pdftitle={Extensions of Quandles with Stabilizing Orbit Series},
+  pdfauthor={Danil Pokulevskii},
+  pdflang={en-US},
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue}
+\setlength{\emergencystretch}{2em}
+\setlist[enumerate]{itemsep=2pt,topsep=5pt}
+\frenchspacing
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\renewcommand{\proofname}{Proof}
+\newcommand{\OS}{\mathcal{OS}}
+\newcommand{\tOS}{t\mathcal{OS}}
+\newcommand{\Inn}{\operatorname{Inn}}
+\newcommand{\Orb}{\operatorname{Orb}}
+\newcommand{\Aut}{\operatorname{Aut}}
+\newcommand{\Z}{\mathbb Z}
+\newcommand{\conj}{\triangleright}
+
+\title{Extensions of Quandles\\with Stabilizing Orbit Series}
+\author{Danil Pokulevskii\\[3pt]
+  \small Novosibirsk State Technical University\\
+  \small Novosibirsk, Russia\\
+  \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
+\date{October 7, 2026\\[2pt]\small Working preprint}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Let the class \(\OS\) consist of quandles in which every orbit
+series stabilizes after finitely many steps. We prove that
+\(\OS\) is closed under extensions: if the quotient and every full
+fibre of an epimorphism belong to \(\OS\), then the original quandle
+does as well. No common bound on the depths of the fibres is required.
+The key ingredient is a group identity for relative commutator
+series of a single automorphism. If \(N\trianglelefteq L\),
+\(\phi(N)=N\), and \([L/N,\bar\phi]=L/N\), then the series
+\(R_0=N\), \(R_{i+1}=[R_i,\phi]\) and
+\(D_0=L\), \(D_{i+1}=[D_i,\phi]\) satisfy
+\(D_i=R_iD_{i+1}\). The passage to quandles proceeds through
+conjugacy classes and coverings and does not require injectivity of the map
+that assigns to each element its left translation. We also show that the class
+\(\OS_\omega=\bigcup_{n\ge1}\OS_n\) is not closed under extensions.
+Thus we answer both parts of Question~5.7 of
+Bonatto--Crans--Nasybullov--Whitney.
+\end{abstract}
+
+\noindent\textbf{Keywords:} quandle, orbit series, extension,
+subnormal subgroup, group automorphism.
+
+\section{Introduction and main results}
+
+Orbit series of quandles and the classes \(\OS\), \(\OS_n\) were introduced in
+\cite{BCNW}. Question~5.7 of that paper asks whether
+\(\OS\) and \(\OS_\omega\) are closed under extensions.
+The numbering of the question and results from \cite{BCNW} used below
+follows arXiv version v3, dated August 18, 2020.
+
+It is essential to distinguish two conditions. In the class \(\OS\),
+each individual orbit series must stabilize, but the number of
+steps may depend on the series. In the class \(\OS_\omega\), a single finite
+bound must work for all series of a given quandle.
+The definition of an extension does not require a common bound across
+different full fibres.
+
+\begin{theorem}\label{thm:main}
+Let \(\pi:Q\twoheadrightarrow B\) be an epimorphism of quandles.
+If \(B\in\OS\) and \(\pi^{-1}(b)\in\OS\) for every \(b\in B\),
+then \(Q\in\OS\). Consequently, the class \(\OS\) is closed under
+extensions.
+\end{theorem}
+
+\begin{proposition}\label{prop:negative}
+The class \(\OS_\omega\) is not closed under extensions.
+A counterexample can be chosen with a trivial base and finite
+full fibres.
+\end{proposition}
+
+Theorem~\ref{thm:main} is proved in Section~\ref{sec:quandles}.
+Its group-theoretic core, Theorem~\ref{thm:group}, states that
+stabilization of a relative commutator series on a normal
+subgroup lifts to the whole group without increasing the number of steps,
+provided the quotient is perfect relative to the automorphism
+under consideration. The proof uses the elementary fact that
+a subnormal subgroup of finite defect that normally generates a
+group must equal that group.
+Proposition~\ref{prop:negative} follows from the disjoint union of
+dihedral quandles in Example~4.2 of \cite{BCNW},
+after considering the projection onto the summand index.
+
+\section{Definitions and auxiliary lemmas}\label{sec:prelim}
+
+\begin{definition}
+\emph{A quandle} is a nonempty set \(Q\) with an operation \(\conj\)
+satisfying
+\[
+ x\conj x=x,\qquad
+ L_x:y\longmapsto x\conj y\text{ is bijective},\qquad
+ x\conj(y\conj z)=(x\conj y)\conj(x\conj z).
+\]
+A subquandle is closed under the operation and inverse left translations.
+The group \(\Inn(Q)=\langle L_x:x\in Q\rangle\) is called the
+inner automorphism group of the quandle. We write \(\Orb(x,Q)\) for
+the orbit of \(x\). A quandle is connected if this group acts transitively;
+it is trivial if \(x\conj y=y\) for all \(x,y\).
+\end{definition}
+
+By choosing \(x_i\in Q_i\) successively, we construct an \emph{orbit series}
+\[
+ Q_0=Q,\qquad Q_{i+1}=\Orb(x_i,Q_i).
+\]
+The class \(\OS\) consists of quandles such that every orbit series
+has some \(m\ge0\) with \(Q_m=Q_{m+1}\).
+The class \(\OS_n\), for \(n\ge1\), is defined by requiring that such an
+\(m\le n\) can be chosen for every series. Set
+\(\OS_\omega=\bigcup_{n\ge1}\OS_n\).
+The stable term of a series is connected, since
+\(Q_m=\Orb(x_m,Q_m)\).
+The trivializing classes \(\tOS\) and \(\tOS_n\) are defined by
+requiring that a singleton quandle be reached, respectively,
+in finitely many steps or no later than step \(n\).
+
+By an \emph{extension} we mean an epimorphism
+\(\pi:Q\twoheadrightarrow B\); its full fibres are
+\(F_b=\pi^{-1}(b)\). Equivalently, one considers the quotient
+\(Q/\alpha\) and all full congruence classes of \(\alpha=\ker\pi\),
+as in \cite[Section~2.2]{BCNW}.
+
+\begin{lemma}\label{lem:images}
+An epimorphism \(p:E\twoheadrightarrow C\) induces an epimorphism
+\(\Inn(E)\twoheadrightarrow\Inn(C)\) sending \(L_x\)
+to \(L_{p(x)}\), and
+\[
+ p(\Orb(x,E))=\Orb(p(x),C).
+\]
+In particular, images of orbit series are orbit series,
+and the class \(\OS\) is closed under epimorphic images.
+\end{lemma}
+\begin{proof}
+The identity \(pL_x=L_{p(x)}p\) also holds for inverse translations.
+If a word in translations acts trivially on \(E\), then the corresponding
+word acts trivially on \(C\), since \(p\) is surjective.
+This makes the group map well-defined, and its surjectivity
+follows by lifting generators. The equality of orbits follows.
+For an arbitrary subquandle, the same argument applies after restricting
+the map to that subquandle and taking its image as the codomain.
+
+Any orbit series in \(C\) can be lifted successively to a series
+in \(E\): each next anchor can be lifted to the current term, which
+maps surjectively onto the corresponding term in \(C\).
+Stabilization of the lifted series implies stabilization of the original one.
+\end{proof}
+
+\begin{lemma}\label{lem:invariant}
+If \(F\in\OS\) and a nonempty subquandle \(S\subseteq F\)
+is invariant under \(\Inn(F)\), then \(S\in\OS\).
+\end{lemma}
+\begin{proof}
+Take any series \(S=S_0\supseteq S_1\supseteq\cdots\)
+with anchors \(x_j\in S_j\). Using the same anchors, define
+\(F_0=F\), \(F_{j+1}=\Orb(x_j,F_j)\).
+We obtain by induction
+\[
+ F_j\supseteq S_j\supseteq F_{j+1},
+ \qquad S_j\text{ is invariant under }\Inn(F_j).
+\]
+Indeed, invariance of \(S_j\) implies
+\(F_{j+1}\subseteq S_j\), while \(S_j\subseteq F_j\) implies
+\(S_{j+1}\subseteq F_{j+1}\).
+Since \(S_{j+1}\) is an orbit in \(S_j\), and
+\(F_{j+1}\subseteq S_j\), translations by elements of \(F_{j+1}\)
+and their inverses preserve \(S_{j+1}\). This gives the next step.
+
+The series \(F_j\) stabilizes:
+\(F_m=F_{m+1}=\Orb(x_m,F_m)\).
+The inclusions give \(S_m=F_m\); connectedness of \(F_m\) implies
+\(S_{m+1}=S_m\).
+\end{proof}
+
+\begin{remark}
+In Lemma~\ref{lem:invariant}, the invariance assumption is essential.
+We do not use inheritance of \(\OS\) by arbitrary subquandles;
+in general, this fails by \cite[Example~5.3]{BCNW}.
+\end{remark}
+
+\begin{lemma}\label{lem:slices}
+Suppose all full fibres of an epimorphism
+\(\pi:Q\twoheadrightarrow B\) belong to \(\OS\),
+and let \(Q_i\) be an orbit series in \(Q\).
+Then every nonempty slice \(Q_i\cap F_b\) belongs to \(\OS\).
+\end{lemma}
+\begin{proof}
+If \(S_i=Q_i\cap F_b\ne\varnothing\), then all
+\(S_j=Q_j\cap F_b\), \(0\le j\le i\), are nonempty.
+For \(j<i\) and \(y\in S_j\), the translations \(L_y^{\pm1}\)
+preserve both the orbit \(Q_{j+1}\) in \(Q_j\) and the fibre \(F_b\):
+on the base, \(L_b^{\pm1}\) fix \(b\).
+Thus \(S_{j+1}\) is invariant under \(\Inn(S_j)\).
+Starting with \(S_0=F_b\), we successively apply
+Lemma~\ref{lem:invariant} up to index \(i\).
+Nonemptiness of later slices is not required.
+\end{proof}
+
+\begin{lemma}\label{lem:trivialbase}
+An epimorphism onto a trivial quandle with full fibres in \(\OS\)
+has its domain in \(\OS\).
+\end{lemma}
+\begin{proof}
+The first orbit of any series lies in a single full fibre.
+As an orbit under the inner group of the domain, it is invariant under
+the inner group of that fibre. Apply
+Lemma~\ref{lem:invariant}; the remaining series stabilizes.
+\end{proof}
+
+\begin{definition}
+An epimorphism \(p:E\twoheadrightarrow C\) is called a
+\emph{covering} if
+\[
+ p(x)=p(y)\quad\Longrightarrow\quad L_x^E=L_y^E.
+\]
+\end{definition}
+
+\begin{lemma}\label{lem:covering}
+If \(p:E\twoheadrightarrow C\) is a covering and \(C\in\OS\),
+then \(E\in\OS\).
+\end{lemma}
+\begin{proof}
+For a series \(E_i\), the images \(C_i=p(E_i)\) stabilize
+at a connected subquandle \(C_*\). On the corresponding tail, all
+\(E_i\twoheadrightarrow C_*\).
+Consider the groups of global permutations of the set \(E\)
+\[
+ \Gamma_i=\langle L_x^E:x\in E_i\rangle.
+\]
+Their generating sets are the same on the tail: a translation
+depends only on \(p(x)\), and the image sets \(p(E_i)=C_*\)
+coincide. Denote the common group by \(\Gamma\).
+Each \(E_i\) is preserved by this group, and its restrictions
+generate \(\Inn(E_i)\).
+Therefore, \(E_{i+1}\) is a \(\Gamma\)-orbit;
+the next anchor lies in this same orbit, and
+\(E_{i+2}=E_{i+1}\).
+\end{proof}
+
+\section{Lifting a relative commutator series}\label{sec:groups}
+
+For a group, write \(x^y=y^{-1}xy\).
+If \(\phi\in\Aut(L)\) and \(X\le L\) satisfies
+\(\phi(X)=X\), set
+\[
+ [X,\phi]=\langle x^{-1}\phi(x):x\in X\rangle.
+\]
+The notation denotes the subgroup generated by these elements, not merely the set of values.
+
+\begin{lemma}\label{lem:subnormal}
+Let \(A\) be subnormal in \(B\) with finite defect.
+If \(\langle A^B\rangle=B\), then \(A=B\).
+\end{lemma}
+\begin{proof}
+Choose a finite chain
+\(A=A_0\trianglelefteq A_1\trianglelefteq\cdots
+\trianglelefteq A_m=B\).
+If \(m=0\), there is nothing to prove.
+Otherwise, the normal subgroup \(A_{m-1}\) of \(B\) contains \(A\),
+and hence contains its normal closure, which is \(B\).
+Thus \(A_{m-1}=B\). Removing the last terms successively gives \(A=B\).
+\end{proof}
+
+\begin{theorem}\label{thm:group}
+Let \(N\trianglelefteq L\), \(\phi\in\Aut(L)\),
+\(\phi(N)=N\), and suppose the induced automorphism \(\bar\phi\)
+satisfies \([L/N,\bar\phi]=L/N\).
+Define
+\[
+ R_0=N,\quad R_{i+1}=[R_i,\phi],\qquad
+ D_0=L,\quad D_{i+1}=[D_i,\phi].
+\]
+Then, for every \(i\ge0\),
+\begin{equation}\label{eq:strong}
+ D_i=R_iD_{i+1}.
+\end{equation}
+In particular,
+\[
+ R_r=R_{r+1}\quad\Longrightarrow\quad D_r=D_{r+1}
+ \qquad(r\ge0).
+\]
+\end{theorem}
+\begin{proof}
+Write \(\delta(x)=x^{-1}\phi(x)\). We have
+\begin{equation}\label{eq:delta}
+ \delta(xy)=\delta(x)^y\delta(y),\qquad
+ \delta(x)^y=\delta(xy)\delta(y)^{-1}.
+\end{equation}
+It follows that \([X,\phi]\trianglelefteq X\) for every \(\phi\)-invariant \(X\).
+The identity \(\phi(\delta(x))=\delta(\phi(x))\) shows
+\(\phi\)-invariance of this subgroup.
+The series \(R_i,D_i\) are descending; monotonicity of the operation
+\(X\mapsto[X,\phi]\) gives \(R_i\le D_i\).
+Moreover, \(R_i\) is subnormal in \(D_i\):
+intersect the finite chain
+\[
+ R_i\trianglelefteq R_{i-1}\trianglelefteq\cdots
+ \trianglelefteq N\trianglelefteq L
+\]
+with \(D_i\). Normality of consecutive terms is preserved;
+the endpoints of the resulting chain are \(R_i\) and \(D_i\).
+
+We prove \eqref{eq:strong} by induction.
+For \(i=0\), the image of \(D_1\) in \(L/N\) is the whole quotient,
+so \(L=ND_1\).
+Let \(i\ge1\) and suppose \(D_{i-1}=R_{i-1}D_i\).
+Set \(M_i=\langle R_i^{D_i}\rangle\).
+Every \(x\in D_{i-1}\) has the form \(rd\),
+where \(r\in R_{i-1}\) and \(d\in D_i\).
+By \eqref{eq:delta},
+\[
+ \delta(x)=\delta(r)^d\delta(d)\in M_iD_{i+1}.
+\]
+Since \(D_{i+1}\trianglelefteq D_i\), the right-hand side is a subgroup.
+All generators of \(D_i=[D_{i-1},\phi]\) lie in it,
+and the reverse inclusion is immediate. Thus
+\[
+ D_i=M_iD_{i+1}.
+\]
+The image of \(R_i\) in \(D_i/D_{i+1}\) is subnormal of finite defect
+and normally generates this quotient.
+By Lemma~\ref{lem:subnormal}, it is the entire quotient,
+which gives \eqref{eq:strong} and completes the induction.
+
+If \(R_r=R_{r+1}\), then
+\(R_r=[R_r,\phi]\le[D_r,\phi]=D_{r+1}\).
+Now \eqref{eq:strong} gives \(D_r=D_{r+1}\).
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:group} assumes no finiteness,
+solvability, splitting, or finite order of the automorphism.
+The terms \(R_i\) need not be normal in all of \(L\);
+only their subnormality in \(D_i\) is used.
+\end{remark}
+
+\section{Extensions of conjugacy classes}\label{sec:conjugacy}
+
+We regard the class \(c^K=\{g^{-1}cg:g\in K\}\) as a quandle
+with operation \(a\conj b=aba^{-1}\).
+This convention corresponds to \(\mathrm{Conj}_{-1}\) in \cite{BCNW}.
+
+\begin{lemma}\label{lem:towers}
+For \(c\in K\), set \(K_0=K\),
+\(K_{j+1}=\langle c^{K_j}\rangle\).
+The quandle \(c^K\) belongs to \(\OS\) if and only if
+the subgroup series \(K_j\) stabilizes after finitely many steps.
+\end{lemma}
+\begin{proof}
+Set \(Y_j=c^{K_j}\).
+Then \(K_{j+1}\trianglelefteq K_j\) and
+\(Y_{j+1}=\Orb(c,Y_j)\), so \(Y_j\) is a principal
+orbit series with constant anchor \(c\).
+Equality \(K_j=K_{j+1}\) gives \(Y_j=Y_{j+1}\), while equality
+\(Y_j=Y_{j+1}\) gives \(K_{j+1}=K_{j+2}\).
+
+We show that stabilization of the principal series is sufficient.
+Any finite initial segment of an arbitrary orbit
+series can be conjugated into the form \(Y_j\).
+If the first terms have already been put in this form, the next anchor has the form
+\(c^g\), where \(g\in K_j\).
+Conjugation by \(g^{-1}\) sends it to \(c\)
+and preserves all previous \(Y_k\), for \(k\le j\),
+since \(K_j\le K_k\).
+It sends the next orbit to \(Y_{j+1}\).
+Thus, if \(Y_m=Y_{m+1}\), normalization through
+the anchor of index \(m\) gives equality of the corresponding
+terms in any series. The converse follows from
+stabilization of the principal series.
+\end{proof}
+
+\begin{lemma}\label{lem:kernelfiber}
+Let \(\sigma:G\twoheadrightarrow H\), \(h=\sigma(c)\),
+\(N=\ker\sigma\), \(P=\sigma^{-1}(C_H(h))\).
+If the full fibre \(c^P\) of the epimorphism \(c^G\to h^H\)
+belongs to \(\OS\), then \(c^N\in\OS\).
+\end{lemma}
+\begin{proof}
+Set \(V=N\langle c\rangle=\sigma^{-1}(\langle h\rangle)\).
+Since \(\langle h\rangle\) is central in \(C_H(h)\),
+we have \(V\trianglelefteq P\).
+Every element of \(c^P\) maps to \(h\), so
+\(\langle c^P\rangle\le V\). Moreover, \(c^V=c^N\):
+every element of \(V=\langle c\rangle N\) can be written as \(c^k n\),
+and \(c^{c^k n}=c^n\).
+Normality of \(N\) ensures both orders of decomposition of \(V\).
+
+For \(A_0=P\), \(B_0=V\), and
+\[
+ A_{j+1}=\langle c^{A_j}\rangle,\qquad
+ B_{j+1}=\langle c^{B_j}\rangle
+\]
+monotonicity gives, by induction,
+\[
+ A_{j+1}\le B_j\le A_j\qquad(j\ge0).
+\]
+The base case is \(A_1\le V\le P\).
+Applying the monotone operator to the two inclusions
+gives the next two inclusions.
+If \(A_m=A_{m+1}=T\), then \(A_{m+2}=T\) as well;
+squeezing gives \(B_m=B_{m+1}=T\).
+We now apply Lemma~\ref{lem:towers}.
+\end{proof}
+
+\begin{proposition}\label{prop:groupquandle}
+Let \(\sigma:G\twoheadrightarrow H\), \(h=\sigma(c)\), and
+\(H=\langle h^H\rangle\).
+If the full fibre \(c^P\), where \(P=\sigma^{-1}(C_H(h))\),
+belongs to \(\OS\), then \(c^G\in\OS\).
+\end{proposition}
+\begin{proof}
+Let \(H'\) be the commutator subgroup of \(H\), \(N=\ker\sigma\),
+\(L=\sigma^{-1}(H')\).
+Normal generation of \(H\) by \(h\) implies
+\[
+ H=H'\langle h\rangle,\qquad G=L\langle c\rangle.
+\]
+The restriction \(\sigma|_L\) maps onto \(H'\)
+and \(L/N\cong H'\).
+Set \(\phi(l)=c^{-1}lc\), \(\psi(q)=h^{-1}qh\).
+Since \(N=\ker\sigma\), we have \(N\trianglelefteq L\)
+and \(\phi(N)=N\).
+The induced automorphism \(\bar\phi\) corresponds to \(\psi\).
+
+The subgroup \(J=[H',\psi]\) is normal in \(H'\)
+and invariant under \(h\), hence normal in \(H\).
+In \(H/J\), the image of \(h\) is central and normally generates the whole quotient.
+The quotient is cyclic; hence \(H'\le J\), that is,
+\begin{equation}\label{eq:headperfect}
+ [H',\psi]=H'.
+\end{equation}
+
+Introduce auxiliary groups with infinite cyclic
+generators \(u,v\):
+\[
+ \widetilde G=L\rtimes_\phi\langle u\rangle,\qquad
+ \widetilde H=H'\rtimes_\psi\langle v\rangle,
+ \qquad u^{-1}lu=\phi(l),\quad v^{-1}qv=\psi(q).
+\]
+The following epimorphisms are well-defined:
+\[
+ \widetilde\sigma(lu^k)=\sigma(l)v^k,\qquad
+ \rho_G(lu^k)=lc^k,\qquad \rho_H(qv^k)=qh^k.
+\]
+The first map has kernel \(N\), and the other maps are compatible
+with \(\sigma\) and \(\widetilde\sigma\).
+The restrictions of \(\rho_G,\rho_H\) induce quandle isomorphisms
+\begin{equation}\label{eq:liftclasses}
+ u^{\widetilde G}\cong c^G,\qquad
+ v^{\widetilde H}\cong h^H.
+\end{equation}
+Indeed, surjectivity of the group maps allows any conjugating element
+to be lifted. Every element of \(u^{\widetilde G}\)
+has \(\Z\)-coordinate \(1\),
+and on \(Lu\), the map \(\rho_G\) is injective:
+\(lc=l'c\) implies \(l=l'\).
+The argument for the base is the same.
+The isomorphisms in \eqref{eq:liftclasses} are compatible with the epimorphisms
+of quandles and preserve all their full fibres;
+we also have \(u^N\cong c^N\).
+
+For a \(\phi\)-invariant \(X\le L\), the normal closure of \(u\)
+in \(X\rtimes_\phi\langle u\rangle\) is
+\begin{equation}\label{eq:closureu}
+ [X,\phi]\rtimes\langle u\rangle.
+\end{equation}
+It contains \(u\) and all
+\(x^{-1}\phi(x)=(u^x)^{-1}u\).
+Conversely, the subgroup on the right is normal:
+\([X,\phi]\trianglelefteq X\), it is invariant under \(u\),
+and on \(X/[X,\phi]\), the action of \(u\) is trivial.
+Consequently, it contains the normal closure of \(u\).
+
+By Lemma~\ref{lem:kernelfiber}, \(c^N\in\OS\), hence
+\(u^N\in\OS\). Also,
+\(u^{N\rtimes\langle u\rangle}=u^N\).
+By \eqref{eq:closureu}, the series of normal closures of \(u\)
+in this group has terms \(R_i\rtimes\langle u\rangle\),
+where \(R_0=N\), \(R_{i+1}=[R_i,\phi]\).
+Lemma~\ref{lem:towers} gives stabilization of \(R_i\).
+Condition \eqref{eq:headperfect} allows us to apply
+Theorem~\ref{thm:group}; the global series
+\(D_0=L\), \(D_{i+1}=[D_i,\phi]\) stabilizes.
+By \eqref{eq:closureu}, the series of normal
+closures of \(u\) in \(\widetilde G\) stabilizes as well.
+Thus \(u^{\widetilde G}\in\OS\), and
+\eqref{eq:liftclasses} gives \(c^G\in\OS\).
+\end{proof}
+
+\begin{remark}
+The auxiliary semidirect product is not an assumption
+that the original \(\sigma\) splits.
+The element \(c\) may have finite order;
+the generator \(u\) is chosen to have infinite order only in the
+auxiliary group.
+\end{remark}
+
+\section{Proof of extension closure for arbitrary quandles}
+\label{sec:quandles}
+
+\begin{lemma}\label{lem:connectedbase}
+Let \(\pi:E\twoheadrightarrow C\) be an epimorphism,
+where \(C\) is connected and all full fibres \(F_a=\pi^{-1}(a)\)
+belong to \(\OS\). Then \(E\in\OS\).
+\end{lemma}
+\begin{proof}
+Choose an arbitrary first orbit \(O=\Orb(x,E)\).
+By Lemma~\ref{lem:images}, \(\pi(O)=C\), and by
+Lemma~\ref{lem:slices}, \(O\cap F_a\in\OS\) for every \(a\in C\).
+
+Set \(G=\Inn(E)\), \(H=\Inn(C)\),
+\(c=L_x^E\), \(h=L_{\pi(x)}^C\).
+The epimorphism \(\pi\) induces \(\sigma:G\twoheadrightarrow H\).
+The map \(\lambda_E(y)=L_y^E\) is a homomorphism of
+quandles, since
+\[
+ L_{y\conj z}^E=L_y^E L_z^E(L_y^E)^{-1}.
+\]
+Equivariance of this map gives
+\(\lambda_E(O)=c^G\).
+Connectedness of \(C\) similarly gives
+\[
+ \{L_a^C:a\in C\}=h^H,\qquad H=\langle h^H\rangle.
+\]
+
+Write \(b=\pi(x)\) and
+\[
+ T=\{a\in C:L_a^C=L_b^C\},\qquad
+ S=O\cap\pi^{-1}(T).
+\]
+The quandle \(T\) is trivial: for \(a,d\in T\),
+\(a\conj d=L_a^C(d)=L_d^C(d)=d\).
+The map \(S\twoheadrightarrow T\) has full fibres
+\(O\cap F_a\in\OS\); by Lemma~\ref{lem:trivialbase},
+\(S\in\OS\).
+
+The full fibre of \(c^G\to h^H\) over \(h\) is exactly
+\(\lambda_E(S)\). Indeed, the image of an element
+\(L_y^E\), with \(y\in O\), is \(h\) if and only if
+\(L_{\pi(y)}^C=L_b^C\).
+By Lemma~\ref{lem:images}, this fibre belongs to \(\OS\).
+Proposition~\ref{prop:groupquandle} gives \(c^G\in\OS\).
+
+The epimorphism \(\lambda_E|_O:O\twoheadrightarrow c^G\)
+is a covering: equality of global translations
+\(L_y^E=L_z^E\) implies equality of their restrictions
+\(L_y^O=L_z^O\).
+By Lemma~\ref{lem:covering}, \(O\in\OS\).
+This holds for every first orbit in \(E\);
+therefore, every orbit series in \(E\) stabilizes.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Take an arbitrary series \(Q_i\) in \(Q\).
+The images \(B_i=\pi(Q_i)\) form an orbit series in \(B\)
+and from some index \(n\) onward are all equal to a connected subquandle \(B_*\).
+The restriction \(Q_n\twoheadrightarrow B_*\) has full fibres
+\(Q_n\cap F_b\in\OS\) by Lemma~\ref{lem:slices}.
+Applying Lemma~\ref{lem:connectedbase}, we obtain \(Q_n\in\OS\).
+Therefore the chosen tail of the series stabilizes.
+Since the original series was arbitrary, \(Q\in\OS\).
+\end{proof}
+
+\begin{remark}
+The map \(y\mapsto L_y\) need not be injective.
+Thus the proof also covers nonfaithful quandles.
+No common finite bound on the depths of the full fibres is needed.
+The bound in Theorem~\ref{thm:group} concerns group series;
+an optimal quantitative bound for arbitrary
+quandles is not established in this work.
+\end{remark}
+
+\section{\texorpdfstring{Negative answer for \(\OS_\omega\)}
+{Negative answer for OS omega}}\label{sec:negative}
+
+\begin{proof}[Proof of Proposition~\ref{prop:negative}]
+Let \(D_{2^r}\) be the dihedral quandle on \(\Z/2^r\Z\)
+with operation \(a\conj b=2a-b\).
+Consider the disjoint union
+\[
+ Q=\bigsqcup_{r\ge1}D_{2^r},
+\]
+where, for elements in different summands, \(x\conj y=y\).
+This is the quandle in \cite[Example~4.2]{BCNW}.
+The projection \(\pi:Q\to T_{\mathbb N_{\ge1}}\)
+onto the summand index is an epimorphism to a trivial quandle.
+Its full fibres are finite \(D_{2^r}\), so they all
+belong to \(\OS_\omega\); the base belongs to \(\OS_1\).
+
+The depths in the domain are unbounded.
+Choose zero in the summand \(D_{2^r}\) and use the constant anchor \(0\).
+The inner orbits of an even dihedral quandle
+are the parity classes: \(L_aL_b\) is translation by \(2(a-b)\).
+Elements of the other summands act trivially.
+Thus the series in \(Q\) has the form
+\[
+ Q_0=Q,\qquad
+ Q_i=2^i\Z/2^r\Z\quad(1\le i\le r),\qquad
+ Q_r=Q_{r+1}=\{0\}.
+\]
+Every step up to \(r\) is strict.
+For any proposed common bound \(n\), choose \(r>n\);
+then \(Q\notin\OS_n\).
+Consequently, \(Q\notin\OS_\omega\).
+
+For any coset \(S=a+2^j\Z/2^r\Z\) and \(x\in S\),
+we have
+\[
+ \Orb(x,S)=x+2^{j+1}\Z/2^r\Z.
+\]
+Indeed, the values \(L_y(x)=2y-x\) for \(y\in S\)
+run through the entire indicated coset, which is invariant
+under all \(L_y^{\pm1}\).
+Therefore every individual series, after its first step, lies
+in one summand and, for any subsequent choice of anchors,
+reaches a singleton quandle by step \(r\) at the latest.
+Hence \(Q\in\tOS\subseteq\OS\), in agreement with
+Theorem~\ref{thm:main}.
+\end{proof}
+
+\begin{remark}\label{rmk:uniform}
+Each fibre in the last example has finite depth, but there is no common
+index for all fibres. If one defines a different notion
+of closure requiring a common bound on depths, this example does not refute it.
+The same example also shows that the class
+\(\tOS_\omega=\bigcup_{n\ge1}\tOS_n\) is not closed under extensions:
+the fibres belong to \(\tOS_\omega\), while the domain does not.
+Consequently, the assertion that \(\tOS_\omega\) is closed under extensions
+in Corollary~5.6 of arXiv version v3 of \cite{BCNW}
+is false for the definition of extension in its Section~2.2,
+which does not require a uniform bound across fibres.
+Lemma~5.5 of the same version assumes a single fixed
+index \(m\) for all full fibres and is not contradicted by this example.
+This hypothesis must be retained to deduce membership in \(\tOS_\omega\)
+from that lemma.
+\end{remark}
+
+\begin{thebibliography}{9}
+\bibitem{BCNW}
+M.~Bonatto, A.~S.~Crans, T.~Nasybullov, G.~T.~Whitney.
+\newblock Quandles with orbit series conditions.
+\newblock \emph{Journal of Algebra}, \textbf{567} (2021), 284--309.
+\newblock DOI:
+\href{https://doi.org/10.1016/j.jalgebra.2020.09.026}
+{10.1016/j.jalgebra.2020.09.026}.
+\newblock The numbering in the text follows
+\href{https://arxiv.org/abs/2004.10227v3}{arXiv:2004.10227v3},
+August 18, 2020.
+\end{thebibliography}
+
+\end{document}

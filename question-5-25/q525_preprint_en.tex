@@ -1,0 +1,688 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else
+  \usepackage{fontspec}
+  \setmainfont{cmunrm.otf}[
+    BoldFont=cmunbx.otf,
+    ItalicFont=cmunti.otf,
+    BoldItalicFont=cmunbi.otf,
+    Ligatures=TeX]
+\fi
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathrsfs}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage[unicode]{hyperref}
+\hypersetup{
+  pdftitle={Unbounded Orbit-Series and Reductivity Indices of Finite Quandles},
+  pdfauthor={Danil Pokulevskii},
+  pdflang={en-US},
+  colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\setlength{\emergencystretch}{2em}
+\setlist[enumerate]{itemsep=2pt,topsep=5pt}
+\frenchspacing
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\renewcommand{\proofname}{Proof}
+\newcommand{\R}{\mathcal R}
+\newcommand{\LR}{\mathcal{LR}}
+\newcommand{\tOS}{t\mathcal{OS}}
+\newcommand{\Inn}{\operatorname{Inn}}
+\newcommand{\Orb}{\operatorname{Orb}}
+\newcommand{\cl}{\operatorname{class}}
+\newcommand{\ad}{\operatorname{ad}}
+\newcommand{\Z}{\mathbb Z}
+\newcommand{\F}{\mathbb F}
+\newcommand{\conj}{\triangleright}
+
+\title{Unbounded Orbit-Series and Reductivity Indices\\
+of Finite Quandles}
+\author{Danil Pokulevskii\\[3pt]
+  \small Novosibirsk State Technical University\\
+  \small Novosibirsk, Russia\\
+  \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
+\date{October 7, 2026\\[2pt]\small Working preprint}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+For a finite quandle, let \(k\), \(j\), and \(i\) denote the
+least positive indices of local reductivity, trivialization of
+orbit series, and reductivity, respectively.
+We show that \(j\) cannot be bounded by a function of \(k\),
+and \(i\) cannot be bounded by a function of \(j\).
+For every \(n\ge3\), we construct a finite quandle \(Q_n\) with
+\(k(Q_n)=2\) and \(j(Q_n)\ge\lfloor\log_3n\rfloor+1\).
+For every \(m\ge2\), we construct a finite quandle \(P_m\) with
+\((k(P_m),j(P_m),i(P_m))=(2,2,m)\).
+The first family is obtained from the group of Noce--Tracey--Traustason
+using a filtration by label size; the second is obtained from finite
+quotients of the reduced free group that preserve its exact
+nilpotency class. All passages from groups to quandles,
+including the shift between the nilpotency class of the inner
+automorphism group and the reductivity index, are proved explicitly.
+This gives negative answers to both parts of Question~5.25
+of Bonatto--Crans--Nasybullov--Whitney.
+\end{abstract}
+
+\noindent\textbf{Keywords:} finite quandle, local reductivity,
+orbit series, reduced free group, Engel element.
+
+\section{Introduction and main results}
+
+The classes \(\LR_n\) and \(\tOS_n\) were introduced in~\cite{BCNW},
+where their relationship with the classes \(\R_n\) was investigated.
+For finite quandles, these finite-depth conditions are equivalent
+at the level of the unions of the respective classes
+\cite[Corollary~5.19]{BCNW}.
+Question~5.25 asks whether orbit-series depth can be bounded
+in terms of the local reductivity index, and whether the reductivity
+index can be bounded in terms of orbit-series depth.
+The numbering of the results in~\cite{BCNW} used here follows
+arXiv version v3, dated August 18, 2020.
+
+For a quandle whose corresponding indices exist, set
+\[
+ \begin{aligned}[c]
+ k(Q)&=\min\{n\ge1:Q\in\LR_n\},\\
+ j(Q)&=\min\{n\ge1:Q\in\tOS_n\},\\
+ i(Q)&=\min\{n\ge1:Q\in\R_n\}.
+ \end{aligned}
+\]
+The classes are defined in Section~\ref{sec:definitions}.
+
+\begin{theorem}\label{thm:first}
+For every integer \(n\ge3\), there is a finite quandle \(Q_n\)
+such that
+\[
+ k(Q_n)=2,\qquad j(Q_n)\ge\lfloor\log_3n\rfloor+1.
+\]
+\end{theorem}
+
+\begin{theorem}\label{thm:second}
+For every integer \(m\ge2\), there is a finite quandle \(P_m\)
+such that
+\[
+ (k(P_m),j(P_m),i(P_m))=(2,2,m).
+\]
+The quandle \(P_m\) can be chosen to have exactly \(m\) inner orbits,
+each of which is trivial as a quandle.
+\end{theorem}
+
+\begin{corollary}\label{cor:nobounds}
+There is no function \(f:\mathbb N_{>0}\to\mathbb N_{>0}\)
+such that \(j(Q)\le f(k(Q))\) for every finite quandle
+with defined indices. Nor is there a function \(g\)
+such that \(i(Q)\le g(j(Q))\) for all such quandles.
+\end{corollary}
+\begin{proof}
+The first family has \(k=2\) and unbounded \(j\).
+The second has \(j=2\) and unbounded \(i\).
+\end{proof}
+
+Theorems~\ref{thm:first} and~\ref{thm:second} are proved in
+Sections~\ref{sec:first} and~\ref{sec:second}.
+We use two known group constructions:
+the group of Noce--Tracey--Traustason~\cite{NTT}
+and the reduced free group as treated by Darn\'e~\cite{Darne}.
+The group-theoretic input results are stated separately from
+the consequences for quandles established here.
+
+\section{Definitions and a reductivity criterion}\label{sec:definitions}
+
+We use the left convention for quandles~\cite{BCNW}:
+a quandle is a nonempty set \(Q\) with an operation \(\conj\) satisfying
+\[
+ a\conj a=a,\qquad L_a:b\mapsto a\conj b\ \text{is bijective},
+ \qquad a\conj(b\conj c)=(a\conj b)\conj(a\conj c).
+\]
+The group \(\Inn(Q)=\langle L_a:a\in Q\rangle\)
+is its inner automorphism group.
+Subquandles are also closed under inverse left translations.
+The trivial operation is given by \(a\conj b=b\).
+
+Write
+\[
+ T_n(a;c_1,\ldots,c_n)
+ =((a\conj c_1)\conj\cdots)\conj c_n
+\]
+for the left-associated expression with \(n\) operations.
+The class \(\R_n\) is defined by the identity
+\[
+ T_n(a;c_1,\ldots,c_n)=T_n(b;c_1,\ldots,c_n)
+\]
+for all arguments; the class \(\LR_n\) is defined by
+\[
+ T_n(a;\underbrace{b,\ldots,b}_{n})=b.
+\]
+
+An orbit series is defined recursively by
+\[
+ Q_0=Q,\qquad Q_{r+1}=\Orb(x_r,Q_r),\qquad x_r\in Q_r.
+\]
+At each step, the inner automorphism group of the current subquandle
+is used. The class \(\tOS_n\) consists of quandles for which every
+such series reaches a singleton quandle no later than step \(n\).
+Thus \(j\) measures the time to reach a singleton,
+rather than merely the time to stabilization.
+All three classes with index \(1\) coincide with the class of trivial quandles.
+Moreover, \(Q\in\tOS_2\) if and only if each inner orbit of \(Q\)
+is trivial as a quandle; such an orbit may contain many elements.
+
+For groups, we use the conventions
+\[
+ [a,b]=a^{-1}b^{-1}ab,\qquad c^g=g^{-1}cg,\qquad
+ \gamma_1(H)=H,\quad \gamma_{r+1}(H)=[\gamma_r(H),H].
+\]
+The trivial group has class zero.
+Otherwise, exact class \(c\) means
+\(\gamma_{c+1}(H)=1\), \(\gamma_c(H)\ne1\).
+
+\begin{lemma}\label{lem:orbits}
+Let \(S\) be a nonempty subset of a group, closed under
+conjugation by its own elements and their inverses.
+Then \(a\conj b=a^{-1}ba\) makes \(S\) a quandle, and for \(a\in S\)
+\[
+ \Orb(a,S)=a^{\langle S\rangle}.
+\]
+\end{lemma}
+\begin{proof}
+Idempotency and bijectivity are immediate, and
+\[
+ (a^{-1}ba)^{-1}(a^{-1}ca)(a^{-1}ba)=a^{-1}b^{-1}cba
+\]
+proves self-distributivity.
+Left translations and their inverses are conjugations by
+elements of \(S\) and their inverses. They generate the action
+of \(\langle S\rangle\), giving the orbit formula.
+\end{proof}
+
+\begin{proposition}\label{prop:criterion}
+For every nonempty quandle \(Q\) and \(n\ge1\),
+\[
+ Q\in\R_n\quad\Longleftrightarrow\quad
+ \gamma_n(\Inn(Q))=1.
+\]
+In particular, if \(\Inn(Q)\) has exact finite class \(c\),
+then \(i(Q)=c+1\).
+\end{proposition}
+\begin{proof}
+Set \(\mathcal L(Q)=\{L_a:a\in Q\}\).
+Self-distributivity gives
+\[
+ L_{a\conj b}=L_aL_bL_a^{-1}.
+\]
+Thus \(a\mapsto L_a\) is an epimorphism of quandles
+when \(\mathcal L(Q)\) is equipped with \(s\conj t=sts^{-1}\).
+This direction of conjugation is opposite to the convention
+in Lemma~\ref{lem:orbits}.
+
+For \(n\ge1\), the identity \(\R_{n+1}\) for \(Q\)
+is equivalent to the identity \(\R_n\) for \(\mathcal L(Q)\):
+equality of the two expressions after the final operation
+for every final argument means equality of their left translations.
+Also, \(Q\in\R_1\) if and only if \(\mathcal L(Q)\) is a singleton.
+Indeed, if all \(L_a\) equal \(f\), then idempotency gives
+\(f(a)=a\) for every \(a\).
+For the iterates \(\mathcal L_0(Q)=Q\),
+\(\mathcal L_{r+1}(Q)=\mathcal L(\mathcal L_r(Q))\), we obtain
+\[
+ Q\in\R_n\quad\Longleftrightarrow\quad
+ |\mathcal L_n(Q)|=1.
+\]
+
+Let \(H=\Inn(Q)\). The set \(\mathcal L(Q)\) generates \(H\)
+and is preserved by conjugations in \(H\), since \(hL_ah^{-1}=L_{h(a)}\).
+The action of \(H\) on this set has image
+\(\Inn(\mathcal L(Q))\) and kernel \(C_H(\mathcal L(Q))=Z(H)\).
+Consequently,
+\[
+ \Inn(\mathcal L(Q))\cong H/Z(H).
+\]
+For the upper central series \(Z_0(H)=1\),
+\(Z_{r+1}(H)/Z_r(H)=Z(H/Z_r(H))\), induction gives
+\[
+ \Inn(\mathcal L_r(Q))\cong H/Z_r(H).
+\]
+The quandle \(\mathcal L_{n-1}(Q)\) is trivial if and only if
+\(\mathcal L_n(Q)\) is a singleton; hence the latter condition
+is equivalent to \(H=Z_{n-1}(H)\).
+
+Finally, \(H=Z_c(H)\) is equivalent to \(\gamma_{c+1}(H)=1\).
+This follows by induction on \(c\), starting with \(c=0\):
+the condition \(\gamma_{c+1}(H)=1\) is equivalent to
+\(\gamma_c(H)\le Z(H)\), or \(\gamma_c(H/Z(H))=1\).
+Applying induction to \(H/Z(H)\) gives \(H=Z_c(H)\).
+Taking \(c=n-1\) proves the criterion, including \(n=1\).
+\end{proof}
+
+\begin{remark}
+The criterion corresponds to \cite[Proposition~3.2]{BCNW},
+but is expressed by vanishing of a term of the series to distinguish
+a bound on the class from its exact value.
+\end{remark}
+
+\section{First family: unbounded depth}\label{sec:first}
+
+\subsection{Group-theoretic input}
+
+We use the group \(\mathscr G\) over \(\F_2\) constructed in~\cite{NTT}.
+Write its generators as
+\[
+ X=1+\ad(x),\quad U_A=1+\ad(u_A),\quad
+ V_A=1+\ad(v_A),\quad W_A=1+\ad(w_A),
+\]
+where \(A\) is a nonempty finite subset of \(\mathbb N\).
+The operators and their action are defined in~\cite[Section~2]{NTT}.
+All these generators are involutions.
+Each of the three families \(U,V,W\) generates an elementary abelian group.
+If \(A\cap B=\varnothing\), put \(A\sqcup B=A\cup B\);
+otherwise put \(A\sqcup B=\varnothing\).
+The empty label corresponds to the identity.
+By \cite[Lemma~2.3]{NTT},
+\begin{equation}\label{eq:nttcomm}
+ \begin{aligned}[c]
+ [U_A,V_B]&=U_{A\sqcup B},&
+ [V_A,W_B]&=W_{A\sqcup B},\\
+ [W_A,U_B]&=V_{A\sqcup B},&
+ [W_A,X]&=U_A,
+ \end{aligned}
+\end{equation}
+and \(X\) commutes with all \(U_A,V_A\).
+By \cite[Proposition~2.4]{NTT}, every element has a unique
+normal form \(X^\epsilon uvw\), where \(\epsilon\in\{0,1\}\)
+and \(u,v,w\) belong to the corresponding elementary abelian groups.
+Finally, the proof of \cite[Theorem~2.5]{NTT} establishes
+\begin{equation}\label{eq:pairengel}
+ [[X^g,X],X]=1\qquad(g\in\mathscr G).
+\end{equation}
+
+Every \(U_A\) is nontrivial.
+To see this in the original operator construction,
+choose a singleton \(B\) disjoint from \(A\):
+the operator \(\ad(u_A)\) sends \(w_B\) to the nonzero \(v_{A\cup B}\).
+
+For \(n\ge1\), set
+\[
+ G_n=\langle X,U_A,V_A,W_A:\varnothing\ne A\subseteq[n]\rangle
+ \le\mathscr G,\qquad [n]=\{1,\ldots,n\}.
+\]
+When a word is collected into normal form, new labels arise
+only through \(\sqcup\), and therefore remain subsets of \([n]\).
+It follows that \(G_n\) is finite and
+\begin{equation}\label{eq:sizefirst}
+ |G_n|\le2^{\,1+3(2^n-1)}.
+\end{equation}
+Here the labels themselves are restricted, rather than only their sizes.
+
+\subsection{The filtration and normal closures}
+
+For an integer \(s\ge1\), define the subgroup
+\[
+ F_s=\langle X,\ U_A\ (|A|\ge s),\
+ V_A\ (|A|\ge2s),\ W_A\ (|A|\ge3s)\rangle\le G_n,
+\]
+using only labels in \([n]\).
+Its elements are precisely the normal forms with
+\[
+ u\in\langle U_A:|A|\ge s\rangle,\quad
+ v\in\langle V_A:|A|\ge2s\rangle,\quad
+ w\in\langle W_A:|A|\ge3s\rangle.
+\]
+Indeed, the only correction terms in the collection process satisfy
+\[
+ \begin{aligned}[c]
+ [X,W_{\ge3s}]&\subseteq U_{\ge3s},&
+ [U_{\ge s},V_{\ge2s}]&\subseteq U_{\ge3s},\\
+ [W_{\ge3s},U_{\ge s}]&\subseteq V_{\ge4s},&
+ [V_{\ge2s},W_{\ge3s}]&\subseteq W_{\ge5s}.
+ \end{aligned}
+\]
+The threshold does not decrease: disjoint labels give the sum
+of their sizes, whereas intersecting labels give the identity.
+Hereafter, \(U_{\ge t}\) and the analogous symbols denote subgroups
+generated by labels of the corresponding size.
+
+\begin{lemma}\label{lem:filtration}
+For every \(s\ge1\),
+\[
+ \langle X^{F_s}\rangle=F_{3s}.
+\]
+Moreover, \(\langle X^{G_n}\rangle=F_1\).
+\end{lemma}
+\begin{proof}
+First, we check that \(F_{3s}\trianglelefteq F_s\).
+In the table, rows correspond to generators of \(F_{3s}\)
+and columns to generators of \(F_s\); an entry indicates the layer
+containing a possible nontrivial commutator:
+\[
+ \begin{array}{c|cccc}
+ &X&U_{\ge s}&V_{\ge2s}&W_{\ge3s}\\ \hline
+ X&1&1&1&U_{\ge3s}\\
+ U_{\ge3s}&1&1&U_{\ge5s}&V_{\ge6s}\\
+ V_{\ge6s}&1&U_{\ge7s}&1&W_{\ge9s}\\
+ W_{\ge9s}&U_{\ge9s}&V_{\ge10s}&W_{\ge11s}&1
+ \end{array}
+\]
+All entries lie in \(F_{3s}\).
+Since the generators are involutions, this check ensures
+invariance under conjugation by them in both directions.
+The subgroup contains \(X\), so
+\(\langle X^{F_s}\rangle\le F_{3s}\).
+
+For the reverse inclusion, set \(K=\langle X^{F_s}\rangle\).
+It is normal in \(F_s\) and contains \(X\).
+If \(|A|\ge3s\), then \(W_A\in F_s\), so
+\([W_A,X]=U_A\in K\).
+Every label \(T\) of size at least \(6s\) can be partitioned
+as \(A\sqcup B\) with \(|A|,|B|\ge3s\);
+then \([W_A,U_B]=V_T\in K\).
+For \(|T|\ge9s\), take a partition with
+\(|A|\ge6s,\ |B|\ge3s\).
+The previous step gives \(V_A\in K\), and hence
+\([V_A,W_B]=W_T\in K\).
+These are all the generators of \(F_{3s}\).
+
+For the initial step, we check that \(F_1\trianglelefteq G_n\).
+Possible nontrivial commutators between generators lie in the layers
+\[
+ \begin{aligned}[c]
+ [X,W_{\ge1}]&\subseteq U_{\ge1},&
+ [U_{\ge1},V_{\ge1}]&\subseteq U_{\ge2},\\
+ [U_{\ge1},W_{\ge1}]&\subseteq V_{\ge2},&
+ [V_{\ge2},W_{\ge1}]&\subseteq W_{\ge3},\\
+ [W_{\ge3},U_{\ge1}]&\subseteq V_{\ge4},&
+ [W_{\ge3},V_{\ge1}]&\subseteq W_{\ge4},\\
+ [W_{\ge3},X]&\subseteq U_{\ge3}.
+ \end{aligned}
+\]
+They all lie in \(F_1\); the others are the identity
+or are obtained by inverting a commutator.
+Thus \(\langle X^{G_n}\rangle\le F_1\).
+Conversely, \([W_A,X]=U_A\) puts all \(U_A\) in the normal closure;
+partitions into two nonempty parts and \([W_A,U_B]\)
+give all \(V_T\) with \(|T|\ge2\);
+partitions with \(|A|\ge2,\ |B|\ge1\) and \([V_A,W_B]\)
+give all \(W_T\) with \(|T|\ge3\).
+\end{proof}
+
+\subsection{The quandle and its depth}
+
+\begin{proof}[Proof of Theorem~\ref{thm:first}]
+Let \(C_n=X^{G_n}\), and equip \(Q_n=C_n\)
+with the operation \(a\conj b=a^{-1}ba\).
+This is a finite quandle by Lemma~\ref{lem:orbits}.
+For \(a=X^g,\ b=X^h\), conjugation by \(h^{-1}\)
+sends the pair to \(X^{gh^{-1}},X\).
+Thus \eqref{eq:pairengel} gives
+\([[a,b],b]=1\) for all \(a,b\in C_n\).
+Interchanging \(a,b\) gives \([[b,a],a]=1\).
+Since \([b,a]=[a,b]^{-1}\), the commutator \([a,b]\)
+centralizes both generators. The subgroup \(\langle a,b\rangle\)
+has class at most two.
+In particular, \(a^{-1}ba\) commutes with \(b\), so
+\[
+ (a\conj b)\conj b=b.
+\]
+Hence \(Q_n\in\LR_2\).
+
+For \(n\ge3\), choose \(|A|=3\).
+Then \(W_A\in F_1=\langle C_n\rangle\)
+and \([W_A,X]=U_A\ne1\).
+By Lemma~\ref{lem:orbits}, the orbit of \(X\) in \(Q_n\)
+is nontrivial, so \(Q_n\) is not trivial and \(k(Q_n)=2\).
+The index \(j(Q_n)\) exists:
+by \cite[Corollary~5.19]{BCNW}, a finite quandle in \(\LR_2\)
+belongs to \(\tOS\), meaning that every orbit series
+reaches a singleton quandle.
+The length of such a series in a finite quandle is bounded:
+all inclusions before the singleton term are strict,
+since equality of consecutive terms would mean that
+the current term is connected and cannot decrease further.
+Therefore \(Q_n\in\bigcup_{t\ge1}\tOS_t\).
+
+Choosing the anchor \(X\) at every step, set
+\[
+ S_0=C_n,\qquad N_r=\langle S_r\rangle,\qquad
+ S_{r+1}=X^{N_r}.
+\]
+This is an orbit series by Lemma~\ref{lem:orbits}.
+Lemma~\ref{lem:filtration} gives
+\[
+ N_r=F_{3^r}\quad(r\ge0),\qquad
+ S_r=X^{F_{3^{r-1}}}\quad(r\ge1).
+\]
+If \(r\ge1\) and \(3^r\le n\), choose \(|A|=3^r\).
+Then \(W_A\in F_{3^{r-1}}\), so \(X,X^{W_A}\in S_r\);
+these elements are distinct because \([W_A,X]=U_A\ne1\).
+Consequently, \(S_r\) is not a singleton.
+For \(r=\lfloor\log_3n\rfloor\), the series does not reach
+a singleton at any of the steps \(0,\ldots,r\),
+and \(j(Q_n)\ge r+1\).
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:first} establishes a lower bound.
+Exact values of \(j(Q_n)\) and minimal orders of quandles
+with prescribed indices are not determined here.
+\end{remark}
+
+\section{Second family: unbounded reductivity}\label{sec:second}
+
+\subsection{The reduced free group and a finite quotient}
+
+Let \(F(x_1,\ldots,x_m)\) be the free group.
+Define the reduced free group
+\[
+ RF_m=F(x_1,\ldots,x_m)/
+ \langle\!\langle [x_r,x_r^w]:
+ 1\le r\le m,\ w\in F(x_1,\ldots,x_m)\rangle\!\rangle.
+\]
+Each \(x_r\) commutes with all its conjugates.
+By \cite[Propositions~1.3 and~1.18]{Darne},
+\[
+ \gamma_{m+1}(RF_m)=1,\qquad
+ \gamma_m(RF_m)=Z(RF_m)\cong\Z^{(m-1)!}.
+\]
+Here and below, the numbering in~\cite{Darne} follows arXiv version v2.
+Thus \(RF_m\) has exact class \(m\).
+Choose \(1\ne z_m\in\gamma_m(RF_m)\).
+
+We justify the existence of a finite quotient in which \(z_m\) survives.
+Consider the ring
+\[
+ \mathscr A_m=\Z\langle X_1,\ldots,X_m\rangle/I,
+\]
+where \(I\) is generated by words with at least one repeated letter.
+Its additive basis consists of the empty word and all words without repetitions.
+For the ideal \(J=(X_1,\ldots,X_m)\), we have \(J^{m+1}=0\);
+thus \(1+J\) is a group, with inverses
+\[
+ (1+u)^{-1}=\sum_{t=0}^{m}(-u)^t.
+\]
+By \cite[Corollary~1.13]{Darne}, the Magnus map
+\[
+ \mu:RF_m\hookrightarrow1+J,\qquad x_r\mapsto1+X_r
+\]
+is injective.
+The expansion \(\mu(z_m)-1=\sum_w c_ww\)
+has a nonzero integer coefficient \(c_w\).
+Choose a prime \(p\) not dividing this coefficient
+and reduce the ring modulo \(p\).
+The group \(1+\overline J\) is finite, since \(\overline J\)
+has a finite basis over \(\F_p\); its order is \(p^{d_m}\), where
+\[
+ d_m=\sum_{t=1}^{m}\frac{m!}{(m-t)!}.
+\]
+Let \(A_m\) be the image of \(RF_m\) in this group,
+and let \(\phi_m:RF_m\twoheadrightarrow A_m\) be the epimorphism onto the image.
+Then \(\phi_m(z_m)\ne1\).
+Epimorphisms preserve the lower central series:
+\(\phi_m(\gamma_t(RF_m))=\gamma_t(A_m)\),
+as follows by induction from preservation of commutators.
+Hence \(A_m\) has exact class \(m\).
+
+To make the conjugacy classes of the chosen generators distinct, set
+\[
+ \alpha:RF_m\to(\Z/2\Z)^m,\quad x_r\mapsto e_r,\qquad
+ G_m=\operatorname{im}(\phi_m,\alpha)
+ \le A_m\times(\Z/2\Z)^m.
+\]
+The map \(\alpha\) is well-defined because all the relations
+lie in the commutator subgroup of the free group.
+Denote the epimorphism onto \(G_m\) by \(\psi_m\),
+and the images of \(x_r\) by \(a_r\).
+The group \(G_m\) is finite, is generated by \(a_1,\ldots,a_m\),
+and has exact class \(m\):
+it is a quotient of \(RF_m\), and its first coordinate preserves \(z_m\).
+The abelian coordinates \(e_r\) are distinct,
+so \(a_r,a_s\) cannot be conjugate for \(r\ne s\).
+
+\subsection{Orbits and the three exact indices}
+
+\begin{proof}[Proof of Theorem~\ref{thm:second}]
+Fix \(m\ge2\), and write \(G=G_m\) for brevity.
+Set
+\[
+ C_r=a_r^G,\qquad P_m=\bigcup_{r=1}^{m}C_r,\qquad
+ u\conj v=u^{-1}vu.
+\]
+By Lemma~\ref{lem:orbits}, this is a finite quandle.
+The classes \(C_r\) are pairwise disjoint.
+The relations of the reduced free group give
+\([a_r,a_r^g]=1\) for every \(g\in G\).
+Any two elements \(a_r^g,a_r^h\) commute:
+conjugation by \(g^{-1}\) sends them to \(a_r,a_r^{hg^{-1}}\).
+Thus every \(C_r\) is trivial as a quandle.
+
+Consider the homomorphism
+\[
+ \rho:G\to\operatorname{Sym}(P_m),\qquad
+ \rho(g)(v)=gvg^{-1}.
+\]
+With the usual composition of permutations, this is a homomorphism;
+the maps \(v\mapsto g^{-1}vg\) form an antihomomorphism.
+We have \(L_u=\rho(u^{-1})\).
+Since \(P_m\) contains all the \(a_r\), it generates \(G\);
+hence \(\Inn(P_m)=\rho(G)\).
+Its orbits are exactly \(C_1,\ldots,C_m\).
+Every orbit series reaches one of the \(C_r\) at its first step
+and a singleton quandle at its second.
+Thus \(P_m\in\tOS_2\).
+The quandle is not trivial: otherwise all the \(a_r\) would
+commute pairwise, and the group \(G\) that they generate would be abelian,
+contrary to its class \(m\ge2\).
+Therefore \(j(P_m)=2\).
+
+The element \(u\conj v\) lies in the same \(C_r\) as \(v\),
+and therefore commutes with \(v\).
+It follows that \((u\conj v)\conj v=v\), so \(P_m\in\LR_2\).
+Nontriviality gives \(k(P_m)=2\).
+
+The kernel of \(\rho\) is \(C_G(P_m)=Z(G)\),
+since \(P_m\) generates \(G\).
+Consequently,
+\[
+ \Inn(P_m)\cong G/Z(G).
+\]
+The quotient \(G/Z(G)\) has exact class \(m-1\).
+Indeed, \(\gamma_m(G)\le Z(G)\), so \(\gamma_m(G/Z(G))=1\).
+If \(\gamma_{m-1}(G/Z(G))=1\), then
+\(\gamma_{m-1}(G)\le Z(G)\), forcing \(\gamma_m(G)=1\),
+a contradiction.
+Proposition~\ref{prop:criterion} now gives \(i(P_m)=m\).
+All the required equalities follow.
+\end{proof}
+
+\begin{remark}
+The abelian factor \((\Z/2\Z)^m\) is needed to ensure
+exactly \(m\) distinct orbits.
+For unboundedness of \(i\) with \(j=2\), \(A_m\) itself is sufficient.
+The prime \(p\) is chosen after choosing \(z_m\);
+we do not assert that an arbitrary \(z_m\) survives
+for any prime \(p\) fixed in advance.
+\end{remark}
+
+\subsection{\texorpdfstring{An example for \(m=2\)}{An example for m=2}}
+
+To illustrate the index shift, one may take \(G=UT_3(\F_2)\)
+with generators
+\[
+ a=1+E_{12},\qquad b=1+E_{23},\qquad z=1+E_{13}.
+\]
+This group has order \(8\), class \(2\), and center \(\{1,z\}\).
+The generator classes are \(\{a,az\}\) and \(\{b,bz\}\).
+On \(P=\{a,az,b,bz\}\), the operation has table
+\[
+ \begin{array}{c|cccc}
+ \conj&a&az&b&bz\\ \hline
+ a&a&az&bz&b\\
+ az&a&az&bz&b\\
+ b&az&a&b&bz\\
+ bz&az&a&b&bz
+ \end{array}
+\]
+There are two trivial orbits of size \(2\),
+and \(\Inn(P)\cong G/Z(G)\) is nontrivial and abelian.
+Thus \((k(P),j(P),i(P))=(2,2,2)\).
+
+\section{Scope of the results}
+
+Both obstructions occur already at the least nontrivial
+value of the controlling index, namely \(2\).
+The first family consists of a single group conjugacy class;
+the second consists of a union of the classes of chosen generators.
+It is not the full conjugation quandle on the entire group.
+Consequently, \cite[Corollary~5.24]{BCNW}, which concerns
+the full quandle \(\operatorname{Conj}(G)\),
+does not bound the class of the group in the construction of \(P_m\).
+
+The finite quotient in the second family is chosen
+to preserve a nonzero commutator of weight \(m\).
+An arbitrary finite quotient may decrease the class
+and does not ensure the required index.
+The proofs establish the existence of these families;
+optimal orders and the exact depth of the first family
+are outside the scope of this paper.
+
+\begin{thebibliography}{9}
+\bibitem{BCNW}
+M.~Bonatto, A.~S.~Crans, T.~Nasybullov, G.~T.~Whitney.
+\newblock Quandles with orbit series conditions.
+\newblock \emph{Journal of Algebra}, \textbf{567} (2021), 284--309.
+\newblock DOI:
+\href{https://doi.org/10.1016/j.jalgebra.2020.09.026}{10.1016/j.jalgebra.2020.09.026}.
+\newblock Numbering:
+\href{https://arxiv.org/abs/2004.10227v3}{arXiv:2004.10227v3}.
+
+\bibitem{NTT}
+M.~Noce, G.~Tracey, G.~Traustason.
+\newblock A left \(3\)-Engel element whose normal closure is not nilpotent.
+\newblock \emph{Journal of Pure and Applied Algebra},
+\textbf{224}, no.~3 (2020), 1092--1101.
+\newblock DOI:
+\href{https://doi.org/10.1016/j.jpaa.2019.07.004}{10.1016/j.jpaa.2019.07.004}.
+\newblock \href{https://arxiv.org/abs/1811.12074v1}{arXiv:1811.12074v1}.
+
+\bibitem{Darne}
+J.~Darn\'e.
+\newblock Milnor invariants of braids and welded braids up to homotopy.
+\newblock \emph{Algebraic \& Geometric Topology},
+\textbf{24}, no.~3 (2024), 1277--1320.
+\newblock DOI:
+\href{https://doi.org/10.2140/agt.2024.24.1277}{10.2140/agt.2024.24.1277}.
+\newblock Numbering:
+\href{https://arxiv.org/abs/1904.10677v2}{arXiv:1904.10677v2}.
+\end{thebibliography}
+\end{document}
