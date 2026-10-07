@@ -51,7 +51,7 @@
   \small Novosibirsk State Technical University\\
   \small Novosibirsk, Russia\\
   \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
-\date{October 7, 2026\\[2pt]\small Working preprint}
+\date{October 8, 2026\\[2pt]\small Working preprint}
 
 \begin{document}
 \maketitle
@@ -80,8 +80,10 @@ subnormal subgroup, group automorphism.
 
 \section{Introduction and main results}
 
-Orbit series of quandles and the classes \(\OS\), \(\OS_n\) were introduced in
-\cite{BCNW}. Question~5.7 of that paper asks whether
+Orbit series of quandles, the classes \(\OS\), \(\OS_n\),
+\(\tOS\), \(\tOS_n\), and their unions over finite indices
+were introduced in \cite[Section~4.1]{BCNW}.
+Question~5.7 of that paper asks whether
 \(\OS\) and \(\OS_\omega\) are closed under extensions.
 The numbering of the question and results from \cite{BCNW} used below
 follows arXiv version v3, dated August 18, 2020.
@@ -118,6 +120,13 @@ Proposition~\ref{prop:negative} follows from the disjoint union of
 dihedral quandles in Example~4.2 of \cite{BCNW},
 after considering the projection onto the summand index.
 
+The definitions of orbit-series classes and extensions follow~\cite{BCNW};
+the term ``covering'' is used in the sense of~\cite{Eisermann},
+translated to the left convention. All auxiliary group and quandle
+lemmas, including the required property of coverings,
+are proved below. For the negative example, we also give
+a direct computation of orbit series.
+
 \section{Definitions and auxiliary lemmas}\label{sec:prelim}
 
 \begin{definition}
@@ -135,6 +144,9 @@ the orbit of \(x\). A quandle is connected if this group acts transitively;
 it is trivial if \(x\conj y=y\) for all \(x,y\).
 \end{definition}
 
+A quandle homomorphism preserves the operation; an epimorphism
+here and below means a surjective homomorphism.
+
 By choosing \(x_i\in Q_i\) successively, we construct an \emph{orbit series}
 \[
  Q_0=Q,\qquad Q_{i+1}=\Orb(x_i,Q_i).
@@ -149,6 +161,7 @@ The stable term of a series is connected, since
 The trivializing classes \(\tOS\) and \(\tOS_n\) are defined by
 requiring that a singleton quandle be reached, respectively,
 in finitely many steps or no later than step \(n\).
+Set \(\tOS_\omega=\bigcup_{n\ge1}\tOS_n\).
 
 By an \emph{extension} we mean an epimorphism
 \(\pi:Q\twoheadrightarrow B\); its full fibres are
@@ -246,8 +259,10 @@ Lemma~\ref{lem:invariant}; the remaining series stabilizes.
 An epimorphism \(p:E\twoheadrightarrow C\) is called a
 \emph{covering} if
 \[
- p(x)=p(y)\quad\Longrightarrow\quad L_x^E=L_y^E.
+p(x)=p(y)\quad\Longrightarrow\quad L_x^E=L_y^E.
 \]
+This is \cite[Definition~2.32, arXiv v3]{Eisermann},
+translated from the right convention to the left convention.
 \end{definition}
 
 \begin{lemma}\label{lem:covering}
@@ -275,6 +290,11 @@ the next anchor lies in this same orbit, and
 \section{Lifting a relative commutator series}\label{sec:groups}
 
 For a group, write \(x^y=y^{-1}xy\).
+The ordinary commutator is \([x,y]=x^{-1}y^{-1}xy\),
+\(H'=[H,H]\) is the commutator subgroup,
+and \(C_H(h)=\{q\in H:qh=hq\}\) is the centralizer.
+The normal closure of a subgroup is the smallest normal subgroup
+containing it.
 If \(\phi\in\Aut(L)\) and \(X\le L\) satisfies
 \(\phi(X)=X\), set
 \[
@@ -457,6 +477,7 @@ Since \(N=\ker\sigma\), we have \(N\trianglelefteq L\)
 and \(\phi(N)=N\).
 The induced automorphism \(\bar\phi\) corresponds to \(\psi\).
 
+\(H'\) is characteristic in \(H\), hence invariant under \(\psi\).
 The subgroup \(J=[H',\psi]\) is normal in \(H'\)
 and invariant under \(h\), hence normal in \(H\).
 In \(H/J\), the image of \(h\) is central and normally generates the whole quotient.
@@ -475,8 +496,13 @@ generators \(u,v\):
 The following epimorphisms are well-defined:
 \[
  \widetilde\sigma(lu^k)=\sigma(l)v^k,\qquad
- \rho_G(lu^k)=lc^k,\qquad \rho_H(qv^k)=qh^k.
+\rho_G(lu^k)=lc^k,\qquad \rho_H(qv^k)=qh^k.
 \]
+Indeed, \(\sigma(\phi(l))=\psi(\sigma(l))\)
+and \(c^{-1}lc=\phi(l)\), \(h^{-1}qh=\psi(q)\),
+so the defining relations are preserved.
+Surjectivity follows from \(\sigma(L)=H'\),
+\(G=L\langle c\rangle\) and \(H=H'\langle h\rangle\).
 The first map has kernel \(N\), and the other maps are compatible
 with \(\sigma\) and \(\widetilde\sigma\).
 The restrictions of \(\rho_G,\rho_H\) induce quandle isomorphisms
@@ -597,6 +623,8 @@ Since the original series was arbitrary, \(Q\in\OS\).
 \end{proof}
 
 \begin{remark}
+A quandle is called \emph{faithful} if \(y\mapsto L_y\)
+is injective \cite[Section~2.2]{BCNW}.
 The map \(y\mapsto L_y\) need not be injective.
 Thus the proof also covers nonfaithful quandles.
 No common finite bound on the depths of the full fibres is needed.
@@ -661,16 +689,17 @@ The same example also shows that the class
 \(\tOS_\omega=\bigcup_{n\ge1}\tOS_n\) is not closed under extensions:
 the fibres belong to \(\tOS_\omega\), while the domain does not.
 Consequently, the assertion that \(\tOS_\omega\) is closed under extensions
-in Corollary~5.6 of arXiv version v3 of \cite{BCNW}
+in \cite[Corollary~5.6, arXiv v3]{BCNW}
 is false for the definition of extension in its Section~2.2,
 which does not require a uniform bound across fibres.
-Lemma~5.5 of the same version assumes a single fixed
+\cite[Lemma~5.5, arXiv v3]{BCNW} assumes a single fixed
 index \(m\) for all full fibres and is not contradicted by this example.
 This hypothesis must be retained to deduce membership in \(\tOS_\omega\)
 from that lemma.
 \end{remark}
 
 \begin{thebibliography}{9}
+\raggedright
 \bibitem{BCNW}
 M.~Bonatto, A.~S.~Crans, T.~Nasybullov, G.~T.~Whitney.
 \newblock Quandles with orbit series conditions.
@@ -681,6 +710,14 @@ M.~Bonatto, A.~S.~Crans, T.~Nasybullov, G.~T.~Whitney.
 \newblock The numbering in the text follows
 \href{https://arxiv.org/abs/2004.10227v3}{arXiv:2004.10227v3},
 August 18, 2020.
+\bibitem{Eisermann}
+M.~Eisermann.
+\newblock Quandle coverings and their Galois correspondence.
+\newblock \emph{Fundamenta Mathematicae}, \textbf{225} (2014), 103--167.
+\newblock DOI:
+\href{https://doi.org/10.4064/fm225-1-7}{10.4064/fm225-1-7}.
+\newblock Numbering:
+\href{https://arxiv.org/abs/math/0612459v3}{arXiv:math/0612459v3}.
 \end{thebibliography}
 
 \end{document}

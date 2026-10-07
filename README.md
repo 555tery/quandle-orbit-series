@@ -7,8 +7,8 @@ University, Novosibirsk, Russia ([555tery](https://github.com/555tery),
 Both papers address questions in Bonatto–Crans–Nasybullov–Whitney,
 *Quandles with orbit series conditions*, using the numbering and definitions
 of [arXiv version 3](https://arxiv.org/abs/2004.10227v3).
-The manuscripts are dated October 7, 2026; the final bilingual build was
-checked on October 8, 2026.
+The revised manuscripts are dated October 8, 2026. Their references,
+definitions and proof dependencies were checked in both languages.
 
 ## Papers and LaTeX sources
 
@@ -43,6 +43,14 @@ The proof contains a group-theoretic ascent theorem for commutator series
 under one automorphism. The negative example for $\mathcal{OS}_\omega$ uses
 an infinite disjoint union of finite dihedral quandles with unbounded depths.
 
+## References and independent reading
+
+Each article contains the definitions and conventions needed to read its
+proofs. External mathematical inputs have pinpoint citations to specified
+source versions; auxiliary arguments are proved in the text.
+The papers do not depend on each other or on the research wiki.
+See the [reference and dependency map](REFERENCES_AND_DEPENDENCIES.md).
+
 ## Build
 
 Each `.tex` file is standalone, including its bibliography. No external
@@ -56,7 +64,7 @@ tectonic question-5-7/q57_preprint_en.tex
 
 ## Status
 
-The texts include full proofs and have undergone internal mathematical
+The texts include proofs or precise references for their inputs and have undergone internal mathematical
 review, comparison of the two language versions, compilation, and visual
 inspection of the PDFs. External peer review has not yet been obtained.
 **Novelty and publication priority have not been established.**
