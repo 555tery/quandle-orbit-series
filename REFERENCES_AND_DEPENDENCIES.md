@@ -1,6 +1,6 @@
 # References and self-containment of the two preprints
 
-Revision: **October 8, 2026**. This map applies to both the Russian and
+Revision: **October 9, 2026**. This map applies to both the Russian and
 English manuscripts. It records the sources actually used in the arguments;
 it is not a claim that the literature or publication priority has been
 exhaustively checked.
@@ -11,16 +11,19 @@ exhaustively checked.
 |---|---|---|
 | Left quandle convention, reductivity and orbit-series classes | [BCNW, arXiv v3](https://arxiv.org/abs/2004.10227v3), Sections 2 and 4.1 | Definitions are given in Section 2. |
 | Equivalence of the finite-depth unions for finite quandles | BCNW, Corollary 5.19 | Cited in the introduction and in the proof that the first family's index exists. |
+| Principal orbit series in finite quandles | BCNW, Proposition 4.6 and Corollary 4.8 | Used to pass from the computed principal series to the exact depth of every orbit series in the transitive conjugacy class. |
 | Group criterion for reductivity | BCNW, Proposition 3.2 | Credited; a direct proof with the index convention is included in Section 2. |
 | NTT operator construction | [Noce–Tracey–Traustason, arXiv v1](https://arxiv.org/abs/1811.12074v1), Section 2, construction before Lemma 2.2 | The subgroup with finite labels is specified; the operator action and empty-label convention are stated. The underlying operator construction is referenced. |
 | Commutator formulas, normal form and the required Engel identity | NTT, Lemma 2.3, Proposition 2.4, proof of Theorem 2.5 | The exact formulas used are stated with separate references in Section 3.1. |
+| Exact cardinalities of the principal orbit-series terms and local finiteness of the infinite product | Derived from NTT, Proposition 2.4, Theorem 2.5 and Corollary 2.7; Proposition 2.9 supplies the finite nilpotency-class bound | The exact orbit-cardinality formula and the locally finite product corollary are proved in Section 3. |
 | Reduced free group, class, center and Magnus embedding | [Darné, arXiv v2](https://arxiv.org/abs/1904.10677v2), Definition 1.2, Propositions 1.3 and 1.18, Corollary 1.13 | The presentation and the input statements are given in Section 4.1 with precise references. |
 | Reduced associative algebra and its word basis | Darné, Definition 1.4 and Fact 1.5 | The ring, its two-sided ideal and its basis are specified before the finite-quotient argument. |
 | Historical attribution of the reduced free group and class bound | [Milnor, Link groups](https://doi.org/10.2307/1969685); [Habegger–Lin, Lemma 1.3](https://doi.org/10.1090/S0894-0347-1990-1026062-0), as attributed in Darné | Original attribution is included; the proof inputs are taken from the specified version of Darné. |
 | Scope of a result concerning the full conjugation quandle | BCNW, Corollary 5.24 | Its scope is explained in Section 5; the generator-class union used here is distinguished from the full conjugation quandle. |
 
-The finite NTT family, its filtration and orbit-depth lower bound are proved
-in Section 3. The finite quotient preserving the reduced free group's
+The finite NTT family, its filtration, exact orbit-series depth and infinite
+\(\mathcal{LR}_2\setminus\mathcal{OS}\) product corollary are proved in
+Section 3. The finite quotient preserving the reduced free group's
 class, the union of generator conjugacy classes, and all three exact indices
 are proved in Section 4. These arguments require no other project notes.
 

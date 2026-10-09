@@ -7,8 +7,9 @@ University, Novosibirsk, Russia ([555tery](https://github.com/555tery),
 Both papers address questions in Bonatto–Crans–Nasybullov–Whitney,
 *Quandles with orbit series conditions*, using the numbering and definitions
 of [arXiv version 3](https://arxiv.org/abs/2004.10227v3).
-The revised manuscripts are dated October 8, 2026. Their references,
-definitions and proof dependencies were checked in both languages.
+The Question 5.25 manuscript is revised October 9, 2026; the Question 5.7
+manuscript is dated October 8, 2026. Their references, definitions and proof
+dependencies were checked in both languages.
 
 ## Papers and LaTeX sources
 
@@ -23,13 +24,21 @@ For a finite quandle, let $k,j,i$ denote the least positive indices of local
 reductivity, trivialization of orbit series, and reductivity, respectively.
 The paper gives two finite families:
 
-- $k(Q_n)=2$ and $j(Q_n)\ge\lfloor\log_3 n\rfloor+1$ for every $n\ge3$;
-- $(k(P_m),j(P_m),i(P_m))=(2,2,m)$ for every $m\ge2$.
+- For every $n\ge3$, $Q_n$ satisfies
+  $k(Q_n)=2$ and $j(Q_n)=\lfloor\log_3n\rfloor+1$.
+- For every $m\ge2$, $P_m$ satisfies
+  $(k(P_m),j(P_m),i(P_m))=(2,2,m)$.
+
+For the distinguished orbit series in $Q_n$, the $r$-th term has exact
+cardinality
+$|S_r|=2^{\sum_{t=3^r}^{n}\binom nt}$ for $r\ge0$.
+The infinite product $\prod_{n\ge3}Q_n$ is a locally finite quandle in
+$\mathcal{LR}_2\setminus\mathcal{OS}$.
 
 Thus there is no universal bound on $j$ in terms of $k$, nor on $i$ in terms
-of $j$. The construction uses the group of Noce–Tracey–Traustason and finite
-quotients of reduced free groups. These group constructions and their
-sources are identified explicitly in the paper.
+of $j$. The constructions use the group of Noce–Tracey–Traustason and finite
+quotients of reduced free groups. Their group-theoretic inputs and sources
+are identified explicitly in the papers.
 
 ### Question 5.7
 
@@ -64,9 +73,10 @@ tectonic question-5-7/q57_preprint_en.tex
 
 ## Status
 
-The texts include proofs or precise references for their inputs and have undergone internal mathematical
-review, comparison of the two language versions, compilation, and visual
-inspection of the PDFs. External peer review has not yet been obtained.
+The texts include proofs or precise references for their inputs and have
+undergone internal mathematical review, comparison of the two language
+versions, compilation, and visual inspection of the PDFs. External peer
+review has not yet been obtained.
 **Novelty and publication priority have not been established.**
 
 ## Earlier notes on Question 5.25
@@ -82,6 +92,9 @@ For the complete article and current presentation, use the preprint above.
 Здесь опубликованы две работы и их самостоятельные исходники TeX на русском
 и английском языках. По вопросу 5.25 получены отрицательные ответы на обе
 части: индекс $j$ не ограничивается через $k$, а индекс $i$ — через $j$.
-По вопросу 5.7 класс $\mathcal{OS}$ замкнут относительно extensions,
-а $\mathcal{OS}_\omega$ не замкнут. Внутренняя проверка завершена;
+Для первой конструкции получена точная глубина и формула мощностей членов
+выбранного орбитального ряда; бесконечное произведение примеров локально
+конечно и не принадлежит $\mathcal{OS}$. По вопросу 5.7 класс
+$\mathcal{OS}$ замкнут относительно extensions, а
+$\mathcal{OS}_\omega$ не замкнут. Внутренняя проверка завершена;
 внешнее рецензирование, новизна и приоритет остаются отдельными задачами.

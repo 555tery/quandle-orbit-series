@@ -37,6 +37,7 @@
 \renewcommand{\proofname}{Proof}
 \newcommand{\R}{\mathcal R}
 \newcommand{\LR}{\mathcal{LR}}
+\newcommand{\OS}{\mathcal{OS}}
 \newcommand{\tOS}{t\mathcal{OS}}
 \newcommand{\Inn}{\operatorname{Inn}}
 \newcommand{\Orb}{\operatorname{Orb}}
@@ -52,7 +53,7 @@ of Finite Quandles}
   \small Novosibirsk State Technical University\\
   \small Novosibirsk, Russia\\
   \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
-\date{October 8, 2026\\[2pt]\small Working preprint}
+\date{October 9, 2026\\[2pt]\small Working preprint}
 
 \begin{document}
 \maketitle
@@ -62,14 +63,17 @@ least positive indices of local reductivity, trivialization of
 orbit series, and reductivity, respectively.
 We show that \(j\) cannot be bounded by a function of \(k\),
 and \(i\) cannot be bounded by a function of \(j\).
-For every \(n\ge3\), we construct a finite quandle \(Q_n\) with
-\(k(Q_n)=2\) and \(j(Q_n)\ge\lfloor\log_3n\rfloor+1\).
+For every \(n\ge3\), we construct a finite involutory quandle \(Q_n\) with
+\(k(Q_n)=2\) and exact value \(j(Q_n)=\lfloor\log_3n\rfloor+1\).
 For every \(m\ge2\), we construct a finite quandle \(P_m\) with
 \((k(P_m),j(P_m),i(P_m))=(2,2,m)\).
 The first family is obtained from the group of Noce--Tracey--Traustason
 using a filtration by label size; the second is obtained from finite
 quotients of the reduced free group that preserve its exact
-nilpotency class. All passages from groups to quandles,
+nilpotency class. The first family also yields an infinite involutory
+locally finite quandle in \(\LR_2\setminus\OS\), and we compute the
+exact sizes of the terms in its marked principal orbit series.
+All passages from groups to quandles,
 including the shift between the nilpotency class of the inner
 automorphism group and the reductivity index, are proved explicitly.
 This gives negative answers to both parts of Question~5.25
@@ -103,10 +107,10 @@ For a quandle whose corresponding indices exist, set
 The classes are defined in Section~\ref{sec:definitions}.
 
 \begin{theorem}\label{thm:first}
-For every integer \(n\ge3\), there is a finite quandle \(Q_n\)
+For every integer \(n\ge3\), there is a finite involutory quandle \(Q_n\)
 such that
 \[
- k(Q_n)=2,\qquad j(Q_n)\ge\lfloor\log_3n\rfloor+1.
+ k(Q_n)=2,\qquad j(Q_n)=\lfloor\log_3n\rfloor+1.
 \]
 \end{theorem}
 
@@ -130,6 +134,11 @@ such that \(i(Q)\le g(j(Q))\) for all such quandles.
 The first family has \(k=2\) and unbounded \(j\).
 The second has \(j=2\) and unbounded \(i\).
 \end{proof}
+
+For the first family, Proposition~\ref{prop:orbit-cardinalities}
+computes the exact sizes of the terms in the marked principal orbit
+series. The infinite-product example in
+Section~\ref{sec:first} is locally finite.
 
 Theorems~\ref{thm:first} and~\ref{thm:second} are proved in
 Sections~\ref{sec:first} and~\ref{sec:second}.
@@ -439,6 +448,8 @@ give all \(W_T\) with \(|T|\ge3\).
 Let \(C_n=X^{G_n}\), and equip \(Q_n=C_n\)
 with the operation \(a\conj b=a^{-1}ba\).
 This is a finite quandle by Lemma~\ref{lem:orbits}.
+Since \(X\) is an involution and \(C_n\) consists of its conjugates,
+all elements of \(Q_n\) are involutions; hence \(Q_n\) is involutory.
 For \(a=X^g,\ b=X^h\), conjugation by \(h^{-1}\)
 sends the pair to \(X^{gh^{-1}},X\).
 Thus \eqref{eq:pairengel} gives
@@ -486,12 +497,114 @@ Consequently, \(S_r\) is not a singleton.
 For \(r=\lfloor\log_3n\rfloor\), the series does not reach
 a singleton at any of the steps \(0,\ldots,r\),
 and \(j(Q_n)\ge r+1\).
+
+For the matching upper bound, put \(R=\lfloor\log_3n\rfloor\).
+Then \(3^R\le n<3^{R+1}\) and
+\[
+S_{R+1}=X^{F_{3^R}}.
+\]
+The group \(F_{3^R}\) has no generators \(W_A\), since these would require
+\(|A|\ge3^{R+1}>n\). Its remaining generators \(X,U_A,V_A\)
+all commute with \(X\), so \(S_{R+1}=\{X\}\). We already know
+that \(S_R\) is non-singleton. Thus the principal series of \(X\)
+first reaches a singleton at step \(R+1\).
+
+Every orbit series of \(Q_n\) is principal, by
+\cite[Proposition~4.6 and Corollary~4.8]{BCNW}: finiteness implies
+stabilization, and the proposition identifies a stabilizing series with
+the principal series of any point in its intersection. Such a point
+\(y\) lies in \(C_n=X^{G_n}\), so \(y=X^g\) for some \(g\in G_n\).
+Conjugation by \(g\) restricts to a quandle automorphism of \(Q_n\)
+and maps the entire principal series of \(X\) to that of \(y\).
+Consequently all orbit series have the same first singleton step, and
+\[
+\boxed{j(Q_n)=R+1=\lfloor\log_3n\rfloor+1.}
+\]
+\end{proof}
+
+\begin{proposition}\label{prop:orbit-cardinalities}
+For the principal orbit series defined by
+\(S_0=C_n\) and \(S_{r+1}=X^{\langle S_r\rangle}\), one has
+\[
+ |S_r|=2^{\displaystyle\sum_{t=3^r}^{n}\binom nt}
+ \qquad(r\ge0),
+\]
+where an empty sum is zero. In particular, \(S_r\) is a singleton
+exactly when \(3^r>n\).
+\end{proposition}
+\begin{proof}
+For \(r\ge1\), the filtration lemma gives
+\(S_r=X^{F_{3^{r-1}}}\). Put
+\[
+ \mathcal W_{s,n}=\{A\subseteq[n]: |A|\ge3s\}.
+\]
+By the unique normal form in Proposition~2.4 of~\cite{NTT}, the
+\(W\)-component of an element of \(F_s\) is uniquely a product
+\(w_T=\prod_{A\in T}W_A\) for some \(T\subseteq\mathcal W_{s,n}\).
+The other components commute with \(X\), so every element of
+\(X^{F_s}\) is \(X^{w_T}\), and every such conjugate occurs.
+
+The computation in the proof of Theorem~2.5 of~\cite{NTT} gives
+\[
+ X^{w_T}=1+\ad(y_T),\qquad
+ y_T=x+\sum_{A\in T}u_A
+ +\sum_{\{A,A'\}\subseteq T}v_{A\sqcup A'}
+ +\sum_{\{A,A',A''\}\subseteq T}w_{A\sqcup A'\sqcup A''}.
+\]
+Take \(B=\{n+1\}\) and apply \(\ad(y_T)\) to \(v_B\) in the
+ambient space \(V^*\) of~\cite{NTT}. Its \(U\)-component is
+\[
+ \sum_{A\in T}u_{A\cup B}.
+\]
+The map \(A\mapsto A\cup B\) is injective on subsets of \([n]\), and
+the corresponding basis vectors are linearly independent. Thus
+\(X^{w_T}=X^{w_{T'}}\) implies \(T=T'\). It follows that
+\[
+ |X^{F_s}|=2^{|\mathcal W_{s,n}|}
+ =2^{\sum_{t=3s}^{n}\binom nt}.
+\]
+Taking \(s=3^{r-1}\) proves the formula for \(r\ge1\). For \(r=0\),
+the same argument applied to \(C_n=X^{G_n}\) uses all nonempty
+subsets of \([n]\), giving \(|S_0|=2^{2^n-1}\), which is the stated
+formula. The singleton criterion follows because the exponent is zero
+exactly when \(3^r>n\).
+\end{proof}
+
+\begin{corollary}
+There is a locally finite infinite involutory quandle
+\(Q\in\LR_2\setminus\OS\).
+\end{corollary}
+\begin{proof}
+Let \(Q=\prod_{n\ge3}Q_n\) and \(x=(X_n)_{n\ge3}\), where \(X_n\)
+is the marked element in the \(n\)-th factor. The identity
+\((a\conj b)\conj b=b\) and involutivity hold coordinatewise, so
+\(Q\in\LR_2\) and \(Q\) is involutory.
+
+Consider the principal orbit series \(P_0=Q\),
+\(P_{r+1}=\operatorname{Orb}(x,P_r)\). For each projection
+\(p_n:Q\to Q_n\), induction gives that \(p_n(P_r)\) is the principal
+series term of \(Q_n\) anchored at \(X_n\): a surjective quandle
+homomorphism maps each orbit onto the orbit of the image anchor.
+For any \(r\), choose \(n\ge\max(3,3^r)\). The exact depth formula gives
+\(p_n(P_r)\ne p_n(P_{r+1})\). Hence \(P_r\ne P_{r+1}\) for every \(r\),
+so this orbit series never stabilizes and \(Q\notin\OS\).
+
+The quandle \(Q\) is also locally finite. Let \(q_1,\ldots,q_d\)
+be any finite set of its elements. In each coordinate \(Q_n\), these
+are \(d\) conjugates of \(X\). By Proposition~2.9 and Corollary~2.7
+of~\cite{NTT}, the subgroup they generate in that coordinate is
+nilpotent of class at most \(4d+2\) and has exponent dividing \(32\).
+Consequently the subgroup generated by \(q_1,\ldots,q_d\) in
+\(\prod_{n\ge3}G_n\) has the same class and exponent bounds.
+A finitely generated nilpotent group of finite exponent is finite:
+its lower central factors are finitely generated abelian groups of
+bounded exponent. The subquandle generated by \(q_1,\ldots,q_d\) lies
+in this finite subgroup, proving local finiteness.
 \end{proof}
 
 \begin{remark}
-Theorem~\ref{thm:first} establishes a lower bound.
-Exact values of \(j(Q_n)\) and minimal orders of quandles
-with prescribed indices are not determined here.
+Theorem~\ref{thm:first} gives the exact orbit-series depth of this family.
+Minimal orders of quandles with prescribed indices are not determined here.
 \end{remark}
 
 \section{Second family: unbounded reductivity}\label{sec:second}
