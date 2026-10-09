@@ -51,7 +51,7 @@
   \small Новосибирский государственный технический университет\\
   \small Новосибирск, Россия\\
   \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
-\date{8 октября 2026 года\\[2pt]\small Рабочая версия препринта}
+\date{10 октября 2026 года\\[2pt]\small Рабочая версия препринта}
 
 \begin{document}
 \maketitle
@@ -87,6 +87,15 @@
 \(\OS\) и \(\OS_\omega\) относительно расширений.
 Нумерация вопроса и результатов \cite{BCNW}, используемая ниже,
 относится к версии arXiv v3 от 18 августа 2020 года.
+
+В версиях arXiv
+\href{https://arxiv.org/abs/2004.10227v1}{v1} и
+\href{https://arxiv.org/abs/2004.10227v2}{v2} работы~\cite{BCNW}
+следствие~5.6 уже заявляло замкнутость относительно расширений
+обоих классов \(\OS\) и \(\OS_\omega\). В версии v3 это следствие
+ограничено классами \(\tOS\) и \(\tOS_\omega\) и добавлен вопрос~5.7.
+Мы фиксируем историю текстов arXiv, не предполагая причину изменения
+и не заявляя приоритета качественного утверждения для \(\OS\).
 
 Принципиально важно различать два условия. В классе \(\OS\)
 каждая отдельная орбитальная цепь должна стабилизироваться, но число
@@ -389,6 +398,47 @@ p(x)=p(y)\quad\Longrightarrow\quad L_x^E=L_y^E.
 используется только их субнормальность в \(D_i\).
 \end{remark}
 
+\begin{remark}\label{rmk:operators}
+Более общо, пусть \(N\trianglelefteq L\), группа \(A\le\Aut(L)\)
+сохраняет \(N\) и
+\([L/N,A]=L/N\), где
+\([X,A]=\langle x^{-1}a(x):x\in X,\ a\in A\rangle\).
+Определим \(R_0=N\), \(D_0=L\), \(R_{i+1}=[R_i,A]\) и
+\(D_{i+1}=[D_i,A]\). Доказательство теоремы~\ref{thm:group} даёт
+\(D_i=R_iD_{i+1}\) и то же следствие о стабилизации.
+Действительно, при \(\delta_a(x)=x^{-1}a(x)\) имеем
+\[
+ \delta_a(xy)=\delta_a(x)^y\delta_a(y),\qquad
+ b(\delta_a(x))=\delta_{bab^{-1}}(b(x))\quad(a,b\in A).
+\]
+Эти тождества дают нормальность в \(X\) и \(A\)-инвариантность
+\([X,A]\) для \(A\)-инвариантной \(X\). Применяются те же конечные
+субнормальные цепи и индукция с \(M_i=\langle R_i^{D_i}\rangle\):
+при \(x=rd\) каждый \(\delta_a(x)\) лежит в \(M_iD_{i+1}\).
+Значит, \(D_i=M_iD_{i+1}\), и лемма~\ref{lem:subnormal} вновь даёт
+\(D_i=R_iD_{i+1}\).
+
+Известный случай этого операторного варианта --- расщеплённое внутреннее
+действие: \(L=N\rtimes K\), \(A=\Inn(L)\), где \(K\) совершенна.
+Индуцированное действие на \(L/N\cong K\) равно \(\Inn(K)\),
+так что \([K,\Inn(K)]=[K,K]=K\).
+Здесь \(D_i=\gamma_{i+1}(L)\) и
+\(R_i=\gamma_{i+1}^{K}(N)\), причём
+\(\gamma_1^{K}(N)=N\),
+\(\gamma_{j+1}^{K}(N)=[L,\gamma_j^{K}(N)]\).
+Известное разложение
+\[
+ \gamma_j(L)=\gamma_j^{K}(N)\rtimes\gamma_j(K)
+\]
+\cite[предложение--определение~1.29 и предложение~1.33]{DS},
+\cite[теорема~1.2, arXiv v1]{GP}
+даёт \(D_i=R_i\rtimes K=R_iD_{i+1}\).
+Это выявляет известный расщеплённый внутренний случай, но не устанавливает
+приоритет для произвольных операторно совершенных факторов или
+нерасщеплённых расширений. Операторная совершенность фактора не требует
+совершенства самой фактор-группы в обычном смысле.
+\end{remark}
+
 \section{Расширения классов сопряжения}\label{sec:conjugacy}
 
 Класс \(c^K=\{g^{-1}cg:g\in K\}\) рассматриваем как квандл
@@ -689,7 +739,7 @@ p(x)=p(y)\quad\Longrightarrow\quad L_x^E=L_y^E.
 \(\tOS_\omega=\bigcup_{n\ge1}\tOS_n\):
 слои принадлежат \(\tOS_\omega\), а источник --- нет.
 Следовательно, утверждение о замкнутости \(\tOS_\omega\)
-в \cite[следствие~5.6, arXiv v3]{BCNW}
+в \cite[следствие~5.6, arXiv v1--v3]{BCNW}
 неверно для определения расширения из её раздела~2.2,
 в котором единая граница по слоям не требуется.
 В \cite[лемма~5.5, arXiv v3]{BCNW} предполагается один фиксированный
@@ -718,6 +768,21 @@ M.~Eisermann.
 \href{https://doi.org/10.4064/fm225-1-7}{10.4064/fm225-1-7}.
 \newblock Нумерация:
 \href{https://arxiv.org/abs/math/0612459v3}{arXiv:math/0612459v3}.
+\bibitem{DS}
+J.~Darné, A.~I.~Suciu.
+\newblock Lower central series and split extensions.
+\newblock \href{https://arxiv.org/abs/2105.14129v3}{arXiv:2105.14129v3},
+March 15, 2026, Section~1.8.
+\bibitem{GP}
+J.~Guaschi, C.~de Miranda e Pereiro.
+\newblock Lower central and derived series of semi-direct products, and applications to surface braid groups.
+\newblock \emph{Journal of Pure and Applied Algebra}, \textbf{224} (2020), 106309.
+\newblock DOI:
+\href{https://doi.org/10.1016/j.jpaa.2020.106309}{10.1016/j.jpaa.2020.106309}.
+\newblock \href{https://arxiv.org/abs/1802.07636v1}{arXiv:1802.07636v1},
+Название препринта: \emph{The lower central and derived series
+of the braid groups of compact surfaces}, теорема~1.2
+(теорема~1.1 в журнальной версии).
 \end{thebibliography}
 
 \end{document}

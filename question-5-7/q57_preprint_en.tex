@@ -51,7 +51,7 @@
   \small Novosibirsk State Technical University\\
   \small Novosibirsk, Russia\\
   \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
-\date{October 8, 2026\\[2pt]\small Working preprint}
+\date{October 10, 2026\\[2pt]\small Working preprint}
 
 \begin{document}
 \maketitle
@@ -87,6 +87,15 @@ Question~5.7 of that paper asks whether
 \(\OS\) and \(\OS_\omega\) are closed under extensions.
 The numbering of the question and results from \cite{BCNW} used below
 follows arXiv version v3, dated August 18, 2020.
+
+In arXiv versions
+\href{https://arxiv.org/abs/2004.10227v1}{v1} and
+\href{https://arxiv.org/abs/2004.10227v2}{v2} of~\cite{BCNW},
+Corollary~5.6 already asserted extension closure of both \(\OS\) and
+\(\OS_\omega\). Version v3 restricts that corollary to \(\tOS\) and
+\(\tOS_\omega\) and adds Question~5.7. We record this history of the
+arXiv texts without inferring a reason for the change or claiming priority
+for the qualitative \(\OS\) statement.
 
 It is essential to distinguish two conditions. In the class \(\OS\),
 each individual orbit series must stabilize, but the number of
@@ -389,6 +398,47 @@ The terms \(R_i\) need not be normal in all of \(L\);
 only their subnormality in \(D_i\) is used.
 \end{remark}
 
+\begin{remark}\label{rmk:operators}
+More generally, let \(N\trianglelefteq L\), let \(A\le\Aut(L)\) preserve
+\(N\), and suppose
+\([L/N,A]=L/N\), where
+\([X,A]=\langle x^{-1}a(x):x\in X,\ a\in A\rangle\).
+Define \(R_0=N\), \(D_0=L\), \(R_{i+1}=[R_i,A]\), and
+\(D_{i+1}=[D_i,A]\). The proof of Theorem~\ref{thm:group} gives
+\(D_i=R_iD_{i+1}\) and the same stabilization implication.
+Indeed, with \(\delta_a(x)=x^{-1}a(x)\),
+\[
+ \delta_a(xy)=\delta_a(x)^y\delta_a(y),\qquad
+ b(\delta_a(x))=\delta_{bab^{-1}}(b(x))\quad(a,b\in A).
+\]
+These identities give normality in \(X\) and \(A\)-invariance of
+\([X,A]\) when \(X\) is \(A\)-invariant. The same finite subnormal
+chains and induction with \(M_i=\langle R_i^{D_i}\rangle\) apply:
+for \(x=rd\), every \(\delta_a(x)\) lies in \(M_iD_{i+1}\).
+Thus \(D_i=M_iD_{i+1}\), and Lemma~\ref{lem:subnormal} again gives
+\(D_i=R_iD_{i+1}\).
+
+A known case of this operator version is the split inner action:
+\(L=N\rtimes K\), \(A=\Inn(L)\), and \(K\) perfect.
+The induced action on \(L/N\cong K\) is \(\Inn(K)\), so
+\([K,\Inn(K)]=[K,K]=K\).
+Here \(D_i=\gamma_{i+1}(L)\) and
+\(R_i=\gamma_{i+1}^{K}(N)\), with
+\(\gamma_1^{K}(N)=N\) and
+\(\gamma_{j+1}^{K}(N)=[L,\gamma_j^{K}(N)]\).
+The known decomposition
+\[
+ \gamma_j(L)=\gamma_j^{K}(N)\rtimes\gamma_j(K)
+\]
+\cite[Proposition--Definition~1.29 and Proposition~1.33]{DS},
+\cite[Theorem~1.2, arXiv v1]{GP}
+gives \(D_i=R_i\rtimes K=R_iD_{i+1}\).
+This identifies an existing split-inner case; it does not establish
+priority for arbitrary operator-perfect quotients or nonsplit extensions.
+Operator-perfectness of a quotient does not require that quotient group
+to be perfect in the ordinary sense.
+\end{remark}
+
 \section{Extensions of conjugacy classes}\label{sec:conjugacy}
 
 We regard the class \(c^K=\{g^{-1}cg:g\in K\}\) as a quandle
@@ -689,7 +739,7 @@ The same example also shows that the class
 \(\tOS_\omega=\bigcup_{n\ge1}\tOS_n\) is not closed under extensions:
 the fibres belong to \(\tOS_\omega\), while the domain does not.
 Consequently, the assertion that \(\tOS_\omega\) is closed under extensions
-in \cite[Corollary~5.6, arXiv v3]{BCNW}
+in \cite[Corollary~5.6, arXiv v1--v3]{BCNW}
 is false for the definition of extension in its Section~2.2,
 which does not require a uniform bound across fibres.
 \cite[Lemma~5.5, arXiv v3]{BCNW} assumes a single fixed
@@ -718,6 +768,21 @@ M.~Eisermann.
 \href{https://doi.org/10.4064/fm225-1-7}{10.4064/fm225-1-7}.
 \newblock Numbering:
 \href{https://arxiv.org/abs/math/0612459v3}{arXiv:math/0612459v3}.
+\bibitem{DS}
+J.~Darné, A.~I.~Suciu.
+\newblock Lower central series and split extensions.
+\newblock \href{https://arxiv.org/abs/2105.14129v3}{arXiv:2105.14129v3},
+March 15, 2026, Section~1.8.
+\bibitem{GP}
+J.~Guaschi, C.~de Miranda e Pereiro.
+\newblock Lower central and derived series of semi-direct products, and applications to surface braid groups.
+\newblock \emph{Journal of Pure and Applied Algebra}, \textbf{224} (2020), 106309.
+\newblock DOI:
+\href{https://doi.org/10.1016/j.jpaa.2020.106309}{10.1016/j.jpaa.2020.106309}.
+\newblock \href{https://arxiv.org/abs/1802.07636v1}{arXiv:1802.07636v1},
+published there under the title \emph{The lower central and derived series
+of the braid groups of compact surfaces}, Theorem~1.2
+(Theorem~1.1 in the journal version).
 \end{thebibliography}
 
 \end{document}

@@ -53,7 +53,7 @@ of Finite Quandles}
   \small Novosibirsk State Technical University\\
   \small Novosibirsk, Russia\\
   \small\href{mailto:555tery@gmail.com}{\texttt{555tery@gmail.com}}}
-\date{October 9, 2026\\[2pt]\small Working preprint}
+\date{October 10, 2026\\[2pt]\small Working preprint}
 
 \begin{document}
 \maketitle
@@ -67,10 +67,13 @@ For every \(n\ge3\), we construct a finite involutory quandle \(Q_n\) with
 \(k(Q_n)=2\) and exact value \(j(Q_n)=\lfloor\log_3n\rfloor+1\).
 For every \(m\ge2\), we construct a finite quandle \(P_m\) with
 \((k(P_m),j(P_m),i(P_m))=(2,2,m)\).
-The first family is obtained from the group of Noce--Tracey--Traustason
-using a filtration by label size; the second is obtained from finite
-quotients of the reduced free group that preserve its exact
-nilpotency class. The first family also yields an infinite involutory
+The first family uses finite label restrictions of the indexed
+Noce--Tracey--Traustason group, which is the \(m=2\) case of the broader
+family of Hadjievangelou--Traustason~\cite{HT}; we derive the orbit-series
+filtration and exact cardinalities for these sections. The second family
+uses finite quotients of the reduced free group that preserve its exact
+nilpotency class; the same finite profile also follows from the known
+Cohen-group quotients~\cite{CMW}. The first family also yields an infinite involutory
 locally finite quandle in \(\LR_2\setminus\OS\), and we compute the
 exact sizes of the terms in its marked principal orbit series.
 All passages from groups to quandles,
@@ -95,6 +98,12 @@ in terms of the local reductivity index, and whether the reductivity
 index can be bounded in terms of orbit-series depth.
 The numbering of the results in~\cite{BCNW} used here follows
 arXiv version v3, dated August 18, 2020.
+
+Recursive orbit decomposition was previously studied by Nelson--Wong
+\cite[Section~5]{NW} under the name \emph{subquandle depth}.
+Their procedure stops at connected subquandles, whereas \(j\) requires
+singleton terminal terms. For the nontrivial quandles \(Q_n\) below, all
+terminal connected subquandles are singletons, so these two depths agree.
 
 For a quandle whose corresponding indices exist, set
 \[
@@ -142,12 +151,15 @@ Section~\ref{sec:first} is locally finite.
 
 Theorems~\ref{thm:first} and~\ref{thm:second} are proved in
 Sections~\ref{sec:first} and~\ref{sec:second}.
-We use two known group constructions:
-the group of Noce--Tracey--Traustason~\cite{NTT}
-and the reduced free group as treated by Darn\'e~\cite{Darne}.
-The group-theoretic input results, with precise references, are collected
-in Subsections~3.1 and~4.1. The finite families, filtration,
-preservation of class in a finite quotient, and passages to quandles
+The first family uses the indexed group of Noce--Tracey--Traustason~\cite{NTT}.
+Hadjievangelou--Traustason~\cite{HT} construct a broader family of locally
+finite \(2\)-groups; their parameter \(m=2\) gives the same two-layer indexed
+group, and the groups \(G_n\) below are its finite restrictions to labels in
+\([n]\). The second family uses the reduced free group as treated by
+Darn\'e~\cite{Darne}. The group-theoretic input results, with precise
+references, are collected in Subsections~3.1 and~4.1. The orbit-series
+filtration and exact cardinalities for the first finite sections, the
+preservation of class in a finite quotient, and the passages to quandles
 are proved in this paper.
 
 \section{Definitions and a reductivity criterion}\label{sec:definitions}
@@ -306,6 +318,14 @@ by \(\mathscr G\), and write its generators as
  V_A=1+\ad(v_A),\quad W_A=1+\ad(w_A),
 \]
 where \(A\) is a nonempty finite subset of \(\mathbb N\).
+This same indexed group is the \(m=2\) member of the family of
+Hadjievangelou--Traustason~\cite{HT}. Their construction then has two
+indexed \(v(i)_A\)-layers, and their \(v(0)_A,v(1)_A,w_A\) correspond to
+our \(u_A,v_A,w_A\), respectively. Their Lemma~3.2 gives the same
+commutator table, Proposition~3.3 gives a normal form, and Theorem~3.4
+establishes the left \(3\)-Engel property of \(X\). Restricting labels to
+nonempty subsets of \([n]\) gives the finite subgroup \(G_n\) below, finite
+because the ambient group is locally finite.
 The space \(V^*\) and its product are constructed
 in~\cite[Section~2, before Lemma~2.2]{NTT}; we use the right action
 \(z\ad(y)=z\cdot y\).
@@ -620,6 +640,14 @@ in the form of \cite[Definition~1.2]{Darne}:
  1\le r\le m,\ w\in F(x_1,\ldots,x_m)\rangle\!\rangle.
 \]
 Each \(x_r\) commutes with all its conjugates.
+Darné identifies the free reduced quandle on \(m\) generators with the union
+of their conjugacy classes in \(RF_m\)~\cite[Proposition~7.10]{DarneNilpotent}.
+Together with the group facts below, this already gives the infinite analogue
+with indices \((k,j,i)=(2,2,m)\): reducedness makes every orbit trivial,
+and for \(m\ge2\) the quandle is nontrivial, so \(k=j=2\). The action kernel
+on these classes is \(Z(RF_m)\), so the inner group is \(RF_m/Z(RF_m)\),
+of exact class \(m-1\).
+The construction below supplies finite quotients retaining the exact indices.
 The class bound goes back to \cite[Lemma~1.3]{HabeggerLin};
 below we use its proof and the description of the center in~\cite{Darne}.
 By \cite[Propositions~1.3 and~1.18]{Darne},
@@ -742,6 +770,31 @@ Proposition~\ref{prop:criterion} now gives \(i(P_m)=m\).
 All the required equalities follow.
 \end{proof}
 
+\begin{remark}\label{rmk:cohen}
+The existence assertion of Theorem~\ref{thm:second} also follows from
+known finite Cohen groups. For an odd prime \(p\), let
+\[
+ K_m^{\Z/p}=RF_m/\langle\!\langle x_1^p,\ldots,x_m^p\rangle\!\rangle.
+\]
+Cohen--Mikhailov--Wu identify \(K_m\) with \(RF_m\) and prove that
+\(K_m^{\Z/p}\) has exact nilpotency class \(m\)
+\cite[Sections~1--2]{CMW}. This group is finite: it is finitely generated
+and nilpotent, with finite abelianization \((\Z/p\Z)^m\).
+Indeed, its lower central factors are generated by commutators in the
+finite abelianization and hence are finite. The generator images are
+nonconjugate because their abelianization classes are distinct.
+Each generator commutes with all its conjugates by the reduced relations.
+Writing \(\bar x_r\) for the generator images, set
+\[
+ P=\bigcup_{r=1}^{m}\bar x_r^{K_m^{\Z/p}}.
+\]
+These \(m\) conjugacy classes form exactly \(m\) trivial inner orbits of \(P\). The argument above gives \(\Inn(P)\cong K_m^{\Z/p}/Z(K_m^{\Z/p})\)
+of class \(m-1\), and hence \((k(P),j(P),i(P))=(2,2,m)\).
+Thus this finite-profile existence statement is already a consequence of
+the known group construction; the preceding Magnus-quotient proof gives
+another explicit realization.
+\end{remark}
+
 \begin{remark}
 The abelian factor \((\Z/2\Z)^m\) is needed to ensure
 exactly \(m\) distinct orbits.
@@ -790,11 +843,13 @@ The finite quotient in the second family is chosen
 to preserve a nonzero commutator of weight \(m\).
 An arbitrary finite quotient may decrease the class
 and does not ensure the required index.
-The proofs establish the existence of these families;
-optimal orders and the exact depth of the first family
-are outside the scope of this paper.
+The proofs establish the existence of these families and the exact
+orbit-series depth and term cardinalities of the first family.
+Optimal orders are not determined here.
 
 \begin{thebibliography}{9}
+\small
+\raggedright
 \bibitem{BCNW}
 M.~Bonatto, A.~S.~Crans, T.~Nasybullov, G.~T.~Whitney.
 \newblock Quandles with orbit series conditions.
@@ -813,6 +868,15 @@ M.~Noce, G.~Tracey, G.~Traustason.
 \href{https://doi.org/10.1016/j.jpaa.2019.07.004}{10.1016/j.jpaa.2019.07.004}.
 \newblock \href{https://arxiv.org/abs/1811.12074v1}{arXiv:1811.12074v1}.
 
+\bibitem{HT}
+A.~Hadjievangelou, G.~Traustason.
+\newblock Left \(3\)-Engel elements in locally finite \(2\)-groups.
+\newblock \emph{Communications in Algebra}, \textbf{49}, no.~11 (2021),
+4869--4882.
+\newblock DOI:
+\href{https://doi.org/10.1080/00927872.2021.1931265}{10.1080/00927872.2021.1931265}.
+\newblock \href{https://arxiv.org/abs/2110.15685v1}{arXiv:2110.15685v1}.
+
 \bibitem{Darne}
 J.~Darn\'e.
 \newblock Milnor invariants of braids and welded braids up to homotopy.
@@ -822,6 +886,31 @@ J.~Darn\'e.
 \href{https://doi.org/10.2140/agt.2024.24.1277}{10.2140/agt.2024.24.1277}.
 \newblock Numbering:
 \href{https://arxiv.org/abs/1904.10677v2}{arXiv:1904.10677v2}.
+
+\bibitem{DarneNilpotent}
+J.~Darn\'e.
+\newblock Nilpotent quandles.
+\newblock \emph{Advances in Mathematics}, \textbf{495} (2026), article 110977.
+\newblock DOI:
+\href{https://doi.org/10.1016/j.aim.2026.110977}{10.1016/j.aim.2026.110977}.
+\newblock \href{https://arxiv.org/abs/2205.02480v3}{arXiv:2205.02480v3}.
+\bibitem{NW}
+S.~Nelson, C.-Y.~Wong.
+\newblock On the Orbit Decomposition of Finite Quandles.
+\newblock \emph{Journal of Knot Theory and Its Ramifications},
+\textbf{15}, no.~6 (2006), 761--772.
+\newblock DOI:
+\href{https://doi.org/10.1142/S0218216506004701}{10.1142/S0218216506004701}.
+\newblock \href{https://arxiv.org/abs/math/0508247v3}{arXiv:math/0508247v3}.
+
+\bibitem{CMW}
+F.~R.~Cohen, R.~Mikhailov, J.~Wu.
+\newblock A combinatorial approach to the exponents of Moore spaces.
+\newblock \emph{Mathematische Zeitschrift}, \textbf{290} (2018), 289--305.
+\newblock DOI:
+\href{https://doi.org/10.1007/s00209-017-2018-5}{10.1007/s00209-017-2018-5}.
+\newblock \href{https://arxiv.org/abs/1506.00948v1}{arXiv:1506.00948v1}.
+
 \bibitem{Milnor}
 J.~Milnor.
 \newblock Link groups.

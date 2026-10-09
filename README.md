@@ -7,9 +7,9 @@ University, Novosibirsk, Russia ([555tery](https://github.com/555tery),
 Both papers address questions in Bonatto–Crans–Nasybullov–Whitney,
 *Quandles with orbit series conditions*, using the numbering and definitions
 of [arXiv version 3](https://arxiv.org/abs/2004.10227v3).
-The Question 5.25 manuscript is revised October 9, 2026; the Question 5.7
-manuscript is dated October 8, 2026. Their references, definitions and proof
-dependencies were checked in both languages.
+Both manuscripts are revised October 10, 2026. Their references, definitions
+and proof dependencies were checked in both languages; the present revision
+clarifies earlier sources and the scope of the results.
 
 ## Papers and LaTeX sources
 
@@ -38,7 +38,12 @@ $\mathcal{LR}_2\setminus\mathcal{OS}$.
 Thus there is no universal bound on $j$ in terms of $k$, nor on $i$ in terms
 of $j$. The constructions use the group of Noce–Tracey–Traustason and finite
 quotients of reduced free groups. Their group-theoretic inputs and sources
-are identified explicitly in the papers.
+are identified explicitly in the papers. The indexed group also occurs in
+Hadjievangelou–Traustason. Darné describes the infinite free reduced quandle,
+and the finite profile $(2,2,m)$ also follows from the Cohen–Mikhailov–Wu
+quotients. The manuscript credits these predecessors and distinguishes the
+computed quandle filtration from its group inputs. Recursive orbit
+decomposition is related to Nelson–Wong's subquandle depth.
 
 ### Question 5.7
 
@@ -49,7 +54,11 @@ fiber** belong to the class; no uniform bound on the fiber depths is assumed.
 The positive result includes nonfaithful and infinite quandles.
 
 The proof contains a group-theoretic ascent theorem for commutator series
-under one automorphism. The negative example for $\mathcal{OS}_\omega$ uses
+under one automorphism and its extension to a group of operators. The known
+split-inner case is identified through Darné–Suciu and Guaschi–Pereiro.
+BCNW arXiv v1/v2 already asserted the qualitative closure statement for
+$\mathcal{OS}$; v3 introduced Question 5.7. This version history is recorded
+without establishing proof priority. The negative example for $\mathcal{OS}_\omega$ uses
 an infinite disjoint union of finite dihedral quandles with unbounded depths.
 
 ## References and independent reading
