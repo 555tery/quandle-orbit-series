@@ -1,7 +1,7 @@
 # References and self-containment of the two preprints
 
-Revision: **October 10, 2026**. This map applies to both the Russian and
-English manuscripts. It records the sources actually used in the arguments;
+This map applies to both language versions, revised October 10, 2026
+for Q5.25 and November 23, 2026 for Q5.7. It records the sources actually used in the arguments;
 it is not a claim that the literature or publication priority has been
 exhaustively checked.
 
@@ -52,32 +52,18 @@ attributions do not establish priority of the remaining exact calculations.
 
 | Input or terminology | Exact source used | Treatment in the manuscript |
 |---|---|---|
-| Orbit-series classes and the extension convention | [BCNW, arXiv v3](https://arxiv.org/abs/2004.10227v3), Sections 4.1 and 2.2, Question 5.7 | Definitions of all classes used, full fibres and surjective homomorphisms are included in Section 2. |
-| Quandle covering | [Eisermann, arXiv v3](https://arxiv.org/abs/math/0612459v3), Definition 2.32 | The definition is credited and translated from right to left convention. The property of coverings needed here is proved in Section 2. |
-| Failure of unrestricted subquandle closure | BCNW, Example 5.3 | Cited when distinguishing invariant subquandles and slices from arbitrary subquandles. |
-| Faithful quandle terminology | BCNW, Section 2.2 | The injectivity condition is stated explicitly. No faithfulization theorem is imported. |
-| Disjoint sum of finite dihedral quandles | BCNW, Example 4.2 | The original construction is credited. The projection, full fibres, orbit computation and failure of extension closure are verified in Section 6. |
-| Uniform fibre-depth hypothesis and the related arXiv assertion | BCNW, Lemma 5.5 in v3 and Corollary 5.6 in v1–v3 | Both results are cited separately in the final remark, with the relevant distinction in hypotheses. |
+| Orbit-series classes and the extension convention | [BCNW, arXiv v3](https://arxiv.org/abs/2004.10227v3), Sections 2.2 and 4.1, Question 5.7 | The main statements are in Section 1. Section 2 defines principal depth and relates it to arbitrary orbit series. |
+| Images of orbit series | BCNW, Lemma 5.1 | Section 2 includes the proof for principal series. |
+| Earlier uniform bound and extension assertions | [BCNW v1](https://arxiv.org/abs/2004.10227v1) and [v2](https://arxiv.org/abs/2004.10227v2), Lemma 5.5 and Corollary 5.6 | Section 1 records the asserted uniform bound, explains the singleton-base step in the earlier proof, and notes the introduction of Question 5.7 in v3. |
+| Dihedral examples | BCNW, Examples 4.1 and 4.2 and the paragraph after Corollary 5.20 | Section 4 computes the orbit depths, proves sharpness using reduction modulo a power of two, and projects the disjoint sum onto the summand index. |
+| Uniform fiber-depth hypothesis | BCNW, Lemma 5.5 and Corollary 5.6 in v3 | Section 4 explains why the same counterexample disproves extension closure of \(t\mathcal{OS}_\omega\) while the uniform estimate for the trivializing classes still applies. |
 
-| Earlier arXiv statements of extension closure | [BCNW v1](https://arxiv.org/abs/2004.10227v1), [v2](https://arxiv.org/abs/2004.10227v2), Corollary 5.6 | Their assertions about OS and OS omega and the change in v3 are recorded in the introduction; no motive or proof-priority inference is made. |
-| Known split-inner lower-central decomposition | [Darné–Suciu v3, §1.8, Proposition–Definition 1.29 and Proposition 1.33](https://arxiv.org/abs/2105.14129v3); [Guaschi–Pereiro v1, Theorem 1.2](https://arxiv.org/abs/1802.07636v1), journal Theorem 1.1, DOI 10.1016/j.jpaa.2020.106309 | Section 3 first proves the operator-group variant, then identifies the existing case $L=N\rtimes K$, $A=\operatorname{Inn}(L)$, $K$ perfect. It is not treated as a special case of a single automorphism without this generalization. |
-
-The group-theoretic core uses a lower automorphism-commutator series. A
-novelty search identified related work by Mohamed (1963) on subgroup series
-associated with automorphism groups and Isaacs–Meierfrankenfeld (2012) on
-repeated/final commutators. These are prior-art leads, not established exact
-predecessors: the original Mohamed text and full Isaacs–Meierfrankenfeld text
-were not available in this audit, and neither result is used as a proof input.
-The Q57 manuscript proves its group lemma directly; its priority remains
-unsettled.
-
-All mathematical steps in the positive proof are proved in the manuscript:
-images of orbit series, invariant subquandles and slices, the covering
-lemma, the subnormal-generation lemma, automorphism ascent, conjugacy-class
-orbit towers, exact full fibres, the formal cyclic lift and the passage to
-arbitrary quandles. The formal lift maps include checks of defining relations
-and surjectivity. No result from the Imamura–Yoshida or categorical-extension
-papers is used as a proof input.
+The proof in Section 3 compares the groups generated by left translations
+in the source and in the fiber over a connected base. It uses the elementary
+fact that a subnormal subgroup of finite defect which normally generates its
+ambient group must equal it. The manuscript proves this fact within the
+argument. The [October revision](https://github.com/555tery/quandle-orbit-series/tree/42036b2d9c0aef3e21a6b68d9739bc1049919c0a/question-5-7)
+gives an earlier proof using operator commutator series.
 
 ## Independent reading and compilation
 
@@ -91,10 +77,7 @@ README gives the build instructions.
 
 The manuscripts were checked internally for source numbering, references to
 results used in the proofs, agreement of the two language versions and PDF
-layout. The present revision adds the identified predecessors to both
-languages, corrects the obsolete Q25 scope sentence about exact depth, and
-preserves the complete proofs. This is not external peer review and does not
-establish priority.
+layout. External peer review and publication priority remain open.
 
 ## По-русски
 
@@ -102,7 +85,6 @@ establish priority.
 доказательства включены в текст, а используемые внешние результаты имеют
 ссылки на конкретные места и версии источников. В 5.25 добавлены атрибуции
 H–T, Darné, Nelson–Wong и Cohen–Mikhailov–Wu; существование конечного профиля
-$(2,2,m)$ уже следует из известных групповых конструкций. В 5.7 отражены
-история BCNW v1/v2/v3 и известный расщеплённый внутренний случай группового
-аргумента. Общий операторный вариант доказан в тексте. Публикационный
-приоритет остаётся неустановленным.
+$(2,2,m)$ уже следует из известных групповых конструкций. В 5.7 история
+BCNW v1/v2/v3 приведена вместе с прямым доказательством точной поточечной
+оценки. Публикационный приоритет остаётся неустановленным.
