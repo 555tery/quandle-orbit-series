@@ -5,8 +5,10 @@ University, Novosibirsk, Russia ([555tery](https://github.com/555tery),
 555tery@gmail.com).
 
 Both papers address questions in Bonatto–Crans–Nasybullov–Whitney,
-*Quandles with orbit series conditions*, using the numbering and definitions
-of [arXiv version 3](https://arxiv.org/abs/2004.10227v3).
+*Quandles with orbit series conditions*. The Question 5.25 paper uses the
+numbering of [arXiv version 3](https://arxiv.org/abs/2004.10227v3), and the
+Question 5.7 paper follows the
+[journal edition](https://doi.org/10.1016/j.jalgebra.2020.09.026).
 The Question 5.25 manuscript was revised on October 10, 2026.
 The Question 5.7 manuscript was revised on November 23, 2026.
 
