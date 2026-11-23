@@ -54,7 +54,7 @@ attributions do not establish priority of the remaining exact calculations.
 |---|---|---|
 | Orbit-series classes and the extension convention | [BCNW, arXiv v3](https://arxiv.org/abs/2004.10227v3), Sections 2.2 and 4.1, Question 5.7 | The main statements are in Section 1. Section 2 defines principal depth and relates it to arbitrary orbit series. |
 | Images of orbit series | BCNW, Lemma 5.1 | Section 2 includes the proof for principal series. |
-| Earlier uniform bound and extension assertions | [BCNW v1](https://arxiv.org/abs/2004.10227v1) and [v2](https://arxiv.org/abs/2004.10227v2), Lemma 5.5 and Corollary 5.6 | Section 1 records the asserted uniform bound, explains the singleton-base step in the earlier proof, and notes the introduction of Question 5.7 in v3. |
+| Earlier uniform bound and extension assertions | [BCNW v1](https://arxiv.org/abs/2004.10227v1) and [v2](https://arxiv.org/abs/2004.10227v2), Lemma 5.5 and Corollary 5.6 | The README and the English introduction record the earlier assertions. The Russian introduction uses the published statement of Question 5.7 and explains the singleton-base step in Lemma 5.5. |
 | Dihedral examples | BCNW, Examples 4.1 and 4.2 and the paragraph after Corollary 5.20 | Section 4 computes the orbit depths, proves sharpness using reduction modulo a power of two, and projects the disjoint sum onto the summand index. |
 | Uniform fiber-depth hypothesis | BCNW, Lemma 5.5 and Corollary 5.6 in v3 | Section 4 explains why the same counterexample disproves extension closure of \(t\mathcal{OS}_\omega\) while the uniform estimate for the trivializing classes still applies. |
 
