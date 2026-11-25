@@ -1,0 +1,135 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=29mm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newcommand{\FB}{\mathrm{FB}}
+\newcommand{\FQ}{\mathrm{FQ}}
+\newcommand{\Aut}{\operatorname{Aut}}
+\title{An explicit model of the free biquandle\\\large On Problem 28 of Fenn--Ilyutko--Kauffman--Manturov}
+\author{A research note for expert review}
+\date{November 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We propose a constructive model of the free strong biquandle on a nonempty set $X$. A freely completed table of permutations provides an explicit basis $S$; the underlying quandle consists of conjugates of the basis elements in the free group $F(S)$. A bijective cocycle determines the two biquandle operations. We prove the universal property directly, including for targets that need not embed in their structure groups. For finite $X$, the construction yields a decision procedure for equality of biquandle terms.
+\end{abstract}
+\noindent\textit{Status.} This note arose from AI-assisted exploration and is offered for specialist scrutiny. Neither independent verification nor priority is claimed. The author welcomes corrections and references to earlier equivalent constructions. Research history: \href{https://github.com/555tery/quandle-orbit-series/issues/64}{issue \#64}.
+
+\section{Problem and conventions}
+Problem 28 of \cite[p.~34]{FIKM} asks, in its first part, ``Give a descriptive representation of the free biquandle.'' The question has antecedents in \cite[pp.~171--172]{FJK}. We use the strong biquandle convention of \cite[Remark 2.8 and Theorem 4.5]{BNS}, with both right operations and the switch invertible.
+
+Recall the description by a right quandle $(Q,*)$ and automorphisms $\beta_b\in\Aut(Q)$, one for each $b\in Q$, satisfying
+\begin{equation}\label{bns}
+\beta_{\beta_b(a*b)}\beta_b=\beta_{\beta_a(b)}\beta_a,
+\qquad d(b)=\beta_b(b)\text{ is bijective}.
+\end{equation}
+The two operations are $a\mathbin{\overline{*}}b=\beta_b(a)$ and $a\mathbin{\underline{*}}b=\beta_b(a*b)$. Conversely, the quandle operation is recovered by applying the inverse of $\beta_b$ to $a\mathbin{\underline{*}}b$. Put $L_b=\beta_b^{-1}$ and $D(b)=L_b^{-1}(b)=d(b)$. An equivalent form of the identity in \eqref{bns} is
+\begin{equation}\label{Lid}
+L_p L_b=L_u L_v,\qquad u=L_p(b),\quad v=L_u^{-1}(p*u).
+\end{equation}
+Indeed, substitute $a=p$ and the second argument $u$ in \eqref{bns}, then invert. A biquandle morphism preserves $*$, $L_b$, $L_b^{-1}$ and $D^{-1}$, by preservation of the original operations and uniqueness of inverses.
+
+\section{A freely completed permutation table}
+A table is a set $S$ with bijections $L_s:S\to S$ for all $s\in S$ such that $D(s)=L_s^{-1}(s)$ is bijective. Morphisms preserve the operations $L_s(t),L_s^{-1}(t),D^{-1}(t)$.
+\begin{lemma}\label{table}
+Every nonempty set $X$ admits an explicit free table $S=S_X$. If $X$ is finite, the symbols of $S$ and its three operations can be effectively enumerated or evaluated.
+\end{lemma}
+\begin{proof}
+Start with the symbols $X$ and no entries of a partial table $T$. Maintain injectivity of each partial row and require the entries $T(s,t)=s$ to form a partial matching between rows and columns. At each stage, use a snapshot of the existing symbols, and carry out the following three phases in order, skipping already satisfied requests:
+\begin{enumerate}
+\item For each undefined $T(s,t)$ on snapshot symbols, introduce a fresh output $u$ and set $T(s,t)=u$.
+\item For each snapshot pair $(s,u)$ with $u$ missing from the image of row $s$, introduce a fresh input $t$ and set $T(s,t)=u$.
+\item For each snapshot $t$ with no diagonal witness, introduce a fresh row symbol $s$ and set $T(s,t)=s$.
+\end{enumerate}
+All fresh symbols are distinct. Phase 1 uses a new output and adds no diagonal witness. Phase 2 uses a new input and a previously unused row output. Phase 3 creates a new row at an unmatched column. Hence the two invariants persist. In the union over stages, all requests are eventually met: each row is a permutation and the diagonal witnesses form a bijective matching. For infinite $X$, use disjoint tagged sets of fresh symbols in each phase.
+
+Any map $X\to C$ to a table extends uniquely, since the image of each new symbol is forced, respectively, by $L_s(t)$, $L_s^{-1}(u)$ or $D^{-1}(t)$ in $C$. Induction on the stage and phase proves preservation of every entry. No injectivity of the map into $C$ is required. For finite $X$, each stage is finite; a fixed ordering gives an effective numbering, and searching successive stages evaluates all three operations.
+\end{proof}
+
+\section{A bijective cocycle and the model}
+Use multiplicative notation for the group written additively in skew brace terminology. Let $H=F(S)$ and let $G$ be a second copy of the free group on $S$. Define $\Lambda:G\to\Aut(H)$ by extending each basis permutation $L_s$ to $H$. The homomorphism $G\to H\rtimes_\Lambda G$ given by $s\mapsto(s,s)$ has first component $\pi$, the unique cocycle with
+\[
+\pi(s)=s,\qquad \pi(gh)=\pi(g)\Lambda_g(\pi(h)).
+\]
+\begin{lemma}\label{cocycle}
+The cocycle $\pi:G\to H$ is bijective.
+\end{lemma}
+\begin{proof}
+The oriented edges from $g$ to $gs$ and $gs^{-1}$ in the Cayley tree of $G$ map to edges at $\pi(g)$ labelled $\Lambda_g(s)$ and $\Lambda_g(D(s))^{-1}$, respectively, since $\pi(s^{-1})=D(s)^{-1}$. Both label maps are bijections onto the positive and negative labels. Thus the induced map of Cayley trees is locally bijective. The unique reduced path from $1$ to any vertex of $H$ lifts uniquely from $1$ in $G$. A nonempty reduced path in $G$ cannot map to a closed path: local injectivity excludes backtracking, and a tree has no nonempty reduced closed path. This proves bijectivity.
+\end{proof}
+Transport the group law of $G$ to $H$ by $\pi$, writing
+\[
+a\circ b=a\lambda_a(b),\qquad \lambda_a=\Lambda_{\pi^{-1}(a)}.
+\]
+The cocycle law makes $(H,\cdot,\circ)$ a skew left brace, with $\lambda_{a\circ b}=\lambda_a\lambda_b$. In particular, every $\lambda_a$ permutes $S$. No universal property of this brace is needed below.
+
+\begin{theorem}\label{main}
+Let $S=S_X$ be the table of Lemma~\ref{table}. Set
+\[
+B=\{w^{-1}sw:s\in S,\ w\in H\},\qquad a*b=b^{-1}ab.
+\]
+With $\beta_b=\lambda_b^{-1}$ and operations
+\[
+a\mathbin{\overline{*}}b=\beta_b(a),\qquad
+a\mathbin{\underline{*}}b=\beta_b(a*b),
+\]
+$B$ is the free strong biquandle on $X$.
+\end{theorem}
+\begin{proof}[Proof of the axioms]
+The quandle $B$ is the usual conjugation model of the free quandle $\FQ(S)$ (see, e.g., \cite{BNS}). Every $\lambda_b$ and its inverse preserves $B$. The identity
+\[
+b\circ\beta_b(a*b)=ab=a\circ\beta_a(b)
+\]
+gives \eqref{bns} upon applying $\lambda$ and taking inverses. In the ambient brace the diagonal $a\mapsto\lambda_a^{-1}(a)$ equals $(a^{\circ-1})^{-1}$, where the unmarked inverse is taken in $H$. Its inverse is $a\mapsto(a^{-1})^{\circ-1}$. If $c=(a^{-1})^{\circ-1}$, then $\lambda_c(a)=c$, so $c\in B$ whenever $a\in B$. Thus both the diagonal and its inverse preserve $B$, and \eqref{bns} holds on $B$.
+\end{proof}
+
+\section{Universal property}
+\begin{proof}[Completion of the proof of Theorem~\ref{main}]
+Let $C$ be an arbitrary strong biquandle with associated quandle $Q(C)$, and let $f:X\to C$ be any map. Its underlying table $(C,L,D)$ satisfies Lemma~\ref{table}'s hypotheses by \eqref{bns}. Extend $f$ to a table morphism on $S$, then to a quandle morphism $q:B=\FQ(S)\to Q(C)$. We must show
+\begin{equation}\label{eqv}
+qL_a=L_{q(a)}q\qquad (a\in B).
+\end{equation}
+In $B$, write $L_a=\lambda_a$. All these automorphisms permute the free basis. For $a\in S$, \eqref{eqv} holds on $S$ by table freeness, hence on $B$ by quandle freeness. Whenever \eqref{eqv} holds, the corresponding identity for inverses holds as well, since both $L$ maps are bijective.
+
+Induct on the length of a word conjugating a basis element; denote inverse right quandle translation by $*^{-1}$. In the positive step, write $w=a*t$ with $t\in S$ and set
+\[
+u=D^{-1}(t),\qquad p=L_u(a),\qquad b=L_p^{-1}(u).
+\]
+Here $u,b\in S$ and $p$ has conjugator length no greater than that of $a$. Furthermore $L_p(b)=u$ and $L_u^{-1}(p*u)=a*t=w$. Equation~\eqref{Lid} gives $L_w=L_u^{-1}L_pL_b$. In $C$ the images of $u,p,b,w$ satisfy the same defining equalities, by the induction hypothesis and the fact that $q$ preserves $*$ and the table operations. Applying \eqref{Lid} in $C$ proves \eqref{eqv} for $w$.
+
+In the negative step, write $w=a*^{-1}u$ with $u\in S$. Put $v=L_u^{-1}(a)$ and $b=L_w^{-1}(u)\in S$. Since $w*u=a$, \eqref{Lid} gives $L_wL_b=L_uL_v$. Evaluation at $D(b)$ yields
+\[
+u=L_uL_v(D(b)),\qquad b=D^{-1}\bigl(L_v^{-1}(D(u))\bigr).
+\]
+The element $v$ has conjugator length no greater than that of $a$. Crucially, we do not assume \eqref{eqv} for $w$ in the target. Define $b'=L_{q(w)}^{-1}(q(u))$ there. As $q(w)*q(u)=q(a)$ and $L_{q(u)}^{-1}(q(a))=q(v)$, the same identity in $C$ gives
+\[
+D_C(b')=L_{q(v)}^{-1}(D_C(q(u)))=q(D(b))=D_C(q(b)).
+\]
+The middle equality uses the induction hypothesis and the table morphism property, since $D(u),D(b)\in S$. Injectivity of $D_C$ implies $b'=q(b)$. Now $L_w=L_uL_vL_b^{-1}$ and its target analogue imply \eqref{eqv}. This completes the induction.
+
+Consequently $q$ preserves $\beta_b=L_b^{-1}$ as well as the quandle operation, so it preserves both biquandle operations. Any biquandle morphism extending $f$ must agree with the table extension on $S$ and then with $q$ on the quandle generated by $S$, which is all of $B$. Thus the extension exists and is unique. This proves the universal property for every strong target, without assuming its injectivity into a brace or structure group.
+\end{proof}
+
+\section{Consequences and relation to prior work}
+\begin{corollary}
+The associated quandle of $\FB(X)$ is free on $S_X$. For finite nonempty $X$, $S_X$ is countably infinite and equality of biquandle terms is decidable.
+\end{corollary}
+\begin{proof}
+The first assertion follows from Theorem~\ref{main}. Each stage of table completion is finite for finite $X$, and new empty rows produce new symbols indefinitely. Lemma~\ref{cocycle} is effective: to lift a positive edge labelled $t$ from $\pi(g)$, append $s=\Lambda_g^{-1}(t)$ to $g$; for a negative edge labelled $t^{-1}$, append $s^{-1}$ with $s=D^{-1}(\Lambda_g^{-1}(t))$. Hence $\lambda_a$ and its inverse are computable on reduced words. The displayed operations are computable, as is equality in $H$. Inverse operations can also be computed by enumerating their unique preimages in $B$ or $B^2$ (which are effectively enumerable).
+\end{proof}
+The free-quandle conclusion addresses the conjecture in \cite[\S4.3, after Proposition 4.24]{BNS}. The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \cite{post}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \cite{Ish} and the free dibiquandle construction in \cite{Kim} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
+
+\begin{thebibliography}{9}\small
+\bibitem{FJK} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}.
+\bibitem{FIKM} R. Fenn, D. P. Ilyutko, L. H. Kauffman and V. O. Manturov, \emph{Unsolved problems in virtual knot theory and combinatorial knot theory}, Banach Center Publ. 103 (2014), 9--61. \href{https://arxiv.org/abs/1409.2823}{arXiv:1409.2823}.
+\bibitem{BNS} V. Bardakov, T. Nasybullov and M. Singh, \emph{General constructions of biquandles and their symmetries}, J. Pure Appl. Algebra 226 (2022), 106936. Numbering refers to \href{https://arxiv.org/abs/1908.08301v1}{arXiv:1908.08301v1} (2019).
+\bibitem{post} M. J. H. Al-Kaabi, K. Ebrahimi-Fard and D. Manchon, \emph{Free post-groups, post-groups from group actions, and post-Lie algebras}, \href{https://arxiv.org/abs/2306.08284v4}{arXiv:2306.08284v4} (2024).
+\bibitem{Ish} K. Ishikawa, \emph{Knot quandles vs. knot biquandles}, Int. J. Math. 31 (2020), 2050015. \href{https://doi.org/10.1142/S0129167X20500159}{DOI}.
+\bibitem{Kim} Kim, Lee and Sheikh, \emph{Dibiquandle coloring invariants for dichromatic links and associated di(bi)quandles}, Topology Appl. (2025), 109358. \href{https://doi.org/10.1016/j.topol.2025.109358}{DOI}.
+\end{thebibliography}
+\end{document}
