@@ -1,5 +1,5 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=29mm]{geometry}
+\usepackage[margin=26mm]{geometry}
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern,microtype}
@@ -10,13 +10,13 @@
 \newcommand{\FB}{\mathrm{FB}}
 \newcommand{\FQ}{\mathrm{FQ}}
 \newcommand{\Aut}{\operatorname{Aut}}
-\title{An explicit model of the free biquandle\\\large On Problem 28 of Fenn--Ilyutko--Kauffman--Manturov}
+\title{An explicit model of the free biquandle\\\large On the first part of Problem 28 of Fenn--Ilyutko--Kauffman--Manturov}
 \author{AI-assisted research note for expert review}
 \date{November 2026}
 \begin{document}
 \maketitle
 \begin{abstract}
-We propose a constructive model of the free strong biquandle on a nonempty set $X$. A freely completed table of permutations provides an explicit basis $S$; the underlying quandle consists of conjugates of the basis elements in the free group $F(S)$. A bijective cocycle determines the two biquandle operations. We prove the universal property directly, including for targets that need not embed in their structure groups. For finite $X$, the construction yields a decision procedure for equality of biquandle terms.
+We give an explicit model of the free strong biquandle, addressing the question raised by Fenn, Jordan-Santana and Kauffman (2004), restated in the first part of Problem~28 of Fenn, Ilyutko, Kauffman and Manturov (2014), and revisited by Bardakov, Nasybullov and Singh (2019 preprint; 2022 publication). The model uses a freely completed permutation table $S$ and a bijective cocycle on free groups. We prove its universal property for arbitrary strong biquandles and show that its associated quandle is free on $S$, affirming the related conjecture of Bardakov, Nasybullov and Singh. For finite nonempty generating sets, the model also gives a decision procedure for equality of terms.
 \end{abstract}
 \noindent\textit{Status.} This note arose from AI-assisted exploration and is offered for specialist scrutiny. The proof is offered for independent expert review; priority has not been established. Corrections and references to earlier equivalent constructions are welcome. Research history: \href{https://github.com/555tery/quandle-orbit-series/issues/64}{issue \#64}.
 
@@ -198,7 +198,17 @@ The associated quandle of $\FB(X)$ is free on $S_X$. For finite nonempty $X$, $S
 \begin{proof}
 The first assertion follows from Theorem~\ref{main}. Each stage of table completion is finite for finite $X$, and new empty rows produce new symbols indefinitely. Lemma~\ref{cocycle} is effective: to lift a positive edge labelled $t$ from $\pi(g)$, append $s=\Lambda_g^{-1}(t)$ to $g$; for a negative edge labelled $t^{-1}$, append $s^{-1}$ with $s=D^{-1}(\Lambda_g^{-1}(t))$. Hence $\lambda_a$ and its inverse are computable on reduced words. The displayed operations are computable, as is equality in $H$. Inverse operations can also be computed by enumerating their unique preimages in $B$ or $B^2$ (which are effectively enumerable).
 \end{proof}
-The free-quandle conclusion addresses the conjecture in \cite[\S4.3, after Proposition 4.24]{BNS}. The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \cite{post}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \cite{Ish} and the free dibiquandle construction in \cite{Kim} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
+\paragraph{Answers to the historical questions.}
+Theorem~\ref{main} and its corollary give the following precise correspondence with the literature, in the strong-biquandle category:
+\begin{itemize}
+\item \textbf{Fenn--Jordan-Santana--Kauffman (2004), pp.~171--172 \cite{FJK}:} a concrete free object, including the one-generator case, rather than merely a formal term quotient.
+\item \textbf{Fenn--Ilyutko--Kauffman--Manturov (2014), Problem 28, first question \cite{FIKM}:} the requested descriptive representation is the conjugation model of Theorem~\ref{main}.
+\item \textbf{Bardakov--Nasybullov--Singh (2019/2022) \cite[Introduction and \S4.3, after Proposition 4.24 of the preprint]{BNS}:} the explicit-model question is answered by the same theorem; the additional expectation that a free biquandle arises from a biquandle structure on a free quandle is affirmed by the corollary.
+\end{itemize}
+These are related formulations, not three independent problems. The second and third questions of Problem~28 are not addressed in this note.
+
+\paragraph{Prior work and priority.}
+The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \cite{post}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \cite{Ish} and the free dibiquandle construction in \cite{Kim} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
 
 \begin{thebibliography}{9}\small
 \bibitem{FJK} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}.
