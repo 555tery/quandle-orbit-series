@@ -6,9 +6,10 @@
 \usepackage{xcolor}
 \definecolor{referenceblue}{RGB}{21,74,128}
 \usepackage[colorlinks=true,allcolors=referenceblue]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
 \newcommand{\FJKCopyURL}{https://www.academia.edu/164480478/Biquandles_and_virtual_links}
-\newcommand{\FJKFreeURL}{\FJKCopyURL\#:\~:text=Consider\%20the\%20simplest\%20instance\%20of\%20this\%20situation}
-\newcommand{\FJKDefinitionsURL}{\FJKCopyURL\#:\~:text=Definition\%204.2}
+\newcommand{\FJKFreeURL}{\FJKCopyURL}
+\newcommand{\FJKDefinitionsURL}{\FJKCopyURL}
 \newcommand{\FIKMProblemURL}{https://www.impan.pl/shop/en/publication/transaction/download/product/86155\#page=26}
 \newcommand{\BNSPreprintURL}{https://arxiv.org/pdf/1908.08301v1}
 \newcommand{\BNSConjectureURL}{\BNSPreprintURL\#page=24}
@@ -24,7 +25,8 @@
 \newtheorem{corollary}[theorem]{Corollary}
 \newcommand{\FB}{\mathrm{FB}}
 \newcommand{\FQ}{\mathrm{FQ}}
-\newcommand{\Aut}{\operatorname{Aut}}
+\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\Sym}{Sym}
 \title{An explicit model of the free biquandle\\\large On the first part of Problem 28 of Fenn--Ilyutko--Kauffman--Manturov}
 \author{AI-assisted research note for expert review}
 \date{November 2026}
@@ -33,21 +35,23 @@
 \begin{abstract}
 We give an explicit model of the free strong biquandle, addressing the question raised by Fenn, Jordan-Santana and Kauffman (2004), restated in the first part of Problem~28 of Fenn, Ilyutko, Kauffman and Manturov (2014), and revisited by Bardakov, Nasybullov and Singh (2019 preprint; 2022 publication). The model uses a freely completed permutation table $S$ and a bijective cocycle on free groups. We prove its universal property for arbitrary strong biquandles and show that its associated quandle is free on $S$, affirming the related conjecture of Bardakov, Nasybullov and Singh. For finite nonempty generating sets, the model also gives a decision procedure for equality of terms.
 \end{abstract}
-\noindent\textit{Status.} This note arose from AI-assisted exploration and is offered for specialist scrutiny. The proof is offered for independent expert review; priority has not been established. Corrections and references to earlier equivalent constructions are welcome. Research history is in \ResearchIssue{64} (explicit model) and \ResearchIssue{55} (associated quandle).
+\begin{quote}\small
+\textbf{Note for readers.} This AI-assisted exploratory draft is shared for independent specialist feedback. No claim of priority is made over earlier equivalent constructions. Corrections and references are welcome. Research history: \ResearchIssue{64} (explicit model) and \ResearchIssue{55} (associated quandle).
+\end{quote}
 
 \section{Problem and statement}
-The first question of Problem 28 in \sourcecite[p.~34]{FIKM}{\FIKMProblemURL} asks for a descriptive representation of the free biquandle. In \sourcecite[pp.~171--172]{FJK}{\FJKFreeURL} the authors discuss the free object, even on one generator, and the difficulty of giving a concrete description beyond a quotient of formal expressions. We address the strong (invertible-operation) category of \sourcecite[Definitions 4.2, 4.6 and Theorem 4.7]{FJK}{\FJKDefinitionsURL}, not weak biquandles.
+The first question of Problem 28 in \sourcecite[p.~34]{fikm14}{\FIKMProblemURL} asks for a descriptive representation of the free biquandle. In \sourcecite[pp.~171--172]{fjk04}{\FJKFreeURL} the authors discuss the free object, even on one generator, and the difficulty of giving a concrete description beyond a quotient of formal expressions. We address the strong (invertible-operation) category of \sourcecite[Definitions 4.2, 4.6 and Theorem 4.7]{fjk04}{\FJKDefinitionsURL}, not weak biquandles.
 
 \noindent\textbf{Main result.} For every nonempty set $X$ we construct, without using an abstract free biquandle, a set of symbols $S_X$ containing $X$ and a biquandle structure on
 \[
  B_X=\{w^{-1}sw:s\in S_X,\ w\in F(S_X)\}.
 \]
-Every function $X\to C$ into a strong biquandle extends uniquely to a biquandle homomorphism $B_X\to C$. The underlying associated quandle is free on $S_X$; for finite $X$ the operations and equality of terms are computable. The following sections supply all the algebraic ingredients, including the translation between conventions.
+Every function $X\to C$ into a strong biquandle extends uniquely to a biquandle homomorphism $B_X\to C$. The underlying associated quandle is free on $S_X$; for finite $X$ the operations and equality of terms are computable. The following sections supply the algebraic ingredients, including the translation between conventions. For fixed $X$, we abbreviate $S=S_X$ and $B=B_X$ once these sets have been constructed. The notation $\FB(X)$ denotes the free biquandle characterized by the universal property, and $\FQ(S)$ the free quandle on $S$.
 
 \section{Conventions and a characterization of biquandles}
 A \emph{right quandle} is a set with an operation $a*b$ such that $a*a=a$, every $R_b:a\mapsto a*b$ is a bijection, and $(a*b)*c=(a*c)*(b*c)$. We write $a*^{-1}b=R_b^{-1}(a)$. Composition of maps is right to left.
 
-In the notation of Fenn--Jordan-Santana--Kauffman, a strong biquandle has a bijective switch $r(a,b)=(b_a,a^b)$ satisfying the braid equation $r_{12}r_{23}r_{12}=r_{23}r_{12}r_{23}$ on triples. The down map $b\mapsto b_a$ for fixed $a$ and the up map $a\mapsto a^b$ for fixed $b$ are bijections. The type-I condition is that the fixed pairs of $r$ have both coordinate projections bijective: for each value of either coordinate there is exactly one fixed pair with that coordinate. These are the strong birack and biquandle conditions of \sourcecite[\S4]{FJK}{\FJKDefinitionsURL}. Morphisms are functions commuting with $r$ (and hence with its inverse and all uniquely determined division and type-I operations). Here $r_{ij}$ acts on adjacent coordinates and leaves the remaining coordinate unchanged.
+In the notation of Fenn--Jordan-Santana--Kauffman, a strong biquandle has a bijective switch $r(a,b)=(b_a,a^b)$ satisfying the braid equation $r_{12}r_{23}r_{12}=r_{23}r_{12}r_{23}$ on triples. The down map $b\mapsto b_a$ for fixed $a$ and the up map $a\mapsto a^b$ for fixed $b$ are bijections. The type-I condition is that the fixed pairs of $r$ have both coordinate projections bijective: for each value of either coordinate there is exactly one fixed pair with that coordinate. These are the strong birack and biquandle conditions of \sourcecite[\S4]{fjk04}{\FJKDefinitionsURL}. Morphisms are functions commuting with $r$ (and hence with its inverse and all uniquely determined division and type-I operations). Here $r_{ij}$ acts on adjacent coordinates and leaves the remaining coordinate unchanged.
 
 \begin{lemma}[Quandle description]\label{characterization}
 Equivalently, a strong biquandle is a right quandle $Q$ with a family of automorphisms $\beta_b\in\Aut(Q)$ satisfying
@@ -59,16 +63,16 @@ Put $L_b=\beta_b^{-1}$. The switch is
 \begin{equation}\label{switch}
 r(a,b)=(u,v),\qquad u=L_a(b),\quad v=L_u^{-1}(a*u).
 \end{equation}
-In the BNS convention \sourcecite[Remark~2.8]{BNS}{\BNSPreprintURL\#page=6} and \sourcecite[Theorem~4.5]{BNS}{\BNSPreprintURL\#page=13}, the two operations are $a\mathbin{\overline{*}}b=\beta_b(a)$ and $a\mathbin{\underline{*}}b=\beta_b(a*b)$. Thus $b_a=L_a(b)$ and $a^b=\beta_{b_a}(a*b_a)$ in the original switch notation (here $a*b_a$ means $a*(b_a)$). Morphisms in these descriptions agree.
+In the BNS convention \sourcecite[Remark~2.8]{bns22}{\BNSPreprintURL\#page=6} and \sourcecite[Theorem~4.5]{bns22}{\BNSPreprintURL\#page=13}, the two operations are $a\mathbin{\overline{*}}b=\beta_b(a)$ and $a\mathbin{\underline{*}}b=\beta_b(a*b)$. Thus $b_a=L_a(b)$ and $a^b=\beta_{b_a}(a*(b_a))$ in the original switch notation. Morphisms in these descriptions agree.
 \end{lemma}
 \begin{proof}
-We include a proof to avoid relying on a change of convention. Starting with a strong switch, define $L_a(b)=b_a$ and define $a*u=L_u(v)$ when $r(a,L_a^{-1}(u))=(u,v)$. Each $R_u$ is bijective because $r$ is bijective and the input $L_a^{-1}(u)$ is uniquely determined by $a,u$. Fixed pairs are exactly $(a,L_a^{-1}(a))$, by the type-I condition and left nondegeneracy. Hence $a*a=a$ and $D(a)=L_a^{-1}(a)$ is bijective.
+\emph{From the switch to the quandle.} Starting with a strong switch, define $L_a(b)=b_a$ and define $a*u=L_u(v)$ when $r(a,L_a^{-1}(u))=(u,v)$. Each $R_u$ is bijective because $r$ is bijective and the input $L_a^{-1}(u)$ is uniquely determined by $a,u$. Fixed pairs are exactly $(a,L_a^{-1}(a))$, by the type-I condition and left nondegeneracy. Hence $a*a=a$ and $D(a)=L_a^{-1}(a)$ is bijective.
 
-The first coordinate of the braid equation gives
+\emph{Equivariance and the braid identity.} Comparing the first coordinates of the two braid composites on $(p,b,c)$, for arbitrary $c$, gives
 \begin{equation}\label{Lid}
 L_p L_b=L_u L_v,\qquad u=L_p(b),\quad v=L_u^{-1}(p*u).
 \end{equation}
-We show that every $L_a$ preserves $*$. Write $r(a,b)=(u,v)$, $r(b,c)=(m,n)$, and $r(a,m)=(p,k)$. In the braid equation the first output of $r_{12}r_{23}r_{12}$ is $p$, and its second output is $L_p^{-1}(u*p)$; the second output of $r_{23}r_{12}r_{23}$ is $L_k(n)$. Thus, using $L_aL_m=L_pL_k$ and $n=L_m^{-1}(b*m)$,
+We show that every $L_a$ preserves $*$. Write $r(a,b)=(u,v)$, $r(b,c)=(m,n)$, and $r(a,m)=(p,k)$. In the left braid composite the first two steps send $(a,b,c)$ to $(u,L_v(c),\ldots)$. The first coordinate of the last step is $L_uL_v(c)=L_aL_b(c)=p$ by \eqref{Lid}; its second coordinate is therefore $L_p^{-1}(u*p)$ by \eqref{switch}. In the right composite the first two steps send $(a,b,c)$ to $(p,k,n)$. The last step has second coordinate $L_k(n)$. Equality of these second coordinates gives $u*p=L_pL_k(n)$. Applying \eqref{Lid} to $r(a,m)=(p,k)$ gives $L_pL_k=L_aL_m$, while $L_m(n)=b*m$. Hence
 \[
  u*p=L_p L_k(n)=L_a(b*m).
 \]
@@ -80,14 +84,14 @@ For either direction of the lemma, the bijection
 \]
 conjugates $r_{12},r_{23}$ to the adjacent maps of the form $r_Q(x,y)=(y,x*y)$, respectively. Indeed for $r_{12}$ this follows from $L_u(v)=a*u$ and $L_uL_v=L_aL_b$; for $r_{23}$, write $r(b,c)=(m,n)$ and use $L_aL_m(n)=L_a(b*m)=L_a(b)*L_a(m)$. The braid equation for $r_Q$ is precisely right self-distributivity. This proves the quandle axioms starting from the switch. Inverting \eqref{Lid} and replacing $b$ by $L_p^{-1}(u)$ yields \eqref{bns}.
 
-Conversely, start with a quandle and \eqref{bns}, define $r$ by \eqref{switch}, and obtain \eqref{Lid} by inversion. The map $r$ is bijective: given $(u,v)$, recover $a=R_u^{-1}(L_u(v))$, then $b=L_a^{-1}(u)$. The identity for $J$ gives the braid equation. Left nondegeneracy follows from $L_a$ being bijective. For right nondegeneracy consider the auxiliary map $P(a,u)=(\beta_a(u),\beta_u(a*u))$. If $P(a,u)=(b,v)$, then \eqref{bns} gives $\beta_v\beta_u=\beta_b\beta_a$, and evaluation at $u$ gives $\beta_v(D(u))=D(b)$. Consequently
+\emph{From the quandle to the switch.} Conversely, start with a quandle and \eqref{bns}, define $r$ by \eqref{switch}, and obtain \eqref{Lid} by inversion. The map $r$ is bijective: given $(u,v)$, recover $a=R_u^{-1}(L_u(v))$, then $b=L_a^{-1}(u)$. The identity for $J$ gives the braid equation. Left nondegeneracy follows from $L_a$ being bijective. For right nondegeneracy consider the auxiliary map $P(a,u)=(\beta_a(u),\beta_u(a*u))$. If $P(a,u)=(b,v)$, then \eqref{bns} gives $\beta_v\beta_u=\beta_b\beta_a$, and evaluation at $u$ gives $\beta_v(D(u))=D(b)$. Consequently
 \[
  u=D^{-1}(\beta_v^{-1}(D(b))),\qquad
  a=R_u^{-1}(\beta_u^{-1}(v)).
 \]
-Conversely, for these $u,a$, the second output of $P$ is $v$; if the first output is $b'$, the same identity gives $D(b')=D(b)$, hence $b'=b$. Thus $P$ is bijective. Since $r(a,b)=(u,v)$ exactly when $P(a,u)=(b,v)$, for fixed $b$ every $v$ has a unique preimage $a$, as required. Finally, \eqref{switch} and $a*a=a$ show that the fixed pairs are exactly $(a,D(a))$; both projections are bijective.
+Conversely, for these $u,a$, the second output of $P$ is $v$; if the first output is $b'$, the same identity gives $D(b')=D(b)$, hence $b'=b$. Thus $P$ is bijective. Since $r(a,b)=(u,v)$ exactly when $P(a,u)=(b,v)$, for fixed $b$ every $v$ has a unique preimage $a$, as required. The inverse switch is also nondegenerate: for fixed $u$, its first output $a=R_u^{-1}(L_u(v))$ varies bijectively with $v$. For fixed $v$, its second output $b$ varies bijectively with $u$, by the bijectivity of $P$ and the unique formula for $a$ given $u,v$. Finally, \eqref{switch} and $a*a=a$ show that the fixed pairs are exactly $(a,D(a))$; both projections are bijective.
 
-The formulas $L_a(b)=b_a$ and $a*u=L_u(v)$ with $r(a,L_a^{-1}(u))=(u,v)$ recover the quandle and structure maps from $r$. Their inverses and $D^{-1}$ are preserved by any morphism by uniqueness of preimages. Conversely, a quandle morphism $q$ with $qL_a=L_{q(a)}q$ preserves the switch by \eqref{switch}. The BNS operations above are exactly the equivalent notation obtained by replacing the second input of $r$ by $\beta_a(u)$, so the same morphisms preserve them as well.
+\emph{Morphisms and conventions.} The formulas $L_a(b)=b_a$ and $a*u=L_u(v)$ with $r(a,L_a^{-1}(u))=(u,v)$ recover the quandle and structure maps from $r$. Their inverses and $D^{-1}$ are preserved by any morphism by uniqueness of preimages. Conversely, a quandle morphism $q$ with $qL_a=L_{q(a)}q$ preserves the switch by \eqref{switch}. Explicitly, $r(a,\beta_a(u))=(u,\beta_u(a*u))$. Thus the BNS upper operation on $(u,a)$ is the second input $\beta_a(u)$ in this identity, and the lower operation on $(a,u)$ is the second output $\beta_u(a*u)$. The same morphisms preserve these operations and their inverses.
 \end{proof}
 
 \section{A freely completed permutation table}
@@ -122,7 +126,7 @@ Conjugation satisfies the three quandle axioms directly. For any function $f:S\t
 \[
  q(w^{-1}sw)=f(s)\cdot w.
 \]
-If $w^{-1}sw=v^{-1}tv$, abelianization of $H$ gives $s=t$, and $vw^{-1}$ centralizes $s$. The centralizer of $s$ is $\langle s\rangle$: remove the maximal initial power of $s$ from a reduced conjugating word; any nonempty remaining word starting with a letter other than $s^{\pm1}$ produces a reduced conjugate of length greater than one. Thus $v=s^k w$ for some integer $k$, and $f(s)\cdot v=f(s)\cdot w$ by idempotence. This proves well-definedness.
+If $w^{-1}sw=v^{-1}tv$, abelianization of $H$ gives $s=t$, and $vw^{-1}$ centralizes $s$. By the reduced-word normal form in a free group, the centralizer of $s$ is $\langle s\rangle$. Indeed, write a reduced word as $s^k z$, where $z$ is empty or begins with a letter other than $s^{\pm1}$. If $z$ is nonempty, $z^{-1}sz$ is reduced and has length $2|z|+1>1$, so the word cannot centralize $s$. Thus $v=s^k w$ for some integer $k$, and $f(s)\cdot v=f(s)\cdot w$ by idempotence. This proves well-definedness.
 
 Every right translation is a quandle automorphism, so for each $y,z\in Q$ and $v\in H$,
 \[
@@ -130,7 +134,11 @@ Every right translation is a quandle automorphism, so for each $y,z\in Q$ and $v
 \]
 If $a=w^{-1}sw$ and $b=v^{-1}tv$, then
 \[
- q(a*b)=f(s)\cdot(wv^{-1}tv)=q(a)*q(b).
+ \begin{aligned}
+q(a*b)&=f(s)\cdot(wv^{-1}tv)\\
+&=((q(a)\cdot v^{-1})*f(t))\cdot v\\
+&=q(a)*(f(t)\cdot v)=q(a)*q(b).
+\end{aligned}
 \]
 All conjugates are obtained by successive right translations or their inverses by elements of $S$. This forces uniqueness of $q$, proving the claim.
 \end{proof}
@@ -144,16 +152,16 @@ Only elementary free groups and a second group law are needed. We keep the two g
 The cocycle $\pi:G\to H$ is bijective.
 \end{lemma}
 \begin{proof}
-The oriented edges from $g$ to $gs$ and $gs^{-1}$ in the Cayley tree of $G$ map to edges at $\pi(g)$ labelled $\Lambda_g(s)$ and $\Lambda_g(D(s))^{-1}$, respectively, since $\pi(s^{-1})=D(s)^{-1}$. Both label maps are bijections onto the positive and negative labels. Thus the induced map of Cayley trees is locally bijective. The unique reduced path from $1$ to any vertex of $H$ lifts uniquely from $1$ in $G$. A nonempty reduced path in $G$ cannot map to a closed path: local injectivity excludes backtracking, and a tree has no nonempty reduced closed path. This proves bijectivity.
+The oriented edges from $g$ to $gs$ and $gs^{-1}$ in the Cayley tree of $G$ map to edges at $\pi(g)$ labelled $\Lambda_g(s)$ and $\Lambda_g(D(s))^{-1}$, respectively, since $\pi(s^{-1})=D(s)^{-1}$. Both label maps are bijections onto the positive and negative labels. Thus the induced map of Cayley trees is locally bijective. The unique reduced path from $1$ to any vertex of $H$ lifts uniquely from $1$ in $G$. If two distinct vertices of the Cayley tree of $G$ had the same image, the reduced path joining them would map to a nonempty closed path in the Cayley tree of $H$. Local injectivity ensures that the image has no backtracking, contradicting the fact that a tree has no nonempty reduced closed path. This proves bijectivity.
 \end{proof}
 Transport the group law of $G$ to $H$ by $\pi$, writing
 \[
 a\circ b=a\lambda_a(b),\qquad \lambda_a=\Lambda_{\pi^{-1}(a)}.
 \]
-Since $\pi$ transports the multiplication, $\circ$ is a group law with identity $1$, and $\lambda_{a\circ b}=\lambda_a\lambda_b$. In particular, every $\lambda_a$ permutes $S$, and $\lambda_s|_S=L_s$ because $\pi(s)=s$. (In standard terminology these two group laws form a skew left brace; no theorem about braces is needed.)
+Since $\pi$ transports the multiplication, $\circ$ is a group law with identity $1$, and $\lambda_{a\circ b}=\lambda_a\lambda_b$. Since $\Lambda$ is generated by extensions of permutations of $S$, its image lies in the embedded subgroup $\Sym(S)\leq\Aut(H)$. Thus $\lambda_a(S)=S$ for every $a\in H$, not only for $a\in S$. Also $\lambda_s|_S=L_s$ because $\pi(s)=s$. (In standard terminology these two group laws form a skew left brace; no theorem about braces is needed.)
 
 \begin{theorem}\label{main}
-Let $S=S_X$ be the table of Lemma~\ref{table}. Set
+Let $S=S_X$ be the table of \cref{table}. Set
 \[
 B=\{w^{-1}sw:s\in S,\ w\in H\},\qquad a*b=b^{-1}ab.
 \]
@@ -165,43 +173,53 @@ a\mathbin{\underline{*}}b=\beta_b(a*b),
 $B$ is the free strong biquandle on $X$.
 \end{theorem}
 \begin{proof}[Proof of the axioms]
-The quandle $B$ is free on $S$ by Lemma~\ref{freeq}. Every $\lambda_b$ and its inverse preserves $B$. The identity
+The quandle $B$ is free on $S$ by \cref{freeq}. Every $\lambda_b$ and its inverse preserves $B$. The identity
 \[
-b\circ\beta_b(a*b)=ab=a\circ\beta_a(b)
+b\circ\beta_b(a*b)=ab=a\circ\beta_a(b).
 \]
-gives \eqref{bns} upon applying $\lambda$ and taking inverses. In the ambient set $H$ the diagonal $a\mapsto\lambda_a^{-1}(a)$ equals $(a^{\circ-1})^{-1}$, where the unmarked inverse is taken in $H$. This follows from $a\circ a^{\circ-1}=a\lambda_a(a^{\circ-1})=1$. Its inverse is $a\mapsto(a^{-1})^{\circ-1}$. If $c=(a^{-1})^{\circ-1}$, then $c\circ a^{-1}=1$, so $\lambda_c(a)=c$, so $c\in B$ whenever $a\in B$. Thus both the diagonal and its inverse preserve $B$, and \eqref{bns} holds on $B$. Lemma~\ref{characterization} then gives a strong biquandle in the original switch convention, with its explicit switch given by \eqref{switch}. Moreover the restrictions of $L_s=\lambda_s$ to $S$ recover the original table, including the diagonal and its inverse.
+gives \eqref{bns} upon applying $\lambda$ and taking inverses. In the ambient set $H$ the diagonal $a\mapsto\lambda_a^{-1}(a)$ equals $(a^{\circ-1})^{-1}$, where the unmarked inverse is taken in $H$. This follows from $a\circ a^{\circ-1}=a\lambda_a(a^{\circ-1})=1$. Its inverse is $a\mapsto(a^{-1})^{\circ-1}$. If $c=(a^{-1})^{\circ-1}$, then $c\circ a^{-1}=1$, so $\lambda_c(a)=c$, so $c\in B$ whenever $a\in B$. Thus both the diagonal and its inverse preserve $B$, and \eqref{bns} holds on $B$. \cref{characterization} then gives a strong biquandle in the original switch convention, with its explicit switch given by \eqref{switch}. Moreover the restrictions of $L_s=\lambda_s$ to $S$ recover the original table, including the diagonal and its inverse.
 \end{proof}
 
 \section{Universal property}
-\begin{proof}[Completion of the proof of Theorem~\ref{main}]
-Let $C$ be an arbitrary strong biquandle with associated quandle $Q(C)$, and let $f:X\to C$ be any map. Its underlying table $(C,L,D)$ satisfies Lemma~\ref{table}'s hypotheses by \eqref{bns}. Extend $f$ to a table morphism on $S$, then to a quandle morphism $q:B=\FQ(S)\to Q(C)$. We must show
+\begin{proof}[Completion of the proof of \cref{main}]
+Let $C$ be an arbitrary strong biquandle with associated quandle $Q(C)$, and let $f:X\to C$ be any map. Its underlying table $(C,L,D)$ satisfies \cref{table}'s hypotheses by \eqref{bns}. Extend $f$ to a table morphism on $S$, then to a quandle morphism $q:B=\FQ(S)\to Q(C)$. We must show
 \begin{equation}\label{eqv}
 qL_a=L_{q(a)}q\qquad (a\in B).
 \end{equation}
-In $B$, write $L_a=\lambda_a$. All these automorphisms permute the free basis. For $a\in S$, \eqref{eqv} holds on $S$ by table freeness, hence on $B$ by quandle freeness. Whenever \eqref{eqv} holds, the corresponding identity for inverses holds as well, since both $L$ maps are bijective.
+In $B$, write $L_a=\lambda_a|_B$. As shown above, each such automorphism preserves the set $S$ bijectively. For $a\in S$, \eqref{eqv} holds on $S$ by table freeness, hence on $B$ by quandle freeness. Whenever \eqref{eqv} holds, the corresponding identity for inverses holds as well, since both $L$ maps are bijective.
 
-Induct on the length of a word conjugating a basis element; denote inverse right quandle translation by $*^{-1}$. In the positive step, write $w=a*t$ with $t\in S$ and set
+For $a\in B$ define its complexity by
+\[
+ \ell(a)=\min\{|z|:a=z^{-1}sz,\ s\in S,\ z\in H\},
+\]
+where $|z|$ is reduced-word length. Every basis-permuting automorphism preserves $\ell$ (apply it and its inverse to shortest representatives). We prove \eqref{eqv} by strong induction on $\ell(w)$, with the case $\ell(w)=0$ established above. If $\ell(w)=n+1$, remove the last letter of a shortest conjugator to write $w=a*t$ or $w=a*^{-1}t$ for some $t\in S$ and $\ell(a)\leq n$. Here $*^{-1}$ denotes inverse right quandle translation.
+
+\emph{Positive step.} Write $w=a*t$ and set
 \[
 u=D^{-1}(t),\qquad p=L_u(a),\qquad b=L_p^{-1}(u).
 \]
-Here $u,b\in S$ and $p$ has conjugator length no greater than that of $a$. Furthermore $L_p(b)=u$ and $L_u^{-1}(p*u)=a*t=w$. Equation~\eqref{Lid} gives $L_w=L_u^{-1}L_pL_b$. In $C$ the images of $u,p,b,w$ satisfy the same defining equalities, by the induction hypothesis and the fact that $q$ preserves $*$ and the table operations. Applying \eqref{Lid} in $C$ yields $L_{q(w)}=L_{q(u)}^{-1}L_{q(p)}L_{q(b)}$. Thus
+Here $u,b\in S$ and $p$ has conjugator length no greater than that of $a$. Furthermore $L_p(b)=u$. Since $D(u)=t$ means $L_u(t)=u$, the quandle automorphism property gives
+\[
+ p*u=L_u(a)*L_u(t)=L_u(a*t),\qquad L_u^{-1}(p*u)=w.
+\] Equation~\eqref{Lid} gives $L_w=L_u^{-1}L_pL_b$. In $C$ the images of $u,p,b,w$ satisfy the same defining equalities, by the induction hypothesis and the fact that $q$ preserves $*$ and the table operations. Applying \eqref{Lid} in $C$ yields $L_{q(w)}=L_{q(u)}^{-1}L_{q(p)}L_{q(b)}$. Thus
 \[
  qL_w=qL_u^{-1}L_pL_b
       =L_{q(u)}^{-1}L_{q(p)}L_{q(b)}q=L_{q(w)}q.
 \]
 
-In the negative step, write $w=a*^{-1}u$ with $u\in S$. Put $v=L_u^{-1}(a)$ and $b=L_w^{-1}(u)\in S$. Since $w*u=a$, \eqref{Lid} gives $L_wL_b=L_uL_v$. Evaluation at $D(b)$ yields
+\emph{Negative step.} Write $w=a*^{-1}u$ with $u\in S$. Put $v=L_u^{-1}(a)$ and $b=L_w^{-1}(u)\in S$. Since $w*u=a$, \eqref{Lid} gives $L_wL_b=L_uL_v$. Because $L_b(D(b))=b$ and $L_w(b)=u$, evaluation at $D(b)$ yields
 \[
 u=L_uL_v(D(b)),\qquad b=D^{-1}\bigl(L_v^{-1}(D(u))\bigr).
 \]
-The element $v$ has conjugator length no greater than that of $a$. Crucially, we do not assume \eqref{eqv} for $w$ in the target. Define $b'=L_{q(w)}^{-1}(q(u))$ there. As $q(w)*q(u)=q(a)$ and $L_{q(u)}^{-1}(q(a))=q(v)$, the same identity in $C$ gives
+The element $v$ has conjugator length no greater than that of $a$. Crucially, we do not assume \eqref{eqv} for $w$ in the target. Define $b'=L_{q(w)}^{-1}(q(u))$ there. As $q(w)*q(u)=q(a)$ and $L_{q(u)}^{-1}(q(a))=q(v)$, the identity in $C$ reads $L_{q(w)}L_{b'}=L_{q(u)}L_{q(v)}$. Evaluating it at $D_C(b')$ gives $q(u)=L_{q(u)}L_{q(v)}(D_C(b'))$. Applying the inverses in order yields
 \[
 D_C(b')=L_{q(v)}^{-1}(D_C(q(u)))=q(D(b))=D_C(q(b)).
 \]
 The middle equality uses the induction hypothesis and the table morphism property, since $D(u),D(b)\in S$. Injectivity of $D_C$ implies $b'=q(b)$. Now $L_w=L_uL_vL_b^{-1}$ and $L_{q(w)}=L_{q(u)}L_{q(v)}L_{q(b)}^{-1}$, so
 \[
  qL_w=L_{q(u)}L_{q(v)}L_{q(b)}^{-1}q=L_{q(w)}q.
-\] This completes the induction.
+\]
+This completes the induction.
 
 Consequently $q$ preserves $\beta_b=L_b^{-1}$ as well as the quandle operation, so it preserves both biquandle operations. Any biquandle morphism extending $f$ must agree with the table extension on $S$ and then with $q$ on the quandle generated by $S$, which is all of $B$. Thus the extension exists and is unique. This proves the universal property for every strong target, without assuming its injectivity into a brace or structure group.
 \end{proof}
@@ -211,27 +229,26 @@ Consequently $q$ preserves $\beta_b=L_b^{-1}$ as well as the quandle operation, 
 The associated quandle of $\FB(X)$ is free on $S_X$. For finite nonempty $X$, $S_X$ is countably infinite and equality of biquandle terms is decidable.
 \end{corollary}
 \begin{proof}
-The first assertion follows from Theorem~\ref{main}. Each stage of table completion is finite for finite $X$, and new empty rows produce new symbols indefinitely. Lemma~\ref{cocycle} is effective: to lift a positive edge labelled $t$ from $\pi(g)$, append $s=\Lambda_g^{-1}(t)$ to $g$; for a negative edge labelled $t^{-1}$, append $s^{-1}$ with $s=D^{-1}(\Lambda_g^{-1}(t))$. Hence $\lambda_a$ and its inverse are computable on reduced words. The displayed operations are computable, as is equality in $H$. Inverse operations can also be computed by enumerating their unique preimages in $B$ or $B^2$ (which are effectively enumerable).
+The first assertion follows from \cref{main}. For finite nonempty $X$, each stage is finite. The first phase creates a fresh output symbol with an empty row; the next stage must fill that row and creates further fresh output symbols. Hence $S_X$ is countably infinite. \cref{cocycle} is effective: to lift a positive edge labelled $t$ from $\pi(g)$, append $s=\Lambda_g^{-1}(t)$ to $g$; for a negative edge labelled $t^{-1}$, append $s^{-1}$ with $s=D^{-1}(\Lambda_g^{-1}(t))$. Hence $\lambda_a$ and its inverse are computable on reduced words. The displayed quandle and switch operations are computable by these formulas and free reduction. The inverse switch, partial divisions with one input prescribed, and the type-I operations are computable by enumerating their unique preimages in $B$ or $B^2$; these sets are effectively enumerable, and existence and uniqueness follow from the axioms proved above. By structural induction on a term in the strong-biquandle signature, starting from its generators in $X$, every term therefore evaluates to a specific reduced word in $H$ belonging to $B$. Two terms are equal in $\FB(X)$ if and only if their reduced words agree, by the universal property just proved.
 \end{proof}
 \paragraph{Answers to the historical questions.}
-Theorem~\ref{main} and its corollary give the following precise correspondence with the literature, in the strong-biquandle category:
+\cref{main} and its corollary give the following precise correspondence with the literature, in the strong-biquandle category:
 \begin{itemize}
-\item \textbf{Fenn--Jordan-Santana--Kauffman (2004), pp.~171--172 \sourcecite{FJK}{\FJKFreeURL}:} a concrete free object, including the one-generator case, rather than merely a formal term quotient.
-\item \textbf{Fenn--Ilyutko--Kauffman--Manturov (2014), Problem 28, first question \sourcecite{FIKM}{\FIKMProblemURL}:} the requested descriptive representation is the conjugation model of Theorem~\ref{main}.
-\item \textbf{Bardakov--Nasybullov--Singh (2019/2022)} \sourcecite{BNS}{\BNSConjectureURL}.
-Theorem~\ref{main} gives the explicit model. The corollary affirms the expectation that a free biquandle arises from a biquandle structure on a free quandle. This expectation is stated after Proposition~4.24 in \S4.3 of the preprint.
+\item \textbf{Fenn--Jordan-Santana--Kauffman (2004), pp.~171--172 \sourcecite{fjk04}{\FJKFreeURL}:} a concrete free object, including the one-generator case, rather than merely a formal term quotient.
+\item \textbf{Fenn--Ilyutko--Kauffman--Manturov (2014), Problem 28, first question \sourcecite{fikm14}{\FIKMProblemURL}:} the requested descriptive representation is the conjugation model of \cref{main}.
+\item \textbf{Bardakov--Nasybullov--Singh (2019/2022)} \sourcecite{bns22}{\BNSConjectureURL}: \cref{main} gives the explicit model. The corollary affirms the expectation that a free biquandle arises from a biquandle structure on a free quandle. This expectation is stated after Proposition~4.24 in \S4.3 of the preprint.
 \end{itemize}
 These are related formulations, not three independent problems. The second and third questions of Problem~28 are tracked separately in \ResearchIssue{65} and \ResearchIssue{66}.
 
 \paragraph{Prior work and priority.}
-The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \sourcecite{post}{\PostURL}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \sourcecite{Ish}{\IshikawaURL} and the free dibiquandle construction in \sourcecite{Kim}{\KimURL} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
+The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \sourcecite{post24}{\PostURL}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \sourcecite{ish20}{\IshikawaURL} and the free dibiquandle construction in \sourcecite{kls25}{\KimURL} remain important comparisons. A full-text comparison with these two works is outstanding. No claim of priority over earlier equivalent constructions is made.
 
 \begin{thebibliography}{9}\small
-\bibitem{FJK} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}; \href{\FJKCopyURL}{article copy}.
-\bibitem{FIKM} R. Fenn, D. P. Ilyutko, L. H. Kauffman and V. O. Manturov, \emph{Unsolved problems in virtual knot theory and combinatorial knot theory}, Banach Center Publ. 103 (2014), 9--61. \href{\FIKMProblemURL}{Problem~28 in the published PDF}; \href{https://arxiv.org/abs/1409.2823}{arXiv:1409.2823}.
-\bibitem{BNS} V. Bardakov, T. Nasybullov and M. Singh, \emph{General constructions of biquandles and their symmetries}, J. Pure Appl. Algebra 226 (2022), 106936. \href{https://doi.org/10.1016/j.jpaa.2021.106936}{DOI}. Numbering refers to \href{https://arxiv.org/abs/1908.08301v1}{arXiv:1908.08301v1} (2019); see \href{\BNSConjectureURL}{\S4.3, p.~24}.
-\bibitem{post} M. J. H. Al-Kaabi, K. Ebrahimi-Fard and D. Manchon, \emph{Free post-groups, post-groups from group actions, and post-Lie algebras}, \href{\PostURL}{arXiv:2306.08284v4} (2024).
-\bibitem{Ish} K. Ishikawa, \emph{Knot quandles vs. knot biquandles}, Int. J. Math. 31 (2020), 2050015. \href{\IshikawaURL}{DOI}.
-\bibitem{Kim} Kim, Lee and Sheikh, \emph{Dibiquandle coloring invariants for dichromatic links and associated di(bi)quandles}, Topology Appl. (2025), 109358. \href{\KimURL}{DOI}.
+\bibitem{fjk04} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}; \href{\FJKCopyURL}{article copy}.
+\bibitem{fikm14} R. Fenn, D. P. Ilyutko, L. H. Kauffman and V. O. Manturov, \emph{Unsolved problems in virtual knot theory and combinatorial knot theory}, Banach Center Publ. 103 (2014), 9--61. \href{\FIKMProblemURL}{Problem~28 in the published PDF}; \href{https://arxiv.org/abs/1409.2823}{arXiv:1409.2823}.
+\bibitem{bns22} V. Bardakov, T. Nasybullov and M. Singh, \emph{General constructions of biquandles and their symmetries}, J. Pure Appl. Algebra 226 (2022), 106936. \href{https://doi.org/10.1016/j.jpaa.2021.106936}{DOI}. Numbering refers to \href{https://arxiv.org/abs/1908.08301v1}{arXiv:1908.08301v1} (2019); see \href{\BNSConjectureURL}{\S4.3, p.~24}.
+\bibitem{post24} M. J. H. Al-Kaabi, K. Ebrahimi-Fard and D. Manchon, \emph{Free post-groups, post-groups from group actions, and post-Lie algebras}, \href{\PostURL}{arXiv:2306.08284v4} (2024).
+\bibitem{ish20} K. Ishikawa, \emph{Knot quandles vs. knot biquandles}, Int. J. Math. 31 (2020), 2050015. \href{\IshikawaURL}{DOI}.
+\bibitem{kls25} J. Kim, S. Y. Lee and M. I. Sheikh, \emph{Dibiquandle coloring invariants for dichromatic links and associated di(bi)quandles}, Topology Appl. (2025), 109358. \href{\KimURL}{DOI}.
 \end{thebibliography}
 \end{document}
