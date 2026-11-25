@@ -3,7 +3,13 @@
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern,microtype}
-\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\definecolor{referenceblue}{RGB}{21,74,128}
+\usepackage[colorlinks=true,allcolors=referenceblue]{hyperref}
+\newcommand{\FJKCopyURL}{https://www.academia.edu/164480478/Biquandles_and_virtual_links}
+\newcommand{\FIKMProblemURL}{https://www.impan.pl/shop/en/publication/transaction/download/product/86155\#page=26}
+\newcommand{\BNSConjectureURL}{https://arxiv.org/pdf/1908.08301v1\#page=24}
+\newcommand{\ResearchIssue}[1]{\href{https://github.com/555tery/quandle-orbit-series/issues/#1}{issue~\##1}}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}[theorem]{Corollary}
@@ -18,7 +24,13 @@
 \begin{abstract}
 We give an explicit model of the free strong biquandle, addressing the question raised by Fenn, Jordan-Santana and Kauffman (2004), restated in the first part of Problem~28 of Fenn, Ilyutko, Kauffman and Manturov (2014), and revisited by Bardakov, Nasybullov and Singh (2019 preprint; 2022 publication). The model uses a freely completed permutation table $S$ and a bijective cocycle on free groups. We prove its universal property for arbitrary strong biquandles and show that its associated quandle is free on $S$, affirming the related conjecture of Bardakov, Nasybullov and Singh. For finite nonempty generating sets, the model also gives a decision procedure for equality of terms.
 \end{abstract}
-\noindent\textit{Status.} This note arose from AI-assisted exploration and is offered for specialist scrutiny. The proof is offered for independent expert review; priority has not been established. Corrections and references to earlier equivalent constructions are welcome. Research history: \href{https://github.com/555tery/quandle-orbit-series/issues/64}{issue \#64}.
+\noindent\textit{Status.} This note arose from AI-assisted exploration and is offered for specialist scrutiny. The proof is offered for independent expert review; priority has not been established. Corrections and references to earlier equivalent constructions are welcome. Research history is in \ResearchIssue{64} (explicit model) and \ResearchIssue{55} (associated quandle).
+
+\smallskip
+\noindent\textit{Source texts.}
+\href{\FJKCopyURL}{Fenn et al.\ (2004), pp.~171--172};
+\href{\FIKMProblemURL}{Problem~28 (2014), p.~34};
+\href{\BNSConjectureURL}{Bardakov et al., p.~24}.
 
 \section{Problem and statement}
 The first question of Problem 28 in \cite[p.~34]{FIKM} asks for a descriptive representation of the free biquandle. In \cite[pp.~171--172]{FJK} the authors discuss the free object, even on one generator, and the difficulty of giving a concrete description beyond a quotient of formal expressions. We address the strong (invertible-operation) category of \cite[Definitions 4.2, 4.6 and Theorem 4.7]{FJK}, not weak biquandles.
@@ -203,17 +215,18 @@ Theorem~\ref{main} and its corollary give the following precise correspondence w
 \begin{itemize}
 \item \textbf{Fenn--Jordan-Santana--Kauffman (2004), pp.~171--172 \cite{FJK}:} a concrete free object, including the one-generator case, rather than merely a formal term quotient.
 \item \textbf{Fenn--Ilyutko--Kauffman--Manturov (2014), Problem 28, first question \cite{FIKM}:} the requested descriptive representation is the conjugation model of Theorem~\ref{main}.
-\item \textbf{Bardakov--Nasybullov--Singh (2019/2022) \cite[Introduction and \S4.3, after Proposition 4.24 of the preprint]{BNS}:} the explicit-model question is answered by the same theorem; the additional expectation that a free biquandle arises from a biquandle structure on a free quandle is affirmed by the corollary.
+\item \textbf{Bardakov--Nasybullov--Singh (2019/2022)} \cite{BNS}.
+Theorem~\ref{main} gives the explicit model. The corollary affirms the expectation that a free biquandle arises from a biquandle structure on a free quandle. This expectation is stated after Proposition~4.24 in \href{\BNSConjectureURL}{\S4.3 of the preprint}.
 \end{itemize}
-These are related formulations, not three independent problems. The second and third questions of Problem~28 are not addressed in this note.
+These are related formulations, not three independent problems. The second and third questions of Problem~28 are tracked separately in \ResearchIssue{65} and \ResearchIssue{66}.
 
 \paragraph{Prior work and priority.}
 The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \cite{post}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \cite{Ish} and the free dibiquandle construction in \cite{Kim} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
 
 \begin{thebibliography}{9}\small
-\bibitem{FJK} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}.
-\bibitem{FIKM} R. Fenn, D. P. Ilyutko, L. H. Kauffman and V. O. Manturov, \emph{Unsolved problems in virtual knot theory and combinatorial knot theory}, Banach Center Publ. 103 (2014), 9--61. \href{https://arxiv.org/abs/1409.2823}{arXiv:1409.2823}.
-\bibitem{BNS} V. Bardakov, T. Nasybullov and M. Singh, \emph{General constructions of biquandles and their symmetries}, J. Pure Appl. Algebra 226 (2022), 106936. Numbering refers to \href{https://arxiv.org/abs/1908.08301v1}{arXiv:1908.08301v1} (2019).
+\bibitem{FJK} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}; \href{\FJKCopyURL}{article copy}.
+\bibitem{FIKM} R. Fenn, D. P. Ilyutko, L. H. Kauffman and V. O. Manturov, \emph{Unsolved problems in virtual knot theory and combinatorial knot theory}, Banach Center Publ. 103 (2014), 9--61. \href{\FIKMProblemURL}{Problem~28 in the published PDF}; \href{https://arxiv.org/abs/1409.2823}{arXiv:1409.2823}.
+\bibitem{BNS} V. Bardakov, T. Nasybullov and M. Singh, \emph{General constructions of biquandles and their symmetries}, J. Pure Appl. Algebra 226 (2022), 106936. \href{https://doi.org/10.1016/j.jpaa.2021.106936}{DOI}. Numbering refers to \href{https://arxiv.org/abs/1908.08301v1}{arXiv:1908.08301v1} (2019); see \href{\BNSConjectureURL}{\S4.3, p.~24}.
 \bibitem{post} M. J. H. Al-Kaabi, K. Ebrahimi-Fard and D. Manchon, \emph{Free post-groups, post-groups from group actions, and post-Lie algebras}, \href{https://arxiv.org/abs/2306.08284v4}{arXiv:2306.08284v4} (2024).
 \bibitem{Ish} K. Ishikawa, \emph{Knot quandles vs. knot biquandles}, Int. J. Math. 31 (2020), 2050015. \href{https://doi.org/10.1142/S0129167X20500159}{DOI}.
 \bibitem{Kim} Kim, Lee and Sheikh, \emph{Dibiquandle coloring invariants for dichromatic links and associated di(bi)quandles}, Topology Appl. (2025), 109358. \href{https://doi.org/10.1016/j.topol.2025.109358}{DOI}.
