@@ -7,8 +7,17 @@
 \definecolor{referenceblue}{RGB}{21,74,128}
 \usepackage[colorlinks=true,allcolors=referenceblue]{hyperref}
 \newcommand{\FJKCopyURL}{https://www.academia.edu/164480478/Biquandles_and_virtual_links}
+\newcommand{\FJKFreeURL}{\FJKCopyURL\#:\~:text=Consider\%20the\%20simplest\%20instance\%20of\%20this\%20situation}
+\newcommand{\FJKDefinitionsURL}{\FJKCopyURL\#:\~:text=Definition\%204.2}
 \newcommand{\FIKMProblemURL}{https://www.impan.pl/shop/en/publication/transaction/download/product/86155\#page=26}
-\newcommand{\BNSConjectureURL}{https://arxiv.org/pdf/1908.08301v1\#page=24}
+\newcommand{\BNSPreprintURL}{https://arxiv.org/pdf/1908.08301v1}
+\newcommand{\BNSConjectureURL}{\BNSPreprintURL\#page=24}
+\newcommand{\PostURL}{https://arxiv.org/abs/2306.08284v4}
+\newcommand{\IshikawaURL}{https://doi.org/10.1142/S0129167X20500159}
+\newcommand{\KimURL}{https://doi.org/10.1016/j.topol.2025.109358}
+% Retain LaTeX's citation numbering while linking the full citation to its source.
+\NewDocumentCommand{\sourcecite}{o m m}{%
+  \href{#3}{\NoHyper\IfNoValueTF{#1}{\cite{#2}}{\cite[#1]{#2}}\endNoHyper}}
 \newcommand{\ResearchIssue}[1]{\href{https://github.com/555tery/quandle-orbit-series/issues/#1}{issue~\##1}}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
@@ -26,14 +35,8 @@ We give an explicit model of the free strong biquandle, addressing the question 
 \end{abstract}
 \noindent\textit{Status.} This note arose from AI-assisted exploration and is offered for specialist scrutiny. The proof is offered for independent expert review; priority has not been established. Corrections and references to earlier equivalent constructions are welcome. Research history is in \ResearchIssue{64} (explicit model) and \ResearchIssue{55} (associated quandle).
 
-\smallskip
-\noindent\textit{Source texts.}
-\href{\FJKCopyURL}{Fenn et al.\ (2004), pp.~171--172};
-\href{\FIKMProblemURL}{Problem~28 (2014), p.~34};
-\href{\BNSConjectureURL}{Bardakov et al., p.~24}.
-
 \section{Problem and statement}
-The first question of Problem 28 in \cite[p.~34]{FIKM} asks for a descriptive representation of the free biquandle. In \cite[pp.~171--172]{FJK} the authors discuss the free object, even on one generator, and the difficulty of giving a concrete description beyond a quotient of formal expressions. We address the strong (invertible-operation) category of \cite[Definitions 4.2, 4.6 and Theorem 4.7]{FJK}, not weak biquandles.
+The first question of Problem 28 in \sourcecite[p.~34]{FIKM}{\FIKMProblemURL} asks for a descriptive representation of the free biquandle. In \sourcecite[pp.~171--172]{FJK}{\FJKFreeURL} the authors discuss the free object, even on one generator, and the difficulty of giving a concrete description beyond a quotient of formal expressions. We address the strong (invertible-operation) category of \sourcecite[Definitions 4.2, 4.6 and Theorem 4.7]{FJK}{\FJKDefinitionsURL}, not weak biquandles.
 
 \noindent\textbf{Main result.} For every nonempty set $X$ we construct, without using an abstract free biquandle, a set of symbols $S_X$ containing $X$ and a biquandle structure on
 \[
@@ -44,7 +47,7 @@ Every function $X\to C$ into a strong biquandle extends uniquely to a biquandle 
 \section{Conventions and a characterization of biquandles}
 A \emph{right quandle} is a set with an operation $a*b$ such that $a*a=a$, every $R_b:a\mapsto a*b$ is a bijection, and $(a*b)*c=(a*c)*(b*c)$. We write $a*^{-1}b=R_b^{-1}(a)$. Composition of maps is right to left.
 
-In the notation of Fenn--Jordan-Santana--Kauffman, a strong biquandle has a bijective switch $r(a,b)=(b_a,a^b)$ satisfying the braid equation $r_{12}r_{23}r_{12}=r_{23}r_{12}r_{23}$ on triples. The down map $b\mapsto b_a$ for fixed $a$ and the up map $a\mapsto a^b$ for fixed $b$ are bijections. The type-I condition is that the fixed pairs of $r$ have both coordinate projections bijective: for each value of either coordinate there is exactly one fixed pair with that coordinate. These are the strong birack and biquandle conditions of \cite[\S4]{FJK}. Morphisms are functions commuting with $r$ (and hence with its inverse and all uniquely determined division and type-I operations). Here $r_{ij}$ acts on adjacent coordinates and leaves the remaining coordinate unchanged.
+In the notation of Fenn--Jordan-Santana--Kauffman, a strong biquandle has a bijective switch $r(a,b)=(b_a,a^b)$ satisfying the braid equation $r_{12}r_{23}r_{12}=r_{23}r_{12}r_{23}$ on triples. The down map $b\mapsto b_a$ for fixed $a$ and the up map $a\mapsto a^b$ for fixed $b$ are bijections. The type-I condition is that the fixed pairs of $r$ have both coordinate projections bijective: for each value of either coordinate there is exactly one fixed pair with that coordinate. These are the strong birack and biquandle conditions of \sourcecite[\S4]{FJK}{\FJKDefinitionsURL}. Morphisms are functions commuting with $r$ (and hence with its inverse and all uniquely determined division and type-I operations). Here $r_{ij}$ acts on adjacent coordinates and leaves the remaining coordinate unchanged.
 
 \begin{lemma}[Quandle description]\label{characterization}
 Equivalently, a strong biquandle is a right quandle $Q$ with a family of automorphisms $\beta_b\in\Aut(Q)$ satisfying
@@ -56,7 +59,7 @@ Put $L_b=\beta_b^{-1}$. The switch is
 \begin{equation}\label{switch}
 r(a,b)=(u,v),\qquad u=L_a(b),\quad v=L_u^{-1}(a*u).
 \end{equation}
-In the BNS convention \cite[Remark 2.8 and Theorem 4.5]{BNS}, the two operations are $a\mathbin{\overline{*}}b=\beta_b(a)$ and $a\mathbin{\underline{*}}b=\beta_b(a*b)$. Thus $b_a=L_a(b)$ and $a^b=\beta_{b_a}(a*b_a)$ in the original switch notation (here $a*b_a$ means $a*(b_a)$). Morphisms in these descriptions agree.
+In the BNS convention \sourcecite[Remark~2.8]{BNS}{\BNSPreprintURL\#page=6} and \sourcecite[Theorem~4.5]{BNS}{\BNSPreprintURL\#page=13}, the two operations are $a\mathbin{\overline{*}}b=\beta_b(a)$ and $a\mathbin{\underline{*}}b=\beta_b(a*b)$. Thus $b_a=L_a(b)$ and $a^b=\beta_{b_a}(a*b_a)$ in the original switch notation (here $a*b_a$ means $a*(b_a)$). Morphisms in these descriptions agree.
 \end{lemma}
 \begin{proof}
 We include a proof to avoid relying on a change of convention. Starting with a strong switch, define $L_a(b)=b_a$ and define $a*u=L_u(v)$ when $r(a,L_a^{-1}(u))=(u,v)$. Each $R_u$ is bijective because $r$ is bijective and the input $L_a^{-1}(u)$ is uniquely determined by $a,u$. Fixed pairs are exactly $(a,L_a^{-1}(a))$, by the type-I condition and left nondegeneracy. Hence $a*a=a$ and $D(a)=L_a^{-1}(a)$ is bijective.
@@ -213,22 +216,22 @@ The first assertion follows from Theorem~\ref{main}. Each stage of table complet
 \paragraph{Answers to the historical questions.}
 Theorem~\ref{main} and its corollary give the following precise correspondence with the literature, in the strong-biquandle category:
 \begin{itemize}
-\item \textbf{Fenn--Jordan-Santana--Kauffman (2004), pp.~171--172 \cite{FJK}:} a concrete free object, including the one-generator case, rather than merely a formal term quotient.
-\item \textbf{Fenn--Ilyutko--Kauffman--Manturov (2014), Problem 28, first question \cite{FIKM}:} the requested descriptive representation is the conjugation model of Theorem~\ref{main}.
-\item \textbf{Bardakov--Nasybullov--Singh (2019/2022)} \cite{BNS}.
-Theorem~\ref{main} gives the explicit model. The corollary affirms the expectation that a free biquandle arises from a biquandle structure on a free quandle. This expectation is stated after Proposition~4.24 in \href{\BNSConjectureURL}{\S4.3 of the preprint}.
+\item \textbf{Fenn--Jordan-Santana--Kauffman (2004), pp.~171--172 \sourcecite{FJK}{\FJKFreeURL}:} a concrete free object, including the one-generator case, rather than merely a formal term quotient.
+\item \textbf{Fenn--Ilyutko--Kauffman--Manturov (2014), Problem 28, first question \sourcecite{FIKM}{\FIKMProblemURL}:} the requested descriptive representation is the conjugation model of Theorem~\ref{main}.
+\item \textbf{Bardakov--Nasybullov--Singh (2019/2022)} \sourcecite{BNS}{\BNSConjectureURL}.
+Theorem~\ref{main} gives the explicit model. The corollary affirms the expectation that a free biquandle arises from a biquandle structure on a free quandle. This expectation is stated after Proposition~4.24 in \S4.3 of the preprint.
 \end{itemize}
 These are related formulations, not three independent problems. The second and third questions of Problem~28 are tracked separately in \ResearchIssue{65} and \ResearchIssue{66}.
 
 \paragraph{Prior work and priority.}
-The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \cite{post}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \cite{Ish} and the free dibiquandle construction in \cite{Kim} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
+The extension of a diagonal left-regular magma to a free post-group is prior work of Al-Kaabi, Ebrahimi-Fard and Manchon \sourcecite{post}{\PostURL}; the cocycle argument above is included for self-containment, not as a claim of priority. The specific construction of $S_X$ and the universal property of the biquandle are the focus of this note. Ishikawa's adjunction \sourcecite{Ish}{\IshikawaURL} and the free dibiquandle construction in \sourcecite{Kim}{\KimURL} remain important comparisons; their full texts have not been checked. We do not claim that no earlier equivalent model exists.
 
 \begin{thebibliography}{9}\small
 \bibitem{FJK} R. Fenn, M. Jordan-Santana and L. H. Kauffman, \emph{Biquandles and virtual links}, Topology Appl. 145 (2004), 157--175. \href{https://doi.org/10.1016/j.topol.2004.06.008}{DOI}; \href{\FJKCopyURL}{article copy}.
 \bibitem{FIKM} R. Fenn, D. P. Ilyutko, L. H. Kauffman and V. O. Manturov, \emph{Unsolved problems in virtual knot theory and combinatorial knot theory}, Banach Center Publ. 103 (2014), 9--61. \href{\FIKMProblemURL}{Problem~28 in the published PDF}; \href{https://arxiv.org/abs/1409.2823}{arXiv:1409.2823}.
 \bibitem{BNS} V. Bardakov, T. Nasybullov and M. Singh, \emph{General constructions of biquandles and their symmetries}, J. Pure Appl. Algebra 226 (2022), 106936. \href{https://doi.org/10.1016/j.jpaa.2021.106936}{DOI}. Numbering refers to \href{https://arxiv.org/abs/1908.08301v1}{arXiv:1908.08301v1} (2019); see \href{\BNSConjectureURL}{\S4.3, p.~24}.
-\bibitem{post} M. J. H. Al-Kaabi, K. Ebrahimi-Fard and D. Manchon, \emph{Free post-groups, post-groups from group actions, and post-Lie algebras}, \href{https://arxiv.org/abs/2306.08284v4}{arXiv:2306.08284v4} (2024).
-\bibitem{Ish} K. Ishikawa, \emph{Knot quandles vs. knot biquandles}, Int. J. Math. 31 (2020), 2050015. \href{https://doi.org/10.1142/S0129167X20500159}{DOI}.
-\bibitem{Kim} Kim, Lee and Sheikh, \emph{Dibiquandle coloring invariants for dichromatic links and associated di(bi)quandles}, Topology Appl. (2025), 109358. \href{https://doi.org/10.1016/j.topol.2025.109358}{DOI}.
+\bibitem{post} M. J. H. Al-Kaabi, K. Ebrahimi-Fard and D. Manchon, \emph{Free post-groups, post-groups from group actions, and post-Lie algebras}, \href{\PostURL}{arXiv:2306.08284v4} (2024).
+\bibitem{Ish} K. Ishikawa, \emph{Knot quandles vs. knot biquandles}, Int. J. Math. 31 (2020), 2050015. \href{\IshikawaURL}{DOI}.
+\bibitem{Kim} Kim, Lee and Sheikh, \emph{Dibiquandle coloring invariants for dichromatic links and associated di(bi)quandles}, Topology Appl. (2025), 109358. \href{\KimURL}{DOI}.
 \end{thebibliography}
 \end{document}
