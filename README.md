@@ -1,23 +1,31 @@
-# Quandles with orbit series: Questions 5.25 and 5.7
+# Quandle and biquandle research: orbit series and free biquandles
 
-Working preprints by **Danil Pokulevskii**, Novosibirsk State Technical
+Research manuscripts by **Danil Pokulevskii**, Novosibirsk State Technical
 University, Novosibirsk, Russia ([555tery](https://github.com/555tery),
 555tery@gmail.com).
 
-Both papers address questions in Bonatto–Crans–Nasybullov–Whitney,
-*Quandles with orbit series conditions*. The Question 5.25 paper uses the
-numbering of [arXiv version 3](https://arxiv.org/abs/2004.10227v3), and the
-Question 5.7 paper follows the
-[journal edition](https://doi.org/10.1016/j.jalgebra.2020.09.026).
+This repository collects independent investigations of published problems
+and conjectures in quandle and biquandle theory. Its current projects cover
+two orbit-series questions from Bonatto–Crans–Nasybullov–Whitney,
+*Quandles with orbit series conditions*, and an explicit model for the free
+strong biquandle, addressing the first part of Problem 28 of Fenn,
+Ilyutko, Kauffman and Manturov (2014) and a related conjecture of Bardakov,
+Nasybullov and Singh.
+
+The Question 5.25 paper uses the numbering of
+[arXiv version 3](https://arxiv.org/abs/2004.10227v3), and the Question 5.7
+paper follows the [journal edition](https://doi.org/10.1016/j.jalgebra.2020.09.026).
 The Question 5.25 manuscript was revised on October 10, 2026.
 The Question 5.7 manuscript was revised on November 23, 2026.
+The free-biquandle note was revised on November 26, 2026.
 
-## Papers and LaTeX sources
+## Research notes and LaTeX sources
 
-| Paper | Русский | English |
+| Project | Русский | English |
 |---|---|---|
 | **Question 5.25 — Unbounded Orbit-Series and Reductivity Indices of Finite Quandles** | [PDF](question-5-25/q525_preprint_ru.pdf) · [TeX](question-5-25/q525_preprint_ru.tex) | [PDF](question-5-25/q525_preprint_en.pdf) · [TeX](question-5-25/q525_preprint_en.tex) |
 | **Question 5.7 — Extension closure of orbit-series classes** | [PDF](question-5-7/q57_preprint_ru.pdf) · [TeX](question-5-7/q57_preprint_ru.tex) | [PDF](question-5-7/q57_preprint_en.pdf) · [TeX](question-5-7/q57_preprint_en.tex) |
+| **Problem 28A — An explicit model of the free strong biquandle** | — | [PDF](problem-28a/free-biquandle.pdf) · [TeX](problem-28a/free-biquandle.tex) · [issue #64](https://github.com/555tery/quandle-orbit-series/issues/64) · [related issue #55](https://github.com/555tery/quandle-orbit-series/issues/55) |
 
 ### Question 5.25
 
@@ -62,31 +70,59 @@ finite dihedral quandles from BCNW Example 4.2 onto the summand index.
 The earlier proof using operator commutator series is available in the
 [October revision](https://github.com/555tery/quandle-orbit-series/tree/42036b2d9c0aef3e21a6b68d9739bc1049919c0a/question-5-7).
 
+### Problem 28A — An explicit model of the free strong biquandle
+
+The first question in [Problem 28 of Fenn, Ilyutko, Kauffman and Manturov
+(2014)](https://www.impan.pl/shop/en/publication/transaction/download/product/86155#page=26)
+asks for a descriptive representation of the free biquandle. “28A” is the
+repository's label for this first question, not a subnumber in the source. The note gives
+an explicit model for every nonempty generating set and proves its universal
+property. It also describes the associated quandle as a free quandle and,
+for finite generating sets, gives a decision procedure for equality of
+terms.
+
+The note addresses the related conjecture stated by Bardakov, Nasybullov
+and Singh after Proposition 4.24 in
+[§4.3 of their 2019 preprint](https://arxiv.org/pdf/1908.08301v1#page=24).
+The research threads are tracked in [issue #64](https://github.com/555tery/quandle-orbit-series/issues/64)
+and [issue #55](https://github.com/555tery/quandle-orbit-series/issues/55).
+The note arose from AI-assisted exploration and is offered for specialist
+feedback. It makes no priority claim. Problem 28's other two questions are tracked separately in
+[issue #65](https://github.com/555tery/quandle-orbit-series/issues/65) and
+[issue #66](https://github.com/555tery/quandle-orbit-series/issues/66).
+
 ## References and independent reading
 
-Each article contains the definitions and conventions needed to read its
+Each manuscript contains the definitions and conventions needed to read its
 proofs. External mathematical inputs have pinpoint citations to specified
-source versions; auxiliary arguments are proved in the text.
-The papers do not depend on each other or on the research wiki.
-See the [reference and dependency map](REFERENCES_AND_DEPENDENCIES.md).
+source versions; auxiliary arguments are proved in the text. The two
+orbit-series preprints have Russian and English versions and a separate
+[reference and dependency map](REFERENCES_AND_DEPENDENCIES.md). The
+free-biquandle note is a standalone English research note with links to
+sources in the text. The manuscripts do not depend on one another or on the
+research wiki.
 
 ## Build
 
-Each `.tex` file is standalone, including its bibliography. No external
-figures or bibliography files are needed. Use XeLaTeX or Tectonic; the font
-configuration uses the CMU fonts. For example, with Tectonic:
+Each LaTeX source file is standalone, including its bibliography. No
+external figures or bibliography files are needed. Use XeLaTeX or Tectonic. The
+orbit-series manuscripts use CMU fonts; the free-biquandle note uses Latin
+Modern. For example, with Tectonic:
 
-```sh
+~~~sh
 tectonic question-5-25/q525_preprint_en.tex
 tectonic question-5-7/q57_preprint_en.tex
-```
+tectonic problem-28a/free-biquandle.tex
+~~~
 
 ## Status
 
-The texts include proofs or precise references for their inputs and have
-undergone internal mathematical review, comparison of the two language
-versions, compilation, and visual inspection of the PDFs. External peer
-review has not yet been obtained.
+The orbit-series manuscripts include proofs or precise references for
+their inputs and have undergone internal mathematical review, comparison
+of the Russian and English versions, compilation, and visual inspection.
+The free-biquandle note has also been compiled and visually inspected and
+is offered for independent specialist feedback. External peer review has
+not been obtained for these manuscripts.
 **Novelty and publication priority have not been established.**
 
 ## Earlier notes on Question 5.25
@@ -99,13 +135,26 @@ For the complete article and current presentation, use the preprint above.
 
 ## Кратко по-русски
 
-Здесь опубликованы две работы и их самостоятельные исходники TeX на русском
-и английском языках. По вопросу 5.25 получены отрицательные ответы на обе
-части: индекс $j$ не ограничивается через $k$, а индекс $i$ — через $j$.
-Для первой конструкции получена точная глубина и формула мощностей членов
-выбранного орбитального ряда; бесконечное произведение примеров локально
-конечно и не принадлежит $\mathcal{OS}$. По вопросу 5.7 доказана точная
-поточечная оценка глубины через глубины в полном слое и в базе.
-Из неё следует замкнутость $\mathcal{OS}$ относительно расширений.
-Для $\mathcal{OS}_\omega$ приведён контрпример.
+Здесь опубликованы самостоятельные исследования и исходники TeX. По вопросам
+5.25 и 5.7 представлены работы на русском и английском языках. По вопросу
+5.25 получены отрицательные ответы на обе части: индекс $j$ не ограничивается
+через $k$, а индекс $i$ — через $j$. Для первой конструкции получена точная
+глубина и формула мощностей членов выбранного орбитального ряда; бесконечное
+произведение примеров локально конечно и не принадлежит $\mathcal{OS}$.
+По вопросу 5.7 доказана точная поточечная оценка глубины через глубины в
+полном слое и в базе. Из неё следует замкнутость $\mathcal{OS}$ относительно
+расширений. Для $\mathcal{OS}_\omega$ приведён контрпример.
+
+В репозитории также размещена заметка по первой части задачи 28 из
+[сборника Fenn, Ilyutko, Kauffman и Manturov (2014)](https://www.impan.pl/shop/en/publication/transaction/download/product/86155#page=26).
+В ней построена явная модель свободного сильного биквандла на любом
+непустом множестве образующих и доказано универсальное свойство. Связанная
+гипотеза Бардакова, Насбуллова и Сингха состоит в том, что ассоциированный
+квангл свободного биквандла свободен. Она рассматривается в
+[issue #55](https://github.com/555tery/quandle-orbit-series/issues/55);
+задача 28A отслеживается в
+[issue #64](https://github.com/555tery/quandle-orbit-series/issues/64).
+Заметка возникла в ходе экспериментов с AI и предлагается для независимой
+экспертной оценки. Претензия на приоритет не заявляется.
+
 Внешнее рецензирование, новизна и приоритет остаются отдельными задачами.
