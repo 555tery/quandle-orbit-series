@@ -22,13 +22,13 @@ noncomputable section
 def leftAdjointCandidate (L : Quandle → Biquandle)
     (unit : ∀ Q, Q.carrier → (L Q).carrier) : Prop :=
   ∀ Q, Q.Hom (L Q).associated (unit Q) ∧
-    ∀ B (f : Q.carrier → B.carrier), Q.Hom B.associated f →
+    ∀ (B : Biquandle) (f : Q.carrier → B.carrier), Q.Hom B.associated f →
       ∃! h : (L Q).carrier → B.carrier, (L Q).Hom B h ∧ h ∘ unit Q = f
 /-- Universal arrow for associated ⊣ R. -/
 def rightAdjointCandidate (R : Quandle → Biquandle)
     (counit : ∀ Q, (R Q).carrier → Q.carrier) : Prop :=
   ∀ Q, (R Q).associated.Hom Q (counit Q) ∧
-    ∀ B (f : B.carrier → Q.carrier), B.associated.Hom Q f →
+    ∀ (B : Biquandle) (f : B.carrier → Q.carrier), B.associated.Hom Q f →
       ∃! h : B.carrier → (R Q).carrier, B.Hom (R Q) h ∧ counit Q ∘ h = f
 def leftAdjointExists : Prop :=
   ∃ (L : Quandle → Biquandle) (unit : ∀ Q, Q.carrier → (L Q).carrier),

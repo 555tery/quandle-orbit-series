@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Basic.StrongBiquandle
 
 /-!
 # Issue 64: Fenn–Ilyutko–Kauffman–Manturov Problem 28A (2014) — explicit model of the free biquandle
 https://github.com/555tery/quandle-orbit-series/issues/64
 
 Formalization status: PARTIAL.
-Remaining obligation: Existence and candidate universal property distinguished; strong-switch convention and explicit model requirement remain.
+Remaining obligation: Explicit descriptive model (as opposed to mere existence) is the requested answer. The source strong-switch category is encoded directly; equivalence with BNS is not assumed.
 
 Source and target from the issue:
 ## Source / research question
@@ -18,12 +19,20 @@ Construct an explicit model of the free biquandle on a nonempty set X (in partic
 namespace QuandleResearch.Issue064
 noncomputable section
 
-/-- Existence statement; a descriptive answer should exhibit the carrier,
-operations and generators rather than merely establish this proposition. -/
+/-- Existence in the original strong-switch convention. -/
 def existsFree : Prop :=
-  ∀ X : Type, Nonempty X → ∃ (B : Biquandle) (gen : X → B.carrier), B.FreeOn gen
-def verifiesModel (X : Type) (B : Biquandle) (gen : X → B.carrier) : Prop :=
+  ∀ X : Type, Nonempty X →
+    ∃ (B : StrongBiquandle) (gen : X → B.carrier), B.FreeOn gen
+/-- Universal property for a proposed explicit model; the carrier,
+switch and generators must be supplied by the model. -/
+def verifiesModel (X : Type) (B : StrongBiquandle) (gen : X → B.carrier) : Prop :=
   Nonempty X → B.FreeOn gen
+
+/-- Separate compatibility specification for a proposed BNS model. -/
+def verifiesSwitchCorrespondence (B : Biquandle) (S : StrongBiquandle)
+    (e : B.carrier ≃ S.carrier) : Prop :=
+  ∀ a b, S.switch (e a,e b) =
+    (e (B.switchMap a b).1,e (B.switchMap a b).2)
 
 end
 end QuandleResearch.Issue064

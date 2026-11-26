@@ -31,6 +31,12 @@ Pinned Lean and Mathlib: v4.19.0. Compilation has not yet been run in this envir
 
 `ConcreteEnveloping.lean` uses the standard free-group presentation, `LinearGroups.lean` fixes the actual GL/SL targets and field automorphism action, and `AbelianExtensions.lean` encodes normalized cocycle data and multiplication. Issue062 uses rational-function matrices with explicit regularity at 1. These are statement-level constructions; no solution proof is added.
 
+## Build audit
+
+The earlier commit fae06e7 compiled 67 of 69 issue modules and all then-existing shared modules. The failed Issue046 used the reserved token `GL`; it has since been replaced by the concrete matrix group formulation. Issue022 required an explicit binder type for `B`; that annotation is added. The current head still requires a fresh CI result.
+
+`Basic/StrongBiquandle.lean` directly encodes the strong switch axioms (braid equation, nondegeneracy, both fixed-pair uniqueness conditions) in the convention of the repository note. Issue064 now uses this category, separately from BNS biquandles.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
@@ -100,7 +106,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#61](https://github.com/555tery/quandle-orbit-series/issues/61) | [Issue061](QuandleResearch/Questions/Issue061.lean) | PARTIAL | Concrete VP_n; field scope and source-convention audit remain. |
 | [#62](https://github.com/555tery/quandle-orbit-series/issues/62) | [Issue062](QuandleResearch/Questions/Issue062.lean) | PARTIAL | Concrete rational function matrix model; group defined by closure, equality with the source matrix set still requires a construction audit. |
 | [#63](https://github.com/555tery/quandle-orbit-series/issues/63) | [Issue063](QuandleResearch/Questions/Issue063.lean) | PARTIAL | Concrete quotient and algebraic Bieberbach condition; journal wording and geometric equivalence require audit. |
-| [#64](https://github.com/555tery/quandle-orbit-series/issues/64) | [Issue064](QuandleResearch/Questions/Issue064.lean) | PARTIAL | Existence and candidate universal property distinguished; strong-switch convention and explicit model requirement remain. |
+| [#64](https://github.com/555tery/quandle-orbit-series/issues/64) | [Issue064](QuandleResearch/Questions/Issue064.lean) | PARTIAL | Strong-switch axioms and universal property explicit; descriptive model is the requested answer, not a proof obligation at this stage. |
 | [#65](https://github.com/555tery/quandle-orbit-series/issues/65) | [Issue065](QuandleResearch/Questions/Issue065.lean) | PARTIAL | Topological construction and naturality not encoded; pointwise isomorphism is only a component. |
 | [#66](https://github.com/555tery/quandle-orbit-series/issues/66) | [Issue066](QuandleResearch/Questions/Issue066.lean) | PARTIAL | Establish author's partial-biquandle category, admissibility, morphisms and generator scope. |
 | [#67](https://github.com/555tery/quandle-orbit-series/issues/67) | [Issue067](QuandleResearch/Questions/Issue067.lean) | STATEMENT | Source audit and typecheck |
