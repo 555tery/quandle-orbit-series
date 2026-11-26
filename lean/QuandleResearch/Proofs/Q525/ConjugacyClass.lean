@@ -95,7 +95,7 @@ theorem locallyReductiveTwo {a : G} (ha : a*a = 1)
   have hc : x.val*y.val*x.val*y.val =
       y.val*x.val*y.val*x.val := by
     calc
-      _ = (x.val*y.val)^2 := by rw [pow_two]
+      _ = (x.val*y.val)^2 := by simp only [pow_two, mul_assoc]
       _ = ((x.val*y.val)^2)⁻¹ := by
         apply eq_inv_of_mul_eq_one_right
         rw [← pow_add]
