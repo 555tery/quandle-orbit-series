@@ -86,13 +86,14 @@ principal series and does not use the connected-base group argument. -/
 theorem sandwich_stable {s e : Set X} {x : X} {r m : Nat}
     (hlo : principalSeries s x r ⊆ e) (hhi : e ⊆ s)
     (hm : StableAt s x m) : StableAt e x m := by
-  have heq (i : Nat) (hi : m ≤ i) :
-      principalSeries s x i = principalSeries s x (r+i) := by
-    induction r with
+  have heqAux (i : Nat) (hi : m ≤ i) (k : Nat) :
+      principalSeries s x i = principalSeries s x (k+i) := by
+    induction k with
     | zero => simp
-    | succ r ih =>
+    | succ k ih =>
       rw [Nat.succ_add]
       exact ih.trans (stable_later hm (by omega))
+  have heq (i : Nat) (hi : m ≤ i) := heqAux i hi r
   have hsame (i : Nat) (hi : m ≤ i) :
       principalSeries e x i = principalSeries s x i := by
     have hlo' := principal_mono hlo x i
