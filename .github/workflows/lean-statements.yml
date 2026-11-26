@@ -1,0 +1,22 @@
+name: Lean statements
+on:
+  push:
+    paths: ['lean/**', '.github/workflows/lean-statements.yml']
+  pull_request:
+    paths: ['lean/**', '.github/workflows/lean-statements.yml']
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - run: lake update
+      - run: lake exe cache get
+      - run: lake build
