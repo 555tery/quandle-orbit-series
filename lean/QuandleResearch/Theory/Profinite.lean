@@ -57,7 +57,7 @@ def Profinite (T : TopologicalQuandle) : Prop :=
 
 /-- A Stone space is Mathlib's native profinite topological space.
 This is only the indexing space, not the definition of a profinite quandle. -/
-abbrev StoneIndex := _root_.Profinite
+abbrev StoneIndex := _root_.Profinite.{0}
 
 /-- A proposed Stone-indexed semi-disjoint union: a continuous projection
 whose fibres carry the given topological quandle structures. Right
