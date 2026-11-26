@@ -64,6 +64,10 @@ The last verified successful complete build before the migration was c9f11ed (Gi
 
 Fresh CI and source-convention review are required. No research solutions were added.
 
+## Statement refinements
+
+Issue044 specifies the actual integral representation by generator matrices from Theorem 3 and Corollary 3 (arXiv:2010.03162v1, p. 12). Issue034 has a native quotient-group type for each section and a target class of possible sections. Issue039 has the canonical comparison diagram and separate surjectivity/injectivity specifications. Issue036 and Issue037 retain alternate readings of ambiguous source hypotheses as separate propositions. No solution theorem is asserted.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
@@ -103,7 +107,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#31](https://github.com/555tery/quandle-orbit-series/issues/31) | [Issue031](QuandleResearch/Questions/Issue031.lean) | PARTIAL | Concrete UP; explicit answer presentation and source audit required. |
 | [#32](https://github.com/555tery/quandle-orbit-series/issues/32) | [Issue032](QuandleResearch/Questions/Issue032.lean) | STATEMENT | Source audit and typecheck |
 | [#33](https://github.com/555tery/quandle-orbit-series/issues/33) | [Issue033](QuandleResearch/Questions/Issue033.lean) | STATEMENT | Source audit and typecheck |
-| [#34](https://github.com/555tery/quandle-orbit-series/issues/34) | [Issue034](QuandleResearch/Questions/Issue034.lean) | PARTIAL | Verify tower hypotheses; descriptive question needs independent structural properties, not an arbitrary predicate. |
+| [#34](https://github.com/555tery/quandle-orbit-series/issues/34) | [Issue034](QuandleResearch/Questions/Issue034.lean) | PARTIAL | Native quotient for each tower section and isomorphism-invariant target class now defined; finite-prefix scope and normality hypotheses need source audit. An independent description is the requested answer. |
 | [#35](https://github.com/555tery/quandle-orbit-series/issues/35) | [Issue035](QuandleResearch/Questions/Issue035.lean) | STATEMENT | Source audit and typecheck |
 | [#36](https://github.com/555tery/quandle-orbit-series/issues/36) | [Issue036](QuandleResearch/Questions/Issue036.lean) | PARTIAL | Literal and nonabelian versions separated; check authors' intended scope. |
 | [#37](https://github.com/555tery/quandle-orbit-series/issues/37) | [Issue037](QuandleResearch/Questions/Issue037.lean) | PARTIAL | Normalized action and 2-cocycle data and multiplication now explicit; compare source's homological conventions. |
@@ -113,7 +117,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#41](https://github.com/555tery/quandle-orbit-series/issues/41) | [Issue041](QuandleResearch/Questions/Issue041.lean) | STATEMENT | Source audit and typecheck |
 | [#42](https://github.com/555tery/quandle-orbit-series/issues/42) | [Issue042](QuandleResearch/Questions/Issue042.lean) | STATEMENT | Exact issue hypotheses (odd prime, finite abelian kernel and all automorphisms) are encoded; independent source audit and typecheck remain pending. |
 | [#43](https://github.com/555tery/quandle-orbit-series/issues/43) | [Issue043](QuandleResearch/Questions/Issue043.lean) | PARTIAL | Concrete FVB and theta images from issue; verify y-generator action and right-action convention against source. |
-| [#44](https://github.com/555tery/quandle-orbit-series/issues/44) | [Issue044](QuandleResearch/Questions/Issue044.lean) | PARTIAL | Concrete FVB and integral matrix target; Delta generator matrices still required. |
+| [#44](https://github.com/555tery/quandle-orbit-series/issues/44) | [Issue044](QuandleResearch/Questions/Issue044.lean) | PARTIAL | Theorem 3 and Corollary 3 generator matrices transcribed directly from printed p. 12 (arXiv:2010.03162v1); remaining obligation is source-convention/typecheck review, not a kernel solution. |
 | [#45](https://github.com/555tery/quandle-orbit-series/issues/45) | [Issue045](QuandleResearch/Questions/Issue045.lean) | PARTIAL | Concrete presentations and both kernel-image subgroups; verify Gauss relations and source projection conventions. |
 | [#46](https://github.com/555tery/quandle-orbit-series/issues/46) | [Issue046](QuandleResearch/Questions/Issue046.lean) | PARTIAL | Both GL and SL, actual field hypotheses and entrywise automorphisms, all four propositions; verify dimension restrictions against source. |
 | [#47](https://github.com/555tery/quandle-orbit-series/issues/47) | [Issue047](QuandleResearch/Questions/Issue047.lean) | PARTIAL | Concrete GL, actual field hypotheses and entrywise automorphisms; verify dimension restrictions against source. |

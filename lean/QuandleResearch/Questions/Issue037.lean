@@ -27,5 +27,12 @@ def verifiesCriterion (criterion : ∀ D : AbelianExtensionData, ExtensionCocycl
     (law : Group (D.A × D.B)), C.Realizes law →
     (criterion D C ↔ (letI := law; AllAut (D.A × D.B)))
 
+/-- Alternative inner-automorphism reading, tracked separately until
+the original wording and context have been independently audited. -/
+def verifiesInnerCriterion (criterion : ∀ D : AbelianExtensionData, ExtensionCocycle D → Prop) : Prop :=
+  ∀ (D : AbelianExtensionData) (C : ExtensionCocycle D)
+    (law : Group (D.A × D.B)), C.Realizes law →
+    (criterion D C ↔ (letI := law; AllInner (D.A × D.B)))
+
 end
 end QuandleResearch.Issue037

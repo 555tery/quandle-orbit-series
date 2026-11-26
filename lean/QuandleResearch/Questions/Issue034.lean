@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Interfaces
 https://github.com/555tery/quandle-orbit-series/issues/34
 
 Formalization status: PARTIAL.
-Remaining obligation: Verify tower hypotheses; descriptive question needs independent structural properties, not an arbitrary predicate.
+Remaining obligation: Native quotient for each tower section and isomorphism-invariant target class now defined; finite-prefix scope and normality hypotheses need source audit. An independent description is the requested answer.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,15 +21,41 @@ Related #2, #7 and #8; distinguish describing the sections from triviality of an
 namespace QuandleResearch.Issue034
 noncomputable section
 
-def IsTower {G : Type} [Group G] (T : Nat → Subgroup G) (h : Nat → G) (length : Nat) : Prop :=
-  T 0 = ⊤ ∧ ∀ i < length, h i ∈ T i ∧ h i ≠ 1 ∧ T (i+1) < T i ∧
+/-- A finite strictly descending portion of the source's tower.
+Normality is recorded for each inclusion so the sections use the
+native Mathlib quotient group. No termination hypothesis is imposed
+on the ambient group; every finite prefix is covered. -/
+structure Tower (G : Type) [Group G] (length : Nat) where
+  T : Nat → Subgroup G
+  h : Nat → G
+  start : T 0 = ⊤
+  step : ∀ i < length, h i ∈ T i ∧ h i ≠ 1 ∧ T (i+1) < T i ∧
     (T (i+1) : Set G) = innerClass (h i)
-def verifiesSectionProperty (P : GroupObject → Prop) (G : Type) [Group G]
-    (T : Nat → Subgroup G) (h : Nat → G) (length : Nat) (i : Nat)
-    (N : Subgroup (T i)) [N.Normal] : Prop :=
-  AllInner G → IsTower T h length → i < length →
-    N = (T (i+1)).comap (T i).subtype →
-    ∀ S : GroupObject, Nonempty (S.carrier ≃* ((T i) ⧸ N)) → P S
+  normalStep : ∀ i < length, ((T (i+1)).comap (T i).subtype).Normal
+
+namespace Tower
+def sectionSubgroup {G : Type} [Group G] {length : Nat}
+    (D : Tower G length) (i : Nat) : Subgroup (D.T i) :=
+  (D.T (i+1)).comap (D.T i).subtype
+instance sectionNormal {G : Type} [Group G] {length : Nat}
+    (D : Tower G length) (i : Fin length) : (D.sectionSubgroup i.val).Normal :=
+  D.normalStep i.val i.isLt
+abbrev Section {G : Type} [Group G] {length : Nat}
+    (D : Tower G length) (i : Fin length) :=
+  (D.T i.val) ⧸ D.sectionSubgroup i.val
+end Tower
+
+/-- Target class of all groups occurring as sections, up to isomorphism.
+A classification should give an independent description of this class. -/
+def occursAsSection (S : GroupObject) : Prop :=
+  ∃ (G : Type) (_ : Group G) (length : Nat) (D : Tower G length) (i : Fin length),
+    AllInner G ∧ Nonempty (S.carrier ≃* D.Section i)
+def verifiesClassification (answer : GroupObject → Prop) : Prop :=
+  ∀ S, answer S ↔ occursAsSection S
+/-- A structural property may also give partial information about the
+open-ended description, without claiming a full classification. -/
+def verifiesSectionProperty (P : GroupObject → Prop) : Prop :=
+  ∀ S, occursAsSection S → P S
 
 end
 end QuandleResearch.Issue034

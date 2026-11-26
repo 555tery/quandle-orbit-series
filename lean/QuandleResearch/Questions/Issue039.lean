@@ -46,5 +46,32 @@ requires the induced quotient homomorphism. -/
 def verifiesCanonicalKernel (G : Type) [Group G] (H : Subgroup G) (answer : Subgroup H) : Prop :=
   ((QuotientGroup.mk' (Subgroup.center G)).comp H.subtype).ker = answer
 
+/-- Candidate comparison with the actual twisted subgroup in the central
+quotient. The diagram pins down the comparison, not an arbitrary map. -/
+def IsCanonicalComparison (G : Type) [Group G] (phi : G ≃* G)
+    (H : Subgroup G) (N : Subgroup H) [N.Normal]
+    (bar : (G ⧸ Subgroup.center G) ≃* (G ⧸ Subgroup.center G))
+    (K : Subgroup (G ⧸ Subgroup.center G))
+    (f : (H ⧸ N) →* K) : Prop :=
+  FactorData G phi H N ∧ inducedOnCenterQuotient G phi bar ∧
+    (K : Set (G ⧸ Subgroup.center G)) = twisted bar ∧
+    ∀ x : H, (f (QuotientGroup.mk' N x)).val =
+      QuotientGroup.mk' (Subgroup.center G) x.val
+
+def comparisonSurjective (G : Type) [Group G] (phi : G ≃* G)
+    (H : Subgroup G) (N : Subgroup H) [N.Normal]
+    (bar : (G ⧸ Subgroup.center G) ≃* (G ⧸ Subgroup.center G))
+    (K : Subgroup (G ⧸ Subgroup.center G)) : Prop :=
+  FactorData G phi H N → inducedOnCenterQuotient G phi bar →
+    (K : Set (G ⧸ Subgroup.center G)) = twisted bar →
+    ∃ f : (H ⧸ N) →* K, IsCanonicalComparison G phi H N bar K f ∧ Function.Surjective f
+
+def comparisonInjective (G : Type) [Group G] (phi : G ≃* G)
+    (H : Subgroup G) (N : Subgroup H) [N.Normal]
+    (bar : (G ⧸ Subgroup.center G) ≃* (G ⧸ Subgroup.center G))
+    (K : Subgroup (G ⧸ Subgroup.center G))
+    (f : (H ⧸ N) →* K) : Prop :=
+  IsCanonicalComparison G phi H N bar K f → Function.Injective f
+
 end
 end QuandleResearch.Issue039

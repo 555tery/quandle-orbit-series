@@ -31,5 +31,9 @@ def nonabelianVersion : Prop :=
   ∀ (G : Type) [Group G] (N : Subgroup G) [N.Normal],
     ¬ Abelian G → Abelian N → Abelian (G ⧸ N) → ¬ AllInner G
 
+def nonabelianByCyclic : Prop :=
+  ∀ (G : Type) [Group G] (N : Subgroup G) [N.Normal],
+    ¬ Abelian G → Abelian N → Cyclic (G ⧸ N) → ¬ AllInner G
+
 end
 end QuandleResearch.Issue036
