@@ -58,4 +58,60 @@ example : extensionOSomega.{u,v} ↔
 example : answer.{u,v} ↔ (extensionOS.{u,v} ∧ ¬ extensionOSomega.{u,v}) :=
   Iff.rfl
 
+
+-- A ShelfHom between racks automatically preserves inverse translations.
+-- This verifies that no extra congruence compatibility is omitted.
+theorem map_invAct {X : Type u} {Y : Type v}
+    [_root_.Quandle X] [_root_.Quandle Y]
+    (f : ShelfHom X Y) (x y : X) :
+    f (_root_.Rack.invAct x y) = _root_.Rack.invAct (f x) (f y) := by
+  apply (_root_.Rack.act' (f x)).injective
+  change Shelf.act (f x) (f (_root_.Rack.invAct x y)) =
+    Shelf.act (f x) (_root_.Rack.invAct (f x) (f y))
+  rw [← f.map_act]
+  simp
+
+-- A full fibre really is a subquandle in the ambient-set representation.
+theorem fibre_isSubrack {X : Type u} {Y : Type v}
+    [_root_.Quandle X] [_root_.Quandle Y]
+    (f : ShelfHom X Y) (b : Y) : IsSubrack (fibre f b) := by
+  intro y hy x hx
+  change f y ∈ ({b} : Set Y) at hy
+  change f x ∈ ({b} : Set Y) at hx
+  have hy' := Set.mem_singleton_iff.mp hy
+  have hx' := Set.mem_singleton_iff.mp hx
+  constructor
+  · change f (Shelf.act y x) ∈ ({b} : Set Y)
+    rw [f.map_act, hy', hx']
+    simp
+  · change f (_root_.Rack.invAct y x) ∈ ({b} : Set Y)
+    rw [map_invAct, hy', hx']
+    simp
+
+theorem fibre_nonempty {X : Type u} {Y : Type v}
+    [_root_.Quandle X] [_root_.Quandle Y]
+    (f : ShelfHom X Y) (hf : Function.Surjective f) (b : Y) :
+    (fibre f b).Nonempty := by
+  obtain ⟨x, hx⟩ := hf b
+  exact ⟨x, Set.mem_singleton_iff.mpr hx⟩
+
+-- Expose all orbit choices and the generated permutation group.
+-- No constant anchor or nonempty infinite intersection is imposed.
+example {X : Type u} [_root_.Quandle X] (s : Set X) (a : Nat → Set X) :
+    IsOrbitSeries s a ↔
+      a 0 = s ∧ (∀ n, IsSubrack (a n)) ∧
+        ∀ n, ∃ x ∈ a n,
+          a (n+1) = a n ∩ MulAction.orbit
+            (Subgroup.closure ((_root_.Rack.act' : X → Equiv.Perm X) '' a n)) x :=
+  Iff.rfl
+
+-- Verify that layers cannot grow; the source's descending condition is
+-- not an additional assumption.
+theorem series_step_subset {X : Type u} [_root_.Quandle X]
+    {s : Set X} {a : Nat → Set X} (ha : IsOrbitSeries s a) (n : Nat) :
+    a (n+1) ⊆ a n := by
+  obtain ⟨x, _, hx⟩ := ha.2.2 n
+  rw [hx]
+  exact Set.inter_subset_left
+
 end QuandleResearch.Q57.StatementAudit
