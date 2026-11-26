@@ -95,6 +95,10 @@ Issue024 now has explicit switch axioms and a group-valued specialization of the
 
 The stable Lean/Mathlib version is v4.36.0. The q525 branch focuses on Issue014; the full migration of unrelated modules is not verified. Source: arXiv:2004.10227v3 §§2.1, 3.1 equation (3), 3.2 equation (5), 4.1 equation (7), Question 5.25. The native unbundled OrbitSeriesCore uses Rack, Shelf.act, Rack.act', Subgroup.closure, MulAction.orbit/orbitRel and List.foldl/replicate. The previous bundled OrbitSeries API is retained via aliases. The original question is stated as two independent uniform inclusions of finite nonempty quandle classes, without requiring minimal indices or assuming the desired bound. Their negations, fixed-input unboundedness targets at 2, and exact positive profiles using IsLeast are separate propositions. No proof of a research answer is included. CI on this branch builds only Issue014 and its dependencies; success is not evidence of full library compatibility.
 
+## Q525 proof development
+
+Source manuscript: `question-5-25/q525_preprint_en.tex` at main 9763681484149c632c3ae1d9ea2717e8f1aec53c. The checked statement remains Issue014. Proofs/Q525/OrbitLemmas proves the orbit and singleton infrastructure and the sufficient trivial-orbit criterion. Proofs/Q525/Consequences proves the final logical implications and reduces each answer to concrete counterexample witnesses. The NTT group construction and normal-closure filtration (§3), and reduced-free-group/Magnus finite quotients and nonreductivity (§4), are NOT proved here. No sorry, admit or axiom declarations. Focused proof build and axiom reports are requested by CI; compilation pending.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
