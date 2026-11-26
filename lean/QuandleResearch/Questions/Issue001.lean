@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Profinite
 https://github.com/555tery/quandle-orbit-series/issues/1
 
 Formalization status: PARTIAL.
-Remaining obligation: Native finite-type and Stone-space limits plus explicit generalized mesh and total-space topology. The original §6 does not fix a transfinite assembly operation; the limit-stage reconstruction and adequacy of this candidate interpretation remain to be reviewed.
+Remaining obligation: Definition 5.1 now uses Mathlib's actual profinite completion of Inn(Q), not abstract Inn(Q) transitivity. Explicit mesh assembly and compatible child identifications are specified. The source leaves the exact transfinite procedure open; limit reconstruction and CI remain to be checked.
 
 Source and target from the issue:
 ## Source / explicitly proposed open research question

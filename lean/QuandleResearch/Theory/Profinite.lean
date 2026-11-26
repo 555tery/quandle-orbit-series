@@ -1,5 +1,6 @@
 import QuandleResearch.Basic.Quandle
 import Mathlib.Topology.Category.Profinite.Basic
+import Mathlib.Topology.Algebra.Category.ProfiniteGrp.Completion
 import Mathlib.CategoryTheory.Limits.Types.Limits
 import Mathlib.CategoryTheory.Category.Preorder
 import Mathlib.SetTheory.Ordinal.Basic
@@ -69,6 +70,39 @@ def ProfiniteSurjective (T : TopologicalQuandle) : Prop :=
     Nonempty J ∧ IsDirected J (· ≤ ·) ∧
     ∃ D : FiniteQuandleDiagram J, D.SurjectiveMaps ∧ D.IsLimit T
 
+/-- The actual profinite completion of the abstract inner group, not
+the diagram-dependent inverse limit of finite inner groups (Definition
+4.1). Mathlib already provides the completion and canonical dense map. -/
+abbrev completedInn (T : TopologicalQuandle) :=
+  ProfiniteGrp.ProfiniteCompletion.completion (GrpCat.of T.Q.Inn)
+
+/-- The action from Proposition 4.5, specified by extending the
+canonical action on the dense image of Inn(Q). Ordinary left actions
+are used instead of the source's right-action notation.
+The action is not required to be faithful after completion. -/
+def IsCompletedInnerAction (T : TopologicalQuandle)
+    (rho : completedInn T →* Equiv.Perm T.Q.carrier) : Prop :=
+  (∀ (g : T.Q.Inn) (x : T.Q.carrier),
+    rho (ProfiniteGrp.ProfiniteCompletion.etaFn (GrpCat.of T.Q.Inn) g) x = g.val x) ∧
+  Continuous (fun p : completedInn T × T.Q.carrier => rho p.1 p.2)
+
+/-- Definition 5.1: profinitely algebraically connected. In §6 the
+authors expressly use "algebraically connected" in this sense, NOT
+transitivity of the abstract Inn(Q), and not connectedness of the
+underlying topological space. -/
+def ProfinitelyConnected (T : TopologicalQuandle) : Prop :=
+  Nonempty T.Q.carrier ∧
+    ∃ rho : completedInn T →* Equiv.Perm T.Q.carrier,
+      IsCompletedInnerAction T rho ∧
+      ∀ x y : T.Q.carrier, ∃ g : completedInn T, rho g x = y
+
+/-- Useful equivalent characterization to be verified separately
+using Proposition 4.5 and density of the canonical map. It is not used
+as an unproved axiom in the statement of the problem. -/
+def DenseInnerOrbits (T : TopologicalQuandle) : Prop :=
+  Nonempty T.Q.carrier ∧ ∀ x : T.Q.carrier,
+    Dense (MulAction.orbit T.Q.Inn x)
+
 /-- A Stone space is Mathlib's native profinite topological space.
 This is only the indexing space, not the definition of a profinite quandle. -/
 abbrev StoneIndex := _root_.Profinite.{0}
@@ -87,18 +121,6 @@ structure StoneUnion (T : TopologicalQuandle) (I : StoneIndex)
   inclInjective : ∀ i, Function.Injective (incl i)
   imageFiber : ∀ i, Set.range (incl i) = {x | proj x = i}
   fiberTopology : ∀ i, (F i).topology = TopologicalSpace.induced (incl i) T.topology
-
-/-- Closure under the proposed constructor, starting with algebraically
-connected profinite quandles. Well-founded constructor trees encode
-iterated unions; this is one candidate formulation of the transfinite
-construction, not a claim that §6 specified a unique operation. -/
-inductive Constructible : TopologicalQuandle → Prop
-  | connected (T : TopologicalQuandle) :
-      Profinite T → Nonempty T.Q.carrier → T.Q.Connected → Constructible T
-  | stoneUnion (T : TopologicalQuandle) (I : StoneIndex)
-      (F : I → TopologicalQuandle) :
-      Profinite T → StoneUnion T I F →
-      (∀ i, Constructible (F i)) → Constructible T
 
 /-- Generalization of the finite mesh of Ehrman–Gurpinar–Thibault–Yetter,
 Definition 3.3 and Theorem 3.2. We use the Mathlib augmentation
@@ -145,7 +167,7 @@ structure StoneAssembly (T : TopologicalQuandle) (I : StoneIndex)
   projectionContinuous : letI := topology
                          Continuous (fun x : Σ i : I, (F i).Q.carrier => x.1)
   fiberTopology : ∀ i, (F i).topology =
-    TopologicalSpace.induced (Sigma.mk i : (F i).Q.carrier → Σ j : I, (F j).Q.carrier)
+    TopologicalSpace.induced (fun x : (F i).Q.carrier => (⟨i, x⟩ : Σ j : I, (F j).Q.carrier))
       topology
   continuousOp : letI := topology
                  Continuous (fun p : (Σ i : I, (F i).Q.carrier) ×
@@ -156,6 +178,18 @@ structure StoneAssembly (T : TopologicalQuandle) (I : StoneIndex)
   identify : letI := topology; T.Q.carrier ≃ₜ (Σ i : I, (F i).Q.carrier)
   preserves : ∀ x y : T.Q.carrier,
     identify (T.Q.op x y) = mesh.op (identify x) (identify y)
+
+/-- Bottom-up closure under the explicit mesh assembly. This is a
+well-founded assembly-tree interpretation, distinct from the ordinal
+partition formulation below. Neither is claimed equivalent to the
+open-ended source question. -/
+inductive Constructible : TopologicalQuandle → Prop
+  | connected (T : TopologicalQuandle) :
+      Profinite T → ProfinitelyConnected T → Constructible T
+  | stoneUnion (T : TopologicalQuandle) (I : StoneIndex)
+      (F : I → TopologicalQuandle) :
+      Profinite T → StoneAssembly T I F →
+      (∀ i, Constructible (F i)) → Constructible T
 
 /-- A profinite piece of the ambient quandle, identified with an actual
 subset by a homomorphism and the subspace topology. -/
@@ -175,7 +209,7 @@ inside a parent are exactly fibres of a continuous map to a Stone
 space, and right translations by points in the parent preserve fibres.
 At limits, the partition is the intersection of the earlier partitions.
 Each cell has the structure of a profinite subquandle; terminal cells
-are algebraically connected, not just topologically connected.
+are profinitely algebraically connected in the exact sense of Definition 5.1.
 
 Each successor has explicit mesh and total-space topology data. Limit
 stages are expressed as intersections of partitions, not a prescribed
@@ -188,18 +222,25 @@ structure TransfiniteDecomposition (T : TopologicalQuandle) where
     ∀ x y, (partition b).r x y → (partition a).r x y
   cell : ∀ a, a ≤ height → ∀ x : T.Q.carrier,
     ProfinitePiece T {y | (partition a).r x y}
-  successor : ∀ (a : Ordinal.{0}) (ha : a ≤ height), a+1 ≤ height →
+  successor : ∀ (a : Ordinal.{0}) (ha : a ≤ height) (hs : a+1 ≤ height),
     ∀ (x : T.Q.carrier),
     let C := cell a ha x
     ∃ (I : StoneIndex) (F : I → TopologicalQuandle)
       (A : StoneAssembly C.piece I F),
-      ∀ u v : C.piece.Q.carrier,
+      (∀ u v : C.piece.Q.carrier,
         (A.identify u).1 = (A.identify v).1 ↔
-          (partition (a+1)).r (C.incl u) (C.incl v)
+          (partition (a+1)).r (C.incl u) (C.incl v)) ∧
+      ∀ u : C.piece.Q.carrier,
+        let i := (A.identify u).1
+        let child := cell (a+1) hs (C.incl u)
+        ∃ e : (F i).Q.carrier ≃ₜ child.piece.Q.carrier,
+          (∀ v w, e ((F i).Q.op v w) = child.piece.Q.op (e v) (e w)) ∧
+          ∀ v, child.incl (e v) =
+            C.incl (A.identify.symm ⟨i,v⟩)
   limitStage : ∀ a, a ≤ height → a ≠ 0 →
     (∀ b < a, b+1 < a) →
     ∀ x y, (partition a).r x y ↔ ∀ b < a, (partition b).r x y
-  terminal : ∀ x : T.Q.carrier, (cell height le_rfl x).piece.Q.Connected
+  terminal : ∀ x : T.Q.carrier, ProfinitelyConnected (cell height le_rfl x).piece
 
 end
 end QuandleResearch
