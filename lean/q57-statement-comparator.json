@@ -1,6 +1,6 @@
 {
   "challenge_module": "QuandleResearch.Checks.Q57StatementChallenge",
-  "solution_module": "QuandleResearch.Checks.Q57SemanticRegression",
+  "solution_module": "QuandleResearch.Checks.Q57StatementAudit",
   "theorem_names": [
     "QuandleResearch.Q57.StatementAudit.os_expanded",
     "QuandleResearch.Q57.StatementAudit.osomega_expanded",
@@ -15,18 +15,7 @@
     "QuandleResearch.Q57.StatementAudit.extensionOS_iff_congruenceOS",
     "QuandleResearch.Q57.StatementAudit.extensionOSomega_iff_congruenceOSomega",
     "QuandleResearch.Q57.StatementAudit.extensionOS_of_congruenceOS",
-    "QuandleResearch.Q57.StatementAudit.extensionOSomega_of_congruenceOSomega",
-    "QuandleResearch.Q57.SemanticRegression.congruence_iff_paper",
-    "QuandleResearch.Q57.SemanticRegression.series_iff_paper",
-    "QuandleResearch.Q57.SemanticRegression.connected_bound_zero",
-    "QuandleResearch.Q57.SemanticRegression.connected_D3",
-    "QuandleResearch.Q57.SemanticRegression.trivial_orbit",
-    "QuandleResearch.Q57.SemanticRegression.T2_bound_one",
-    "QuandleResearch.Q57.SemanticRegression.T2_not_bound_zero",
-    "QuandleResearch.Q57.SemanticRegression.orbit_zero_multiples",
-    "QuandleResearch.Q57.SemanticRegression.infiniteSeries_valid",
-    "QuandleResearch.Q57.SemanticRegression.infiniteSeries_strict",
-    "QuandleResearch.Q57.SemanticRegression.Dinf_not_OS"
+    "QuandleResearch.Q57.StatementAudit.extensionOSomega_of_congruenceOSomega"
   ],
   "permitted_axioms": [
     "propext",

@@ -1,0 +1,22 @@
+{
+  "challenge_module": "QuandleResearch.Checks.Q57RegressionChallenge",
+  "solution_module": "QuandleResearch.Checks.Q57SemanticRegression",
+  "theorem_names": [
+    "QuandleResearch.Q57.SemanticRegression.congruence_iff_paper",
+    "QuandleResearch.Q57.SemanticRegression.series_iff_paper",
+    "QuandleResearch.Q57.SemanticRegression.connected_bound_zero",
+    "QuandleResearch.Q57.SemanticRegression.connected_D3",
+    "QuandleResearch.Q57.SemanticRegression.trivial_orbit",
+    "QuandleResearch.Q57.SemanticRegression.T2_bound_one",
+    "QuandleResearch.Q57.SemanticRegression.T2_not_bound_zero",
+    "QuandleResearch.Q57.SemanticRegression.orbit_zero_multiples",
+    "QuandleResearch.Q57.SemanticRegression.infiniteSeries_valid",
+    "QuandleResearch.Q57.SemanticRegression.infiniteSeries_strict",
+    "QuandleResearch.Q57.SemanticRegression.Dinf_not_OS"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ]
+}

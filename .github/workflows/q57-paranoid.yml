@@ -43,7 +43,7 @@ jobs:
           lake exe cache get
       - name: Check submitted proof and separate specification
         run: |
-          lake build QuandleResearch.Checks.Q57SemanticRegression QuandleResearch.Checks.Q57StatementChallenge
+          lake build QuandleResearch.Checks.Q57SemanticRegression QuandleResearch.Checks.Q57RegressionChallenge
       - name: Compare and verify with all six kernels
         run: |
           set -euo pipefail
@@ -52,9 +52,19 @@ jobs:
             grep -F "$kernel kernel accepts the solution" q57-paranoid.log
           done
           grep -F "Your solution is okay!" q57-paranoid.log
+      - name: Verify semantic regressions with all six kernels
+        run: |
+          set -euo pipefail
+          lake comparator --config q57-regression-comparator.json --paranoid 2>&1 | tee q57-regression-paranoid.log
+          for kernel in "Lean default" "Lean paranoid" lean4lean nanoda con-leche con-ron; do
+            grep -F "$kernel kernel accepts the solution" q57-regression-paranoid.log
+          done
+          grep -F "Your solution is okay!" q57-regression-paranoid.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: q57-paranoid-log
-          path: lean/q57-paranoid.log
+          path: |
+            lean/q57-paranoid.log
+            lean/q57-regression-paranoid.log
           if-no-files-found: warn
