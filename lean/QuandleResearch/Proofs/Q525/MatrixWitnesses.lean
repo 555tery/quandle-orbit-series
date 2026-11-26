@@ -99,7 +99,7 @@ theorem fourth_mark (aug : R →+* ZMod 2) (hc : ∀ x : R, x+x=0)
   have hM : M*M=0 := by
     calc
       M*M = H*N*(K*H)*N*K := by dsimp [M]; noncomm_ring
-      _ = 0 := by rw [hKH,mul_one,← mul_assoc H N N,hN]; simp
+      _ = 0 := by rw [hKH,mul_one,mul_assoc H N N,hN]; simp
   have hcross := cross_sq_zero H K
     (hk _ (entry21_zero aug g)) (hk _ (entry21_zero aug g⁻¹))
   have hc' : ∀ A : Mat R, A+A=0 := by
