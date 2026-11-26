@@ -6,7 +6,7 @@ import QuandleResearch.Theory.Profinite
 https://github.com/555tery/quandle-orbit-series/issues/1
 
 Formalization status: PARTIAL.
-Remaining obligation: Profinite inverse limits and topology are explicit. StoneUnion and Constructible specify one proposed reading of the open-ended construction in §6; verify its adequacy, especially transfinite limit stages.
+Remaining obligation: Definition 3.5 is now specified using Mathlib functors and compatible sections. The transfinite partition formulation is a proposed interpretation of the open-ended §6 research direction, not a source-defined construction. Bottom-up reconstruction and the interpretation of semi-disjoint unions require review.
 
 Source and target from the issue:
 ## Source / explicitly proposed open research question

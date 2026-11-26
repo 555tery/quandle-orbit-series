@@ -19,4 +19,7 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - run: lake update
       - run: lake exe cache get
+      - name: Build focused issue 001
+        if: github.ref_name == 'lean/mathlib-4.36-issue-001'
+        run: lake build QuandleResearch.Questions.Issue001
       - run: lake build

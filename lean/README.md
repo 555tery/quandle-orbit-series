@@ -91,13 +91,22 @@ Issue024 now has explicit switch axioms and a group-valued specialization of the
 - #4: two precise comparison directions for nonrepeating Milnor residues, not the whole descriptive question. #17: literal Brunnian wording and the homotopically nontrivial case separately. #58: concrete surface domain and presentation specifications.
 - These modules are partial. The diagram maps and choice of geometric preferred peripheral elements still need a construction; neither arbitrary diagram maps nor all continuous embeddings are silently identified with the classical tame category.
 
+## Issue-by-issue review: #1, Mathlib v4.36.0 migration branch
+
+The stable toolchain and Mathlib are pinned to v4.36.0 (16 Nov 2026).
+The pre-release v4.37.0-rc1 and master b33520dd701ec9f43b17e44cd836c72f553c7048 were also inspected; no specialized profinite-quandle module was found.
+
+For Issue001, the inverse system uses a native `Functor` on an opposite directed poset and `Functor.sections`, with only the finite quandle structures and preservation of operations added. The topological limit is the initial topology of the finite discrete projections (Definitions 3.1–3.5, §3.2); the optional surjectivity convention is separate (Remark 3.8). Stone spaces are native `Profinite` objects. The transfinite candidate uses native ordinals, setoids, continuous maps and profinite subquandle pieces, with explicit successor fibre partitions and intersection at limit stages. The authors do not define the generalized union or the intended transfinite procedure. The candidate records a decomposition, not a full bottom-up reconstruction; it remains PARTIAL.
+
+Source: https://arxiv.org/html/2406.15387v2#S6 . This migration branch does not change the verified v4.19.0 main branch (successful CI 45883664812). The focused build and the full 69-issue build must both be verified before integration.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
 
 | Issue | Module | Status | Outstanding |
 |---|---|---|---|
-| [#1](https://github.com/555tery/quandle-orbit-series/issues/1) | [Issue001](QuandleResearch/Questions/Issue001.lean) | PARTIAL | Inverse limit and topology explicit; proposed Stone-union constructor and transfinite limit stages need audit. |
+| [#1](https://github.com/555tery/quandle-orbit-series/issues/1) | [Issue001](QuandleResearch/Questions/Issue001.lean) | PARTIAL | Native inverse diagrams and sections, candidate ordinal-indexed Stone decomposition; exact generalized construction remains open-ended. |
 | [#2](https://github.com/555tery/quandle-orbit-series/issues/2) | [Issue002](QuandleResearch/Questions/Issue002.lean) | STATEMENT | Source audit and typecheck |
 | [#3](https://github.com/555tery/quandle-orbit-series/issues/3) | [Issue003](QuandleResearch/Questions/Issue003.lean) | PARTIAL | Unitriangular group and conjugacy carrier explicit; exact orbit count and multipermutation convention need audit. |
 | [#4](https://github.com/555tery/quandle-orbit-series/issues/4) | [Issue004](QuandleResearch/Questions/Issue004.lean) | PARTIAL | Magnus coefficients, ideal indeterminacy and peripheral approximation explicit; actual geometric peripheral data and relationship remain. |
