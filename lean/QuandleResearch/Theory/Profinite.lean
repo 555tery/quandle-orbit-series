@@ -52,8 +52,11 @@ def IsLimit {J : Type} [PartialOrder J] (D : FiniteQuandleDiagram J)
     ∀ i : Jᵒᵖ,
       letI := D.law i
       ∀ x y : T.Q.carrier,
-        D.stoneLimit.π.app i (e (T.Q.op x y)) =
-          Shelf.act (D.stoneLimit.π.app i (e y)) (D.stoneLimit.π.app i (e x))
+        let pi : D.stoneLimit.pt → D.diagram.obj i :=
+          fun z => D.stoneLimit.π.app i z
+        pi (e (T.Q.op x y)) =
+          @Shelf.act (D.diagram.obj i) (D.law i).toRack.toShelf
+            (pi (e y)) (pi (e x))
 
 end FiniteQuandleDiagram
 
