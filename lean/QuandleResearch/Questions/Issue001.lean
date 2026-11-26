@@ -19,9 +19,18 @@ Extend the pointwise extension bound in [Question 5.7](https://github.com/555ter
 namespace QuandleResearch.Issue001
 noncomputable section
 
-/-- Candidate precise interpretation of the research direction in §6. -/
+/-- Earlier candidate, restricted to well-founded trees of Stone unions.
+It has no explicit ordinal limit stage and is not the literal §6 question. -/
+def wellFoundedTreeQuestion : Prop :=
+  ∀ T : TopologicalQuandle, Nonempty T.Q.carrier →
+    Profinite T → Constructible T
+
+/-- Proposed precise version of the §6 direction with explicit
+transfinite successor and limit stages. It is a decomposition statement,
+not a claim to have solved or fully disambiguated the construction question. -/
 def question : Prop :=
-  ∀ T : TopologicalQuandle, Profinite T → Constructible T
+  ∀ T : TopologicalQuandle, Nonempty T.Q.carrier →
+    Profinite T → Nonempty (TransfiniteDecomposition T)
 
 end
 end QuandleResearch.Issue001
