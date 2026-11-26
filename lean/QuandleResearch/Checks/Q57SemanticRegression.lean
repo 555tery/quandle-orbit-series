@@ -87,7 +87,7 @@ theorem connected_D3 :
   · intro _
     refine ⟨Set.mem_univ _, (walk_iff_orbit _ _ _).mp ?_⟩
     have h : ∃ y : Quandle.Dihedral 3, Shelf.act y x = z := by
-      change ∃ y : ZMod 3, 2*y-x=z
+      change ∃ y : ZMod 3, 2*y-(show ZMod 3 from x)=(show ZMod 3 from z)
       refine ⟨2*(z+x), ?_⟩
       have h4 : (4 : ZMod 3) = 1 := by decide
       calc
@@ -95,12 +95,12 @@ theorem connected_D3 :
         _ = z := by rw [h4]; ring
     obtain ⟨y, hy⟩ := h
     rw [← hy]
-    exact Walk.forward Walk.nil ⟨y, Set.mem_univ _, rfl⟩
+    exact Walk.forward (g := Rack.act' y) Walk.nil ⟨y, Set.mem_univ _, rfl⟩
 end Series
 
 section Trivial
 /-- The two-element trivial quandle from the orbit-tree examples. -/
-def T2 := Bool
+abbrev T2 := Bool
 local instance : Quandle T2 where
   act _ y := y
   invAct _ y := y
@@ -115,6 +115,7 @@ theorem trivial_orbit (s : Set T2) (x : T2) (hx : x ∈ s) :
   constructor
   · intro hz
     have hw := (walk_iff_orbit _ _ _).mpr hz.2
+    clear hz
     induction hw with
     | nil => rfl
     | forward h hg ih =>
@@ -147,10 +148,10 @@ theorem T2_not_bound_zero : ¬ OSBound (Set.univ : Set T2) 0 := by
     refine ⟨rfl, ?_, ?_⟩
     · intro n
       by_cases hn : n = 0
-      · simp only [trivialSeries, hn, if_true]
+      · simp only [trivialSeries, hn, ite_true]
         intro y hy x hx
         exact ⟨Set.mem_univ _, Set.mem_univ _⟩
-      · simp only [trivialSeries, hn, if_false]
+      · simp only [trivialSeries, hn, ite_false]
         exact singleton_subrack false
     · intro n
       refine ⟨false, ?_, ?_⟩
@@ -170,7 +171,7 @@ end Trivial
 section InfiniteDihedral
 
 /-- Example 4.9, with the exact operation on integers from the paper. -/
-def Dinf := Int
+abbrev Dinf := Int
 local instance : Quandle Dinf where
   act a b := (2 : Int)*a-b
   invAct a b := (2 : Int)*a-b
@@ -192,6 +193,7 @@ theorem orbit_zero_multiples (d : Int) :
   constructor
   · intro hz
     have hw := (walk_iff_orbit _ _ _).mpr hz.2
+    clear hz
     induction hw with
     | nil => exact ⟨0, by ring⟩
     | forward h hg ih =>
@@ -212,7 +214,7 @@ theorem orbit_zero_multiples (d : Int) :
     refine ⟨⟨2*k, by rw [hk]; ring⟩, (walk_iff_orbit _ _ _).mp ?_⟩
     have hw : Walk ((_root_.Rack.act' : Dinf → Equiv.Perm Dinf) '' multiples d)
         (0 : Int) ((_root_.Rack.act' (d*k : Int)) (0 : Int)) :=
-      Walk.forward Walk.nil ⟨(d*k : Int), ⟨k,rfl⟩, rfl⟩
+      Walk.forward (g := Rack.act' (d*k : Int)) Walk.nil ⟨(d*k : Int), ⟨k,rfl⟩, rfl⟩
     have he : (_root_.Rack.act' (d*k : Int)) (0 : Int) = z := by
       change 2*(d*k)-0 = z
       rw [hk]
