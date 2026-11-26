@@ -21,4 +21,4 @@ jobs:
       - run: lake update
       - run: lake exe cache get
       - name: Statement-only Question 5.7 audit
-        run: lake build QuandleResearch.Questions.Issue013 QuandleResearch.Checks.Q57StatementAudit
+        run: lake build QuandleResearch.Questions.Issue013 QuandleResearch.Checks.Q57StatementAudit QuandleResearch.Checks.Q57SemanticRegression
