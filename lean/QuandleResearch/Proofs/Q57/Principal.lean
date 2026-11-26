@@ -88,12 +88,11 @@ theorem sandwich_stable {s e : Set X} {x : X} {r m : Nat}
     (hm : StableAt s x m) : StableAt e x m := by
   have heq (i : Nat) (hi : m ≤ i) :
       principalSeries s x i = principalSeries s x (r+i) := by
-    have hle : i ≤ r+i := by omega
     induction r with
     | zero => simp
     | succ r ih =>
       rw [Nat.succ_add]
-      exact (ih (by omega)).trans (stable_later hm (by omega))
+      exact ih.trans (stable_later hm (by omega))
   have hsame (i : Nat) (hi : m ≤ i) :
       principalSeries e x i = principalSeries s x i := by
     have hlo' := principal_mono hlo x i

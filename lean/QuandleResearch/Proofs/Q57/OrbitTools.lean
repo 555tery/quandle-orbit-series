@@ -37,16 +37,15 @@ quandle homomorphism. The backward walk stays in the subrack. -/
 theorem image_orbit (f : ShelfHom X Y) {s : Set X}
     (hs : IsSubrack s) {x : X} (hx : x ∈ s) :
     f '' orbitIn s x = orbitIn (f '' s) (f x) := by
-  open StatementAudit in
   ext z
   constructor
   · rintro ⟨w, hw, rfl⟩
     exact ⟨⟨w, hw.1, rfl⟩,
-      (walk_iff_orbit _ _ _).mp
-        (walk_map f s x w ((walk_iff_orbit _ _ _).mpr hw.2))⟩
+      (StatementAudit.walk_iff_orbit _ _ _).mp
+        (StatementAudit.walk_map f s x w ((StatementAudit.walk_iff_orbit _ _ _).mpr hw.2))⟩
   · intro hz
-    obtain ⟨w, hw, hwalk⟩ := walk_lift f s x z ((walk_iff_orbit _ _ _).mpr hz.2)
-    have ho := (walk_iff_orbit _ _ _).mp hwalk
+    obtain ⟨w, hw, hwalk⟩ := StatementAudit.walk_lift f s x z ((StatementAudit.walk_iff_orbit _ _ _).mpr hz.2)
+    have ho := (StatementAudit.walk_iff_orbit _ _ _).mp hwalk
     obtain ⟨g, hg⟩ := MulAction.mem_orbit_iff.mp ho
     change g.val x = w at hg
     have hm : w ∈ s := hg ▸ (translation_preserves hs g.property x).mp hx
