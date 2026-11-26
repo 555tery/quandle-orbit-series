@@ -1,0 +1,25 @@
+{
+  "challenge_module": "QuandleResearch.Checks.Q57StatementChallenge",
+  "solution_module": "QuandleResearch.Checks.Q57StatementAudit",
+  "theorem_names": [
+    "QuandleResearch.Q57.StatementAudit.os_expanded",
+    "QuandleResearch.Q57.StatementAudit.osomega_expanded",
+    "QuandleResearch.Q57.StatementAudit.orbitSeries_expanded",
+    "QuandleResearch.Q57.StatementAudit.extensionOS_expanded",
+    "QuandleResearch.Q57.StatementAudit.extensionOSomega_expanded",
+    "QuandleResearch.Q57.StatementAudit.fibre_isSubrack",
+    "QuandleResearch.Q57.StatementAudit.fibre_nonempty",
+    "QuandleResearch.Q57.StatementAudit.walk_iff_orbit",
+    "QuandleResearch.Q57.StatementAudit.orbitIn_eq_intrinsic_image",
+    "QuandleResearch.Q57.StatementAudit.QuandleCongruence.source_inverse_condition",
+    "QuandleResearch.Q57.StatementAudit.extensionOS_iff_congruenceOS",
+    "QuandleResearch.Q57.StatementAudit.extensionOSomega_iff_congruenceOSomega",
+    "QuandleResearch.Q57.StatementAudit.extensionOS_of_congruenceOS",
+    "QuandleResearch.Q57.StatementAudit.extensionOSomega_of_congruenceOSomega"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ]
+}

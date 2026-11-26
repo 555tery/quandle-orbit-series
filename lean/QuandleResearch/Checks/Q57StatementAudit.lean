@@ -10,12 +10,12 @@ open BCNW Issue013
 universe u v
 
 -- Section 4.1: every series stabilizes, with a bound depending on it.
-example {X : Type u} [_root_.Quandle X] (s : Set X) :
+theorem os_expanded {X : Type u} [_root_.Quandle X] (s : Set X) :
     OS s ↔ ∀ a : Nat → Set X, IsOrbitSeries s a →
       ∃ k : Nat, a k = a (k+1) := Iff.rfl
 
 -- Section 4.1: one positive bound for all series in this quandle.
-example {X : Type u} [_root_.Quandle X] (s : Set X) :
+theorem osomega_expanded {X : Type u} [_root_.Quandle X] (s : Set X) :
     OSomega s ↔ ∃ n : Nat, 0 < n ∧
       ∀ a : Nat → Set X, IsOrbitSeries s a →
         ∃ k : Nat, k ≤ n ∧ a k = a (k+1) := Iff.rfl
@@ -27,7 +27,7 @@ example {X : Type u} {Y : Type v} [_root_.Quandle X] [_root_.Quandle Y]
     fibre f b = {x : X | f x = b} := rfl
 
 -- Question 5.7(a), explicitly expanded.
-example : extensionOS.{u,v} ↔
+theorem extensionOS_expanded : extensionOS.{u,v} ↔
     ∀ (X : Type u) (Y : Type v) [_root_.Quandle X] [_root_.Quandle Y]
       [Nonempty X] [Nonempty Y] (f : ShelfHom X Y),
       Function.Surjective f →
@@ -40,7 +40,7 @@ example : extensionOS.{u,v} ↔
 
 -- Question 5.7(b): the fibre bound is inside the quantifier over b.
 -- The source bound is outside the quantifier over source series.
-example : extensionOSomega.{u,v} ↔
+theorem extensionOSomega_expanded : extensionOSomega.{u,v} ↔
     ∀ (X : Type u) (Y : Type v) [_root_.Quandle X] [_root_.Quandle Y]
       [Nonempty X] [Nonempty Y] (f : ShelfHom X Y),
       Function.Surjective f →
@@ -97,7 +97,7 @@ theorem fibre_nonempty {X : Type u} {Y : Type v}
 
 -- Expose all orbit choices and the generated permutation group.
 -- No constant anchor or nonempty infinite intersection is imposed.
-example {X : Type u} [_root_.Quandle X] (s : Set X) (a : Nat → Set X) :
+theorem orbitSeries_expanded {X : Type u} [_root_.Quandle X] (s : Set X) (a : Nat → Set X) :
     IsOrbitSeries s a ↔
       a 0 = s ∧ (∀ n, IsSubrack (a n)) ∧
         ∀ n, ∃ x ∈ a n,
@@ -543,3 +543,19 @@ theorem extensionOSomega_iff_congruenceOSomega :
 end SourceFormulation
 
 end QuandleResearch.Q57.StatementAudit
+
+/-! Axiom dependency report; comparator enforces the allowlist separately. -/
+#print axioms QuandleResearch.Q57.StatementAudit.os_expanded
+#print axioms QuandleResearch.Q57.StatementAudit.osomega_expanded
+#print axioms QuandleResearch.Q57.StatementAudit.orbitSeries_expanded
+#print axioms QuandleResearch.Q57.StatementAudit.extensionOS_expanded
+#print axioms QuandleResearch.Q57.StatementAudit.extensionOSomega_expanded
+#print axioms QuandleResearch.Q57.StatementAudit.fibre_isSubrack
+#print axioms QuandleResearch.Q57.StatementAudit.fibre_nonempty
+#print axioms QuandleResearch.Q57.StatementAudit.walk_iff_orbit
+#print axioms QuandleResearch.Q57.StatementAudit.orbitIn_eq_intrinsic_image
+#print axioms QuandleResearch.Q57.StatementAudit.QuandleCongruence.source_inverse_condition
+#print axioms QuandleResearch.Q57.StatementAudit.extensionOS_iff_congruenceOS
+#print axioms QuandleResearch.Q57.StatementAudit.extensionOSomega_iff_congruenceOSomega
+#print axioms QuandleResearch.Q57.StatementAudit.extensionOS_of_congruenceOS
+#print axioms QuandleResearch.Q57.StatementAudit.extensionOSomega_of_congruenceOSomega
