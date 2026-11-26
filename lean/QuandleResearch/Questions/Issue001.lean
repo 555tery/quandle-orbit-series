@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.Profinite
 
 /-!
 # Issue 1: Byard–Cai–Jones–Vuong–Yetter §6 — construction of profinite quandles from connected pieces
 https://github.com/555tery/quandle-orbit-series/issues/1
 
 Formalization status: PARTIAL.
-Remaining obligation: Profinite topology, Stone-indexed semi-disjoint unions and transfinite construction.
+Remaining obligation: Profinite inverse limits and topology are explicit. StoneUnion and Constructible specify one proposed reading of the open-ended construction in §6; verify its adequacy, especially transfinite limit stages.
 
 Source and target from the issue:
 ## Source / explicitly proposed open research question
@@ -18,9 +19,9 @@ Extend the pointwise extension bound in [Question 5.7](https://github.com/555ter
 namespace QuandleResearch.Issue001
 noncomputable section
 
-def question (Profinite : Quandle → Prop) (Construction : Type)
-    (stoneTransfiniteConstruction : Construction → Quandle → Prop) : Prop :=
-  ∀ Q, Profinite Q → ∃ c, stoneTransfiniteConstruction c Q
+/-- Candidate precise interpretation of the research direction in §6. -/
+def question : Prop :=
+  ∀ T : TopologicalQuandle, Profinite T → Constructible T
 
 end
 end QuandleResearch.Issue001

@@ -41,15 +41,19 @@ The earlier commit fae06e7 compiled 67 of 69 issue modules and all then-existing
 
 Issues 028, 030 and 060 now specify the Laurent coefficient rings, generator matrices or Fox product rule directly. Issue030 distinguishes lowercase extended psi from capital Psi (the latter acts on the n strand generators and an additional y). The discrepancy F_(n-1) in the printed question versus F_(n+1) in the defining display is retained in the module comment. Source: https://arxiv.org/html/2107.03875v1 §§3, 5.1. Right-action automorphism formulas are encoded via inverse images under standard composition.
 
+## Profinite and unitriangular structures
+
+`Theory/Profinite.lean` records finite inverse systems, compatible tuples, the initial topology and profiniteness. The Stone-indexed union constructor is a candidate interpretation of an open-ended research direction, not a source-defined operation. Issue003 now specifies the upper unitriangular matrix group over F2 and the union of conjugacy classes of elementary transvections.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
 
 | Issue | Module | Status | Outstanding |
 |---|---|---|---|
-| [#1](https://github.com/555tery/quandle-orbit-series/issues/1) | [Issue001](QuandleResearch/Questions/Issue001.lean) | PARTIAL | Profinite topology, Stone-indexed semi-disjoint unions and transfinite construction. |
+| [#1](https://github.com/555tery/quandle-orbit-series/issues/1) | [Issue001](QuandleResearch/Questions/Issue001.lean) | PARTIAL | Inverse limit and topology explicit; proposed Stone-union constructor and transfinite limit stages need audit. |
 | [#2](https://github.com/555tery/quandle-orbit-series/issues/2) | [Issue002](QuandleResearch/Questions/Issue002.lean) | STATEMENT | Source audit and typecheck |
-| [#3](https://github.com/555tery/quandle-orbit-series/issues/3) | [Issue003](QuandleResearch/Questions/Issue003.lean) | PARTIAL | Construct the specified unitriangular group/quandle family; exact orbit count, central quotient and multipermutation level remain to be encoded. |
+| [#3](https://github.com/555tery/quandle-orbit-series/issues/3) | [Issue003](QuandleResearch/Questions/Issue003.lean) | PARTIAL | Unitriangular group and conjugacy carrier explicit; exact orbit count and multipermutation convention need audit. |
 | [#4](https://github.com/555tery/quandle-orbit-series/issues/4) | [Issue004](QuandleResearch/Questions/Issue004.lean) | PARTIAL | Actual cocycle and Milnor invariants, coefficients, indeterminacy and meaningful relation; arbitrary relations do not count as answers. |
 | [#5](https://github.com/555tery/quandle-orbit-series/issues/5) | [Issue005](QuandleResearch/Questions/Issue005.lean) | PARTIAL | Source convention and rack fibre closure; candidate research direction, not a published theorem. |
 | [#6](https://github.com/555tery/quandle-orbit-series/issues/6) | [Issue006](QuandleResearch/Questions/Issue006.lean) | STATEMENT | Source audit and typecheck |
