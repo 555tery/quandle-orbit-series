@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.Categories
 
 /-!
 # Issue 21: Bardakov–Nasybullov–Singh Problem 2.4 (2019) — adjoint of the quandle embedding
 https://github.com/555tery/quandle-orbit-series/issues/21
 
 Formalization status: PARTIAL.
-Remaining obligation: Universal-arrow specification in the BNS convention; candidate constructions and independent source audit are still required.
+Remaining obligation: Native Mathlib adjunctions now specify both directions; no construction of adjoints is asserted. Verify source morphism convention.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -16,6 +17,7 @@ Determine the adjoint(s) to the functor B: Qnd → Bqnd, assigning the biquandle
 -/
 
 namespace QuandleResearch.Issue021
+open CategoryTheory
 noncomputable section
 
 /-- Morphisms B → embedding(Q), with trivial beta on the target. -/
@@ -42,6 +44,13 @@ def leftAdjointExists : Prop :=
 def rightAdjointExists : Prop :=
   ∃ (R : Biquandle → Quandle) (counit : ∀ B, (R B).carrier → B.carrier),
     rightAdjointCandidate R counit
+
+/-- Native Mathlib adjunction formulation; naturality and triangle
+identities are part of Adjunction itself. -/
+def hasLeftAdjoint : Prop := Functor.IsRightAdjoint quandleEmbedding
+def hasRightAdjoint : Prop := Functor.IsLeftAdjoint quandleEmbedding
+def verifiesLeftAdjoint (L : Biquandle ⥤ Quandle) : Prop := Nonempty (L ⊣ quandleEmbedding)
+def verifiesRightAdjoint (R : Biquandle ⥤ Quandle) : Prop := Nonempty (quandleEmbedding ⊣ R)
 
 end
 end QuandleResearch.Issue021

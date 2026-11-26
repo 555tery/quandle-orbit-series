@@ -1,4 +1,5 @@
 import QuandleResearch.Theory.OrbitSeries
+import Mathlib.Topology.Category.Profinite.Basic
 
 /-! Byard–Cai–Jones–Vuong–Yetter, arXiv:2406.15387v2,
 Definitions 3.1–3.5 and 3.16. Stone topology alone is not profiniteness.
@@ -54,21 +55,16 @@ end InverseSystem
 def Profinite (T : TopologicalQuandle) : Prop :=
   ∃ D : InverseSystem, D.IsLimit T
 
-structure StoneIndex where
-  carrier : Type
-  topology : TopologicalSpace carrier
-  compact : letI := topology; CompactSpace carrier
-  hausdorff : letI := topology; T2Space carrier
-  totallyDisconnected : letI := topology; TotallyDisconnectedSpace carrier
-
-attribute [instance] StoneIndex.topology
+/-- A Stone space is Mathlib's native profinite topological space.
+This is only the indexing space, not the definition of a profinite quandle. -/
+abbrev StoneIndex := _root_.Profinite
 
 /-- A proposed Stone-indexed semi-disjoint union: a continuous projection
 whose fibres carry the given topological quandle structures. Right
 translations preserve each fibre. No sufficiency theorem is asserted. -/
 structure StoneUnion (T : TopologicalQuandle) (I : StoneIndex)
-    (F : I.carrier → TopologicalQuandle) where
-  proj : T.Q.carrier → I.carrier
+    (F : I → TopologicalQuandle) where
+  proj : T.Q.carrier → I
   continuousProj : Continuous proj
   surjectiveProj : Function.Surjective proj
   preservesIndex : ∀ x y, proj (T.Q.op x y) = proj x
@@ -86,7 +82,7 @@ inductive Constructible : TopologicalQuandle → Prop
   | connected (T : TopologicalQuandle) :
       Profinite T → T.Q.Connected → Constructible T
   | stoneUnion (T : TopologicalQuandle) (I : StoneIndex)
-      (F : I.carrier → TopologicalQuandle) :
+      (F : I → TopologicalQuandle) :
       Profinite T → StoneUnion T I F →
       (∀ i, Constructible (F i)) → Constructible T
 

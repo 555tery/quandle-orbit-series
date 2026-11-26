@@ -1,4 +1,5 @@
 import QuandleResearch.Theory.Groups
+import Mathlib.RepresentationTheory.GroupCohomology.LowDegree
 
 namespace QuandleResearch
 noncomputable section
@@ -16,8 +17,8 @@ structure ExtensionCocycle (D : AbelianExtensionData) where
   cocycle : D.B → D.B → D.A
   normalizedLeft : ∀ b, cocycle 1 b = 1
   normalizedRight : ∀ b, cocycle b 1 = 1
-  cocycleLaw : ∀ b c d, cocycle b c * cocycle (b*c) d =
-    action b (cocycle c d) * cocycle b (c*d)
+  cocycleLaw : letI : MulAction D.B D.A := MulAction.compHom D.A action
+               groupCohomology.IsMulTwoCocycle (fun p : D.B × D.B => cocycle p.1 p.2)
 namespace ExtensionCocycle
 def product {D : AbelianExtensionData} (C : ExtensionCocycle D)
     (x y : D.A × D.B) : D.A × D.B :=

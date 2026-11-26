@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.Categories
 
 /-!
 # Issue 22: Bardakov–Nasybullov–Singh Problem 4.1 (2019) — adjoint of the associated-quandle functor
 https://github.com/555tery/quandle-orbit-series/issues/22
 
 Formalization status: PARTIAL.
-Remaining obligation: Universal-arrow specification for both adjoints in the BNS convention; candidate constructions and independent source audit are still required.
+Remaining obligation: Native Mathlib adjunctions now specify both directions; no construction of adjoints is asserted. Verify source morphism convention.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -16,6 +17,7 @@ Determine the adjoint(s) of Q: Bqnd → Qnd, the associated-quandle functor.
 -/
 
 namespace QuandleResearch.Issue022
+open CategoryTheory
 noncomputable section
 
 /-- Universal arrow for L ⊣ associated. -/
@@ -36,6 +38,13 @@ def leftAdjointExists : Prop :=
 def rightAdjointExists : Prop :=
   ∃ (R : Quandle → Biquandle) (counit : ∀ Q, (R Q).carrier → Q.carrier),
     rightAdjointCandidate R counit
+
+/-- Native Mathlib adjunction formulation; naturality and triangle
+identities are part of Adjunction itself. -/
+def hasLeftAdjoint : Prop := Functor.IsRightAdjoint associatedFunctor
+def hasRightAdjoint : Prop := Functor.IsLeftAdjoint associatedFunctor
+def verifiesLeftAdjoint (L : Quandle ⥤ Biquandle) : Prop := Nonempty (L ⊣ associatedFunctor)
+def verifiesRightAdjoint (R : Quandle ⥤ Biquandle) : Prop := Nonempty (associatedFunctor ⊣ R)
 
 end
 end QuandleResearch.Issue022
