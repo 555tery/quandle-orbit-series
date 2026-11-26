@@ -22,16 +22,10 @@ structure TopologicalQuandle where
 
 attribute [instance] TopologicalQuandle.topology
 
-/-- A finite inverse system, indexed by a directed poset.
-The underlying diagram is a native Mathlib functor, so identity and
-composition laws do not need to be repeated. The additional data are
-exactly the finite quandle laws and preservation of those laws.
-Surjectivity is optional in Definition 3.5 and is assumed later in
-Remark 3.8 of the source. -/
+/-- Native finite-type diagram with additional quandle structures. -/
 structure FiniteQuandleDiagram (J : Type) [PartialOrder J] where
-  diagram : Jᵒᵖ ⥤ Type
+  diagram : Jᵒᵖ ⥤ FintypeCat
   law : ∀ i : Jᵒᵖ, _root_.Quandle (diagram.obj i)
-  finiteObj : ∀ i, Finite (diagram.obj i)
   mapAct : ∀ (i j : Jᵒᵖ) (f : i ⟶ j),
     letI := law i
     letI := law j
@@ -43,21 +37,22 @@ namespace FiniteQuandleDiagram
 def SurjectiveMaps {J : Type} [PartialOrder J] (D : FiniteQuandleDiagram J) : Prop :=
   ∀ (i j : Jᵒᵖ) (f : i ⟶ j), Function.Surjective (D.diagram.map f)
 
-/-- Mathlib's compatible sections are the concrete underlying
-set of the categorical inverse limit (Types.limitEquivSections).
-The quandle operation is coordinatewise, and the topology is the
-initial topology of the coordinate maps to discrete finite factors.
-No assertion that every Stone topological quandle is profinite is made. -/
+/-- Use the library's finite discrete spaces and their native limit cone. -/
+abbrev stoneDiagram {J : Type} [PartialOrder J] (D : FiniteQuandleDiagram J) :=
+  D.diagram ⋙ FintypeCat.toProfinite
+
+noncomputable def stoneLimit {J : Type} [PartialOrder J] (D : FiniteQuandleDiagram J) :=
+  _root_.Profinite.limitCone D.stoneDiagram
+
+/-- Native limit topology, and the coordinatewise operation of Proposition 3.4. -/
 def IsLimit {J : Type} [PartialOrder J] (D : FiniteQuandleDiagram J)
     (T : TopologicalQuandle) : Prop :=
-  ∃ e : T.Q.carrier ≃ D.diagram.sections,
-    (∀ i : Jᵒᵖ,
+  ∃ e : T.Q.carrier ≃ₜ D.stoneLimit.pt,
+    ∀ i : Jᵒᵖ,
       letI := D.law i
       ∀ x y : T.Q.carrier,
-        (e (T.Q.op x y)).val i = Shelf.act ((e y).val i) ((e x).val i)) ∧
-    T.topology = ⨅ i : Jᵒᵖ,
-      TopologicalSpace.induced (fun x : T.Q.carrier => (e x).val i)
-        (⊥ : TopologicalSpace (D.diagram.obj i))
+        D.stoneLimit.π.app i (e (T.Q.op x y)) =
+          Shelf.act (D.stoneLimit.π.app i (e y)) (D.stoneLimit.π.app i (e x))
 
 end FiniteQuandleDiagram
 
