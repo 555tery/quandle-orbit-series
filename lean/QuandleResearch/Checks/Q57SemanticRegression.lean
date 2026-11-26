@@ -87,12 +87,14 @@ theorem connected_D3 :
   · intro _
     refine ⟨Set.mem_univ _, (walk_iff_orbit _ _ _).mp ?_⟩
     have h : ∃ y : Quandle.Dihedral 3, Shelf.act y x = z := by
-      change ∃ y : ZMod 3, 2*y-(show ZMod 3 from x)=(show ZMod 3 from z)
-      refine ⟨2*(z+x), ?_⟩
+      let a : ZMod 3 := x
+      let b : ZMod 3 := z
+      change ∃ y : ZMod 3, 2*y-a=b
+      refine ⟨2*(b+a), ?_⟩
       have h4 : (4 : ZMod 3) = 1 := by decide
       calc
-        2*(2*(z+x))-x = 4*(z+x)-x := by ring
-        _ = z := by rw [h4]; ring
+        2*(2*(b+a))-a = 4*(b+a)-a := by ring
+        _ = b := by rw [h4]; ring
     obtain ⟨y, hy⟩ := h
     rw [← hy]
     exact Walk.forward (g := Rack.act' y) Walk.nil ⟨y, Set.mem_univ _, rfl⟩
