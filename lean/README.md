@@ -99,6 +99,10 @@ The stable Lean/Mathlib version is v4.36.0. The q525 branch focuses on Issue014;
 
 Source manuscript: `question-5-25/q525_preprint_en.tex` at main 9763681484149c632c3ae1d9ea2717e8f1aec53c. The checked statement remains Issue014. Proofs/Q525/OrbitLemmas proves the orbit and singleton infrastructure and the sufficient trivial-orbit criterion. Proofs/Q525/Consequences proves the final logical implications and reduces each answer to concrete counterexample witnesses. The NTT group construction and normal-closure filtration (§3), and reduced-free-group/Magnus finite quotients and nonreductivity (§4), are NOT proved here. No sorry, admit or axiom declarations. Focused proof build and axiom reports are requested by CI; compilation pending.
 
+## Minimal Q525 proof route
+
+Use the elementary constructions from issue #14 comments 7184606635 and 7184732187, not the older NTT or reduced-free-group proofs. For the original boundedness questions no exact Pell depths, cardinalities, exact profiles or nilpotency class calculations are needed. `Coefficients.lean` uses iterated Mathlib dual numbers, proving existence of finite characteristic-two rings with square-zero lists of nonzero product. `AffineInvolutions.lean` uses the involutive affine model (all pairs (u,s) with s²=su=0), a slight enlargement of the cited wreath-product conjugacy-class union. It specifies a direct second-part proof using equal-scalar trivial fibers and a left-fold difference product. Compilation of this new proof is pending; first-part matrix construction is not yet formalized.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.

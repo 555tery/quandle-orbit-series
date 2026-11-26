@@ -84,7 +84,7 @@ theorem orbitIn_eq_singleton_of_trivial {s : Set X} {x : X}
     (hs : TrivialOn s) (hx : x ∈ s) :
     orbitIn s x = {x} := by
   have hle : translationGroup s ≤ MulAction.stabilizer (Equiv.Perm X) x := by
-    apply Subgroup.closure_le.mpr
+    apply (Subgroup.closure_le _).mpr
     rintro _ ⟨a, ha, rfl⟩
     change Shelf.act a x = x
     exact hs a ha x hx
