@@ -18,6 +18,7 @@ Describe Ψ(H_n), where H_n is the kernel of the map VB_n → S_n sending σ_i t
 
 namespace QuandleResearch.Issue028
 noncomputable section
+open Classical
 
 open Braids
 /-- Basis e_(a,b) with a<b; Laurent variables t and t_i are indexed by

@@ -1,17 +1,18 @@
 import QuandleResearch.Theory.OrbitSeries
 
+/-! Native Mathlib enveloping group. With the source's right-conjugation
+convention x ▷ y = y⁻¹xy, its generators are the inverses of the
+canonical Mathlib generators. Mathlib's native map and universal property
+remain available as Rack.toEnvelGroup.map / univ / univ_uniq. -/
 namespace QuandleResearch
 noncomputable section
-/-- Universal-property specification of the enveloping group.
-No existence theorem or concrete quotient construction is asserted here. -/
-structure Enveloping (Q : Quandle) where
-  G : GroupObject
-  gen : Q.carrier → G.carrier
-  relation : ∀ x y, gen (Q.op x y) = (gen y)⁻¹ * gen x * gen y
-  universal : ∀ (H : GroupObject) (f : Q.carrier → H.carrier),
-    (∀ x y, f (Q.op x y) = (f y)⁻¹ * f x * f y) →
-      ∃! h : G.carrier →* H.carrier, ∀ x, h (gen x) = f x
-def Enveloping.InjectiveQuandle {Q : Quandle} (E : Enveloping Q) : Prop :=
-  Function.Injective E.gen
+namespace Quandle
+
+abbrev EnvGroup (Q : Quandle) := _root_.Rack.EnvelGroup Q.carrier
+def envGen (Q : Quandle) (x : Q.carrier) : Q.EnvGroup :=
+  (_root_.Rack.toEnvelGroup Q.carrier x)⁻¹
+def Injective (Q : Quandle) : Prop := Function.Injective Q.envGen
+
+end Quandle
 end
 end QuandleResearch

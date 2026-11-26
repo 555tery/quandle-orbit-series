@@ -1,36 +1,47 @@
+import Mathlib.Algebra.Quandle
 import Mathlib
 
+/-! Mathlib-first: these bundles store a carrier and the native Mathlib
+typeclass. No rack or quandle axioms are duplicated. The source's
+right convention x ▷ y is Mathlib's Shelf.act y x. -/
 namespace QuandleResearch
 
-/-- Right convention: x ▷ y = right y x. -/
 structure Rack where
   carrier : Type
-  right : carrier → Equiv.Perm carrier
-  selfDistrib : ∀ x y z, right z (right y x) = right (right z y) (right z x)
+  law : _root_.Rack carrier
+
+attribute [instance] Rack.law
 
 structure Quandle where
-  rack : Rack
-  idem : ∀ x, rack.right x x = x
+  carrier : Type
+  law : _root_.Quandle carrier
+
+attribute [instance] Quandle.law
 
 namespace Rack
-def op (R : Rack) (x y : R.carrier) := R.right y x
+abbrev right (R : Rack) (y : R.carrier) : Equiv.Perm R.carrier :=
+  _root_.Rack.act' y
+abbrev op (R : Rack) (x y : R.carrier) : R.carrier := Shelf.act y x
+abbrev HomType (R S : Rack) := ShelfHom R.carrier S.carrier
 def Hom (R S : Rack) (f : R.carrier → S.carrier) : Prop :=
-  ∀ x y, f (R.op x y) = S.op (f x) (f y)
+  ∃ h : R.HomType S, (h : R.carrier → S.carrier) = f
 def IsSubrack (R : Rack) (s : Set R.carrier) : Prop :=
   ∀ y ∈ s, ∀ x ∈ s, R.right y x ∈ s ∧ (R.right y).symm x ∈ s
 end Rack
 
 namespace Quandle
-abbrev carrier (Q : Quandle) := Q.rack.carrier
-def op (Q : Quandle) := Q.rack.op
-def Hom (Q R : Quandle) (f : Q.carrier → R.carrier) : Prop := Q.rack.Hom R.rack f
+abbrev rack (Q : Quandle) : Rack := ⟨Q.carrier, Q.law.toRack⟩
+abbrev op (Q : Quandle) := Q.rack.op
+abbrev HomType (Q R : Quandle) := ShelfHom Q.carrier R.carrier
+def Hom (Q R : Quandle) (f : Q.carrier → R.carrier) : Prop :=
+  ∃ h : Q.HomType R, (h : Q.carrier → R.carrier) = f
 def Iso (Q R : Quandle) : Prop := ∃ e : Q.carrier ≃ R.carrier, Q.Hom R e
 def Aut (Q : Quandle) (e : Equiv.Perm Q.carrier) : Prop := Q.Hom Q e
 def Trivial (Q : Quandle) : Prop := ∀ x y, Q.op x y = x
-def Involutory (Q : Quandle) : Prop := ∀ x y, Q.op (Q.op x y) y = x
+abbrev Involutory (Q : Quandle) : Prop := _root_.Rack.IsInvolutory Q.carrier
 def FreeOn (Q : Quandle) {X : Type} (gen : X → Q.carrier) : Prop :=
   ∀ (R : Quandle) (f : X → R.carrier),
-    ∃! h : Q.carrier → R.carrier, Q.Hom R h ∧ ∀ x, h (gen x) = f x
+    ∃! h : Q.HomType R, ∀ x, h (gen x) = f x
 def IsFree (Q : Quandle) : Prop := ∃ (X : Type) (gen : X → Q.carrier), Q.FreeOn gen
 def DoublyTransitive (Q : Quandle) : Prop :=
   ∀ a b c d : Q.carrier, a ≠ b → c ≠ d →

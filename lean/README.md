@@ -45,6 +45,16 @@ Issues 028, 030 and 060 now specify the Laurent coefficient rings, generator mat
 
 `Theory/Profinite.lean` records finite inverse systems, compatible tuples, the initial topology and profiniteness. The Stone-indexed union constructor is a candidate interpretation of an open-ended research direction, not a source-defined operation. Issue003 now specifies the upper unitriangular matrix group over F2 and the union of conjugacy classes of elementary transvections.
 
+## Mathlib-first migration (stage 1)
+
+- `Basic/Quandle.lean` bundles native Mathlib `Rack` / `Quandle` typeclasses; `ShelfHom` is the homomorphism type.
+- `Theory/Groups.lean` uses Mathlib's `lowerCentralSeries`, `derivedSeries`, `Group.IsNilpotent`, `IsSolvable`, `Group.FG`, `IsCyclic`, `IsMulCommutative`, `Subgroup.FiniteIndex`, and pointwise set product.
+- `Theory/EnvelopingGroup.lean` uses `Rack.EnvelGroup` and `Rack.toEnvelGroup`. The inverse generator preserves the source's right-conjugation convention.
+- Issue018 uses `FreeAbelianGroup`; Issue020 uses Mathlib's dihedral operation; Issue059 uses `LaurentPolynomial`.
+- Issue028: added classical decidability for conditional matrix entries after the CI error.
+
+The last verified successful complete build before the migration was c9f11ed (GitHub Actions run 45881637104). A fresh CI run is needed for the migrated statements. Bundled compatibility aliases preserve the existing issue interfaces. This is not a finished semantic audit; source-specific definitions and categorical/topological reuse remain to be reviewed.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.

@@ -25,8 +25,8 @@ noncomputable section
 open Braids
 /-- The Laurent ring Z[t,t⁻¹] is the additive group algebra Z[Z].
 The monomial t is supported at exponent 1 with coefficient 1. -/
-abbrev Laurent := AddMonoidAlgebra Int Int
-def t : Laurent := Finsupp.single 1 1
+abbrev Laurent := LaurentPolynomial Int
+def t : Laurent := LaurentPolynomial.T 1
 def burauEntry (i : Index 4) (a b : Fin 4) : Laurent :=
   if a = left i ∧ b = left i then 1-t else
   if a = left i ∧ b = right i then t else

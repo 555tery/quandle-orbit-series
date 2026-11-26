@@ -20,7 +20,7 @@ namespace QuandleResearch.Issue018
 noncomputable section
 
 def FreeAbelian (G : Type) [Group G] : Prop :=
-  ∃ X : Type, Nonempty (G ≃* Multiplicative (X →₀ Int))
+  ∃ X : Type, Nonempty (G ≃* Multiplicative (FreeAbelianGroup X))
 def targetClass (Q : Quandle) : Prop := FreeAbelian Q.EnvGroup
 def verifiesClassification (answer : Quandle → Prop) : Prop :=
   ∀ Q, answer Q ↔ targetClass Q

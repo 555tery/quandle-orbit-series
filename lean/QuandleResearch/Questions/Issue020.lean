@@ -20,7 +20,7 @@ noncomputable section
 
 /-- Orbit-preserving automorphisms of the even dihedral quandle. The
 identification of this definition with QInn in the source is to be audited. -/
-def dihedralOp {m : Nat} (x y : ZMod m) : ZMod m := 2*y-x
+abbrev dihedralOp {m : Nat} (x y : ZMod m) : ZMod m := _root_.Quandle.dihedralAct m y x
 def isAut {m : Nat} (f : Equiv.Perm (ZMod m)) : Prop :=
   ∀ x y, f (dihedralOp x y) = dihedralOp (f x) (f y)
 def isInner {m : Nat} (f : Equiv.Perm (ZMod m)) : Prop :=
