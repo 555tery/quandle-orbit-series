@@ -43,7 +43,7 @@ jobs:
           lake exe cache get
       - name: Check submitted proof and separate specification
         run: |
-          lake build QuandleResearch.Checks.Q57StatementAudit QuandleResearch.Checks.Q57StatementChallenge
+          lake build QuandleResearch.Checks.Q57SemanticRegression QuandleResearch.Checks.Q57StatementChallenge
       - name: Compare and verify with all six kernels
         run: |
           set -euo pipefail
