@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Interfaces
 https://github.com/555tery/quandle-orbit-series/issues/39
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct central quotient, induced automorphism, factor and canonical comparison; current image property is only a component.
+Remaining obligation: Restricted central class, canonical quotient, induced map and kernel are explicit; full comparison still to be encoded.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,16 +21,30 @@ Distinguish the intersection [e]_φ∩Z(G) from the restricted twisted class.
 namespace QuandleResearch.Issue039
 noncomputable section
 
+/-- Restricted twisted class on the center; deliberately not the
+intersection of the full class with the center. -/
+def centralTwisted {G : Type} [Group G] (phi : G ≃* G) : Set G :=
+  {z | ∃ x ∈ Subgroup.center G, x⁻¹ * phi x = z}
+def FactorData (G : Type) [Group G] (phi : G ≃* G)
+    (H : Subgroup G) (N : Subgroup H) : Prop :=
+  (H : Set G) = twisted phi ∧
+  (N.map H.subtype : Set G) = centralTwisted phi
+def inducedOnCenterQuotient (G : Type) [Group G] (phi : G ≃* G)
+    (bar : (G ⧸ Subgroup.center G) ≃* (G ⧸ Subgroup.center G)) : Prop :=
+  ∀ x, QuotientGroup.mk' (Subgroup.center G) (phi x) =
+    bar (QuotientGroup.mk' (Subgroup.center G) x)
 def verifiesFactor (G : Type) [Group G] (phi : G ≃* G)
-    (H : Subgroup G) (N : Subgroup H) [N.Normal]
-    (answer : GroupObject) : Prop :=
-  (H : Set G) = twisted phi →
-  (N.map H.subtype : Set G) = {z | ∃ x : G, (∀ y : G, x*y = y*x) ∧ x⁻¹ * phi x = z} →
-  Nonempty ((H ⧸ N) ≃* answer.carrier)
-def verifiesImage (G K : Type) [Group G] [Group K]
-    (q : G →* K) (phi : G ≃* G) (induced : K ≃* K) : Prop :=
-  Function.Surjective q → (∀ x, q (phi x) = induced (q x)) →
-  q '' twisted phi = twisted induced
+    (H : Subgroup G) (N : Subgroup H) [N.Normal] (answer : GroupObject) : Prop :=
+  FactorData G phi H N → Nonempty ((H ⧸ N) ≃* answer.carrier)
+def verifiesImage (G : Type) [Group G] (phi : G ≃* G)
+    (bar : (G ⧸ Subgroup.center G) ≃* (G ⧸ Subgroup.center G)) : Prop :=
+  inducedOnCenterQuotient G phi bar →
+    (QuotientGroup.mk' (Subgroup.center G)) '' twisted phi = twisted bar
+/-- Specify the kernel of the canonical map from the full twisted subgroup
+to the central quotient. A comparison of H/N with the image additionally
+requires the induced quotient homomorphism. -/
+def verifiesCanonicalKernel (G : Type) [Group G] (H : Subgroup G) (answer : Subgroup H) : Prop :=
+  ((QuotientGroup.mk' (Subgroup.center G)).comp H.subtype).ker = answer
 
 end
 end QuandleResearch.Issue039

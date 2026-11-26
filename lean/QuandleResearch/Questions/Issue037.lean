@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.AbelianExtensions
 
 /-!
 # Issue 37: BNN Question 4 (2013) — homological criteria for twisted-class subgroup property
 https://github.com/555tery/quandle-orbit-series/issues/37
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct extension cocycle/action and homological criterion.
+Remaining obligation: Normalized action and 2-cocycle data and multiplication now explicit; compare source's homological conventions.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,9 +22,10 @@ Check whether the intended quantification is over inner or all automorphisms fro
 namespace QuandleResearch.Issue037
 noncomputable section
 
-def verifiesCriterion (G : Type) [Group G] (N : Subgroup G) [N.Normal]
-    (Data : Type) (extensionData : Data) (criterion : Data → Prop) : Prop :=
-  Abelian N → Abelian (G ⧸ N) → (criterion extensionData ↔ AllAut G)
+def verifiesCriterion (criterion : ∀ D : AbelianExtensionData, ExtensionCocycle D → Prop) : Prop :=
+  ∀ (D : AbelianExtensionData) (C : ExtensionCocycle D)
+    (law : Group (D.A × D.B)), C.Realizes law →
+    (criterion D C ↔ (letI := law; AllAut (D.A × D.B)))
 
 end
 end QuandleResearch.Issue037

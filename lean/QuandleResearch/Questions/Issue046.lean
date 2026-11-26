@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.LinearGroups
 
 /-!
 # Issue 46: Nasybullov Problem 1 (2017) — finite Reidemeister numbers of GL_n and SL_n
 https://github.com/555tery/quandle-orbit-series/issues/46
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct GL_n, SL_n, algebraically closed characteristic-zero field and entrywise automorphism sets; check dimension bounds separately.
+Remaining obligation: Both GL and SL, actual field hypotheses and entrywise automorphisms, all four propositions; verify dimension restrictions against source.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,13 +22,22 @@ The paper constructs field automorphisms with R=1 under infinite transcendence d
 namespace QuandleResearch.Issue046
 noncomputable section
 
-def bound (GL SL : Nat → GroupObject)
-    (gl : ∀ n, Set ((GL n).carrier ≃* (GL n).carrier))
-    (sl : ∀ n, Set ((SL n).carrier ≃* (SL n).carrier)) : Prop :=
-  ∃ b : Nat → Nat, (∀ n f, f ∈ gl n → FiniteReidemeister f → ReidemeisterAtMost f (b n)) ∧
-    (∀ n f, f ∈ sl n → FiniteReidemeister f → ReidemeisterAtMost f (b n))
-def alwaysOne (G : GroupObject) (entrywise : Set (G.carrier ≃* G.carrier)) : Prop :=
-  ∀ f ∈ entrywise, FiniteReidemeister f → ReidemeisterAtMost f 1
+def boundGL : Prop :=
+  ∃ b : Nat → Nat, ∀ (K : Type) [Field K] [IsAlgClosed K] [CharZero K] (n : Nat)
+    (psi : K ≃+* K) (phi : GeneralLinear K n ≃* GeneralLinear K n),
+    IsEntrywiseGL psi phi → FiniteReidemeister phi → ReidemeisterAtMost phi (b n)
+def boundSL : Prop :=
+  ∃ b : Nat → Nat, ∀ (K : Type) [Field K] [IsAlgClosed K] [CharZero K] (n : Nat)
+    (psi : K ≃+* K) (phi : SpecialLinear K n ≃* SpecialLinear K n),
+    IsEntrywiseSL psi phi → FiniteReidemeister phi → ReidemeisterAtMost phi (b n)
+def alwaysOneGL : Prop :=
+  ∀ (K : Type) [Field K] [IsAlgClosed K] [CharZero K] (n : Nat)
+    (psi : K ≃+* K) (phi : GeneralLinear K n ≃* GeneralLinear K n),
+    IsEntrywiseGL psi phi → FiniteReidemeister phi → ReidemeisterAtMost phi 1
+def alwaysOneSL : Prop :=
+  ∀ (K : Type) [Field K] [IsAlgClosed K] [CharZero K] (n : Nat)
+    (psi : K ≃+* K) (phi : SpecialLinear K n ≃* SpecialLinear K n),
+    IsEntrywiseSL psi phi → FiniteReidemeister phi → ReidemeisterAtMost phi 1
 
 end
 end QuandleResearch.Issue046

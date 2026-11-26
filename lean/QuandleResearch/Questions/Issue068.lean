@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.ConcreteEnveloping
 
 /-!
 # Issue 68: Darné Remark 2.22 (2026 v3) — residual nilpotency of the enveloping group
 https://github.com/555tery/quandle-orbit-series/issues/68
 
 Formalization status: PARTIAL.
-Remaining obligation: Verify residual nilpotency indexing against Darné v3; known implications are still statements, not proofs.
+Remaining obligation: Concrete enveloping group and injectivity, all eight statements; verify Darné indexing.
 
 Source and target from the issue:
 ## Source / explicitly stated open relation
@@ -18,22 +19,22 @@ Determine the implications (or counterexamples) between residual nilpotency of Q
 namespace QuandleResearch.Issue068
 noncomputable section
 
-def envToQ : Prop := ∀ (Q : Quandle) (E : Enveloping Q),
-  ResiduallyNilpotent E.G.carrier → Q.ResiduallyNilpotent
-def qToEnv : Prop := ∀ (Q : Quandle) (E : Enveloping Q),
-  Q.ResiduallyNilpotent → ResiduallyNilpotent E.G.carrier
-def envToInn : Prop := ∀ (Q : Quandle) (E : Enveloping Q),
-  ResiduallyNilpotent E.G.carrier → ResiduallyNilpotent Q.Inn
-def innToEnv : Prop := ∀ (Q : Quandle) (E : Enveloping Q),
-  ResiduallyNilpotent Q.Inn → ResiduallyNilpotent E.G.carrier
-def envToQInjective : Prop := ∀ (Q : Quandle) (E : Enveloping Q), E.InjectiveQuandle →
-  ResiduallyNilpotent E.G.carrier → Q.ResiduallyNilpotent
-def qToEnvInjective : Prop := ∀ (Q : Quandle) (E : Enveloping Q), E.InjectiveQuandle →
-  Q.ResiduallyNilpotent → ResiduallyNilpotent E.G.carrier
-def envToInnInjective : Prop := ∀ (Q : Quandle) (E : Enveloping Q), E.InjectiveQuandle →
-  ResiduallyNilpotent E.G.carrier → ResiduallyNilpotent Q.Inn
-def innToEnvInjective : Prop := ∀ (Q : Quandle) (E : Enveloping Q), E.InjectiveQuandle →
-  ResiduallyNilpotent Q.Inn → ResiduallyNilpotent E.G.carrier
+def envToQ : Prop := ∀ Q : Quandle,
+  ResiduallyNilpotent Q.EnvGroup → Q.ResiduallyNilpotent
+def qToEnv : Prop := ∀ Q : Quandle,
+  Q.ResiduallyNilpotent → ResiduallyNilpotent Q.EnvGroup
+def envToInn : Prop := ∀ Q : Quandle,
+  ResiduallyNilpotent Q.EnvGroup → ResiduallyNilpotent Q.Inn
+def innToEnv : Prop := ∀ Q : Quandle,
+  ResiduallyNilpotent Q.Inn → ResiduallyNilpotent Q.EnvGroup
+def envToQInjective : Prop := ∀ Q : Quandle, Q.Injective →
+  ResiduallyNilpotent Q.EnvGroup → Q.ResiduallyNilpotent
+def qToEnvInjective : Prop := ∀ Q : Quandle, Q.Injective →
+  Q.ResiduallyNilpotent → ResiduallyNilpotent Q.EnvGroup
+def envToInnInjective : Prop := ∀ Q : Quandle, Q.Injective →
+  ResiduallyNilpotent Q.EnvGroup → ResiduallyNilpotent Q.Inn
+def innToEnvInjective : Prop := ∀ Q : Quandle, Q.Injective →
+  ResiduallyNilpotent Q.Inn → ResiduallyNilpotent Q.EnvGroup
 
 end
 end QuandleResearch.Issue068

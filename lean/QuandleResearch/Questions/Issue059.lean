@@ -6,7 +6,7 @@ import QuandleResearch.Theory.BraidGroups
 https://github.com/555tery/quandle-orbit-series/issues/59
 
 Formalization status: PARTIAL.
-Remaining obligation: Concrete B4 and unreduced generator matrices; coefficient ring and canonical Laurent generator still not encoded.
+Remaining obligation: Concrete Laurent group algebra and Burau matrix images; verify matrix convention and typecheck.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -23,20 +23,20 @@ namespace QuandleResearch.Issue059
 noncomputable section
 
 open Braids
-/-- Laurent coefficients are encoded as the group algebra of the additive
-group of integers. The distinguished unit t is supplied by the monomial map. -/
-def burauEntry {R : Type} [CommRing R] (t : R) (i : Index 4) (a b : Fin 4) : R :=
+/-- The Laurent ring Z[t,t⁻¹] is the additive group algebra Z[Z].
+The monomial t is supported at exponent 1 with coefficient 1. -/
+abbrev Laurent := AddMonoidAlgebra Int Int
+def t : Laurent := Finsupp.single 1 1
+def burauEntry (i : Index 4) (a b : Fin 4) : Laurent :=
   if a = left i ∧ b = left i then 1-t else
   if a = left i ∧ b = right i then t else
   if a = right i ∧ b = left i then 1 else
   if a = right i ∧ b = right i then 0 else if a = b then 1 else 0
-def question (R : Type) [CommRing R] (t : Rˣ)
-    (isLaurentPolynomialRing : Prop) : Prop :=
-  isLaurentPolynomialRing →
-    ∃ f : B 4 →* (Matrix (Fin 4) (Fin 4) R)ˣ,
-      (∀ i : Index 4, ∀ a b,
-        (f (PresentedGroup.of (rels := classicalRels 4) i)).val a b =
-          burauEntry (t : R) i a b) ∧ Function.Injective f
+def question : Prop :=
+  ∃ f : B 4 →* (Matrix (Fin 4) (Fin 4) Laurent)ˣ,
+    (∀ i : Index 4, ∀ a b,
+      (f (PresentedGroup.of (rels := classicalRels 4) i)).val a b =
+        burauEntry i a b) ∧ Function.Injective f
 
 end
 end QuandleResearch.Issue059

@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Interfaces
 https://github.com/555tery/quandle-orbit-series/issues/62
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct the exact matrix group and translation subgroup of Example 2.
+Remaining obligation: Concrete rational function matrix model; group defined by closure, equality with the source matrix set still requires a construction audit.
 
 Source and target from the issue:
 ## Source
@@ -20,9 +20,23 @@ Journal version: Communications in Algebra 47 (2019), 930–944, [DOI:10.1080/00
 namespace QuandleResearch.Issue062
 noncomputable section
 
-def correction (G : Type) [Group G] (translation : Subgroup G) : Prop :=
-  (∃ x ∈ translation, x ≠ 1) ∧
-    (∀ n, 2 ≤ n → lowerCentral G (n-1) = translation) ∧ ¬ ResiduallyNilpotent G
+/-- Rational functions regular at T=1 and having value 1 there.
+A polynomial numerator/denominator witness avoids a choice of reduced fraction. -/
+def isU (F : Type) [Field F] (h : RatFunc F) : Prop :=
+  ∃ p q : Polynomial F, q.eval 1 ≠ 0 ∧ p.eval 1 = q.eval 1 ∧
+    h = algebraMap (Polynomial F) (RatFunc F) p /
+        algebraMap (Polynomial F) (RatFunc F) q
+abbrev MatrixUnits (F : Type) [Field F] := (Matrix (Fin 2) (Fin 2) (RatFunc F))ˣ
+def matrixSet (F : Type) [Field F] : Set (MatrixUnits F) :=
+  {M | M.val 0 0 = 1 ∧ M.val 1 0 = 0 ∧ isU F (M.val 1 1)}
+def matrixGroup (F : Type) [Field F] : Subgroup (MatrixUnits F) :=
+  Subgroup.closure (matrixSet F)
+def translations (F : Type) [Field F] : Subgroup (matrixGroup F) :=
+  Subgroup.closure {M | M.val.val 0 0 = 1 ∧ M.val.val 1 0 = 0 ∧ M.val.val 1 1 = 1}
+def correction : Prop :=
+  ∀ (F : Type) [Field F], (∃ x ∈ translations F, x ≠ 1) ∧
+    (∀ n, 2 ≤ n → lowerCentral (matrixGroup F) (n-1) = translations F) ∧
+    ¬ ResiduallyNilpotent (matrixGroup F)
 
 end
 end QuandleResearch.Issue062

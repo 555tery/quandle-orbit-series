@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Interfaces
 https://github.com/555tery/quandle-orbit-series/issues/64
 
 Formalization status: PARTIAL.
-Remaining obligation: Universal property in BNS convention; explicit carrier/operations and source-convention correspondence remain required.
+Remaining obligation: Existence and candidate universal property distinguished; strong-switch convention and explicit model requirement remain.
 
 Source and target from the issue:
 ## Source / research question
@@ -18,6 +18,10 @@ Construct an explicit model of the free biquandle on a nonempty set X (in partic
 namespace QuandleResearch.Issue064
 noncomputable section
 
+/-- Existence statement; a descriptive answer should exhibit the carrier,
+operations and generators rather than merely establish this proposition. -/
+def existsFree : Prop :=
+  ∀ X : Type, Nonempty X → ∃ (B : Biquandle) (gen : X → B.carrier), B.FreeOn gen
 def verifiesModel (X : Type) (B : Biquandle) (gen : X → B.carrier) : Prop :=
   Nonempty X → B.FreeOn gen
 

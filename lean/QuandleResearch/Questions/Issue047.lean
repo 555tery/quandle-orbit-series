@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.LinearGroups
 
 /-!
 # Issue 47: Nasybullov Problem 2 (2017) — width of the identity twisted conjugacy class
 https://github.com/555tery/quandle-orbit-series/issues/47
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct GL_n and the entrywise automorphisms under the source field hypotheses.
+Remaining obligation: Concrete GL, actual field hypotheses and entrywise automorphisms; verify dimension restrictions against source.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,8 +22,11 @@ The source proves width at most 3 in Proposition 6 (verify numbering in journal 
 namespace QuandleResearch.Issue047
 noncomputable section
 
-def question (G : GroupObject) (entrywise : Set (G.carrier ≃* G.carrier)) : Prop :=
-  ∀ f ∈ entrywise, FiniteReidemeister f → widthAtMost (twisted f) (⊤ : Subgroup G.carrier) 2
+def question : Prop :=
+  ∀ (K : Type) [Field K] [IsAlgClosed K] [CharZero K] (n : Nat)
+    (psi : K ≃+* K) (phi : GeneralLinear K n ≃* GeneralLinear K n),
+    IsEntrywiseGL psi phi → FiniteReidemeister phi →
+      widthAtMost (twisted phi) (⊤ : Subgroup (GeneralLinear K n)) 2
 
 end
 end QuandleResearch.Issue047
