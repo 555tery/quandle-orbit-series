@@ -114,4 +114,120 @@ theorem series_step_subset {X : Type u} [_root_.Quandle X]
   rw [hx]
   exact Set.inter_subset_left
 
+
+/-! An independent finite-walk semantics for generated permutation orbits.
+This is definition infrastructure, not a proof of either extension answer. -/
+section OrbitSemantics
+
+variable {A : Type*}
+
+/-- Finite sequences of generators and inverse generators. -/
+inductive Walk (S : Set (Equiv.Perm A)) (a : A) : A → Prop
+  | nil : Walk S a a
+  | forward {z : A} (h : Walk S a z) {g : Equiv.Perm A}
+      (hg : g ∈ S) : Walk S a (g z)
+  | backward {z : A} (h : Walk S a z) {g : Equiv.Perm A}
+      (hg : g ∈ S) : Walk S a (g.symm z)
+
+theorem walk_iff_orbit (S : Set (Equiv.Perm A)) (a z : A) :
+    Walk S a z ↔ z ∈ MulAction.orbit (Subgroup.closure S) a := by
+  constructor
+  · intro h
+    induction h with
+    | nil => exact MulAction.mem_orbit_self _
+    | forward h hg ih =>
+      let g' : Subgroup.closure S := ⟨_, Subgroup.subset_closure hg⟩
+      exact MulAction.mem_orbit_of_mem_orbit g' ih
+    | backward h hg ih =>
+      let g' : Subgroup.closure S := ⟨_, Subgroup.subset_closure hg⟩
+      exact MulAction.mem_orbit_of_mem_orbit g'⁻¹ ih
+  · intro hz
+    let H : Subgroup (Equiv.Perm A) :=
+      { carrier := {g | ∀ t : A, Walk S a t ↔ Walk S a (g t)}
+        one_mem' := by intro t; rfl
+        mul_mem' := by
+          intro g h hg hh t
+          exact (hh t).trans (hg (h t))
+        inv_mem' := by
+          intro g hg t
+          change Walk S a t ↔ Walk S a (g.symm t)
+          simpa only [Equiv.apply_symm_apply] using (hg (g.symm t)).symm }
+    have hS : S ⊆ H := by
+      intro g hg t
+      constructor
+      · intro ht
+        exact Walk.forward ht hg
+      · intro ht
+        have h := Walk.backward ht hg
+        simpa only [Equiv.symm_apply_apply] using h
+    have hH : Subgroup.closure S ≤ H := (Subgroup.closure_le H).mpr hS
+    obtain ⟨g, hg⟩ := MulAction.mem_orbit_iff.mp hz
+    change g.val a = z at hg
+    have hp : ∀ t : A, Walk S a t ↔ Walk S a (g.val t) :=
+      hH g.property
+    rw [← hg]
+    exact (hp a).mp Walk.nil
+
+variable {X : Type u} [_root_.Quandle X]
+
+/-- The actual left translation of the subtype s, with actual inverse.
+This does not assume that the ambient and intrinsic inner groups coincide. -/
+def restrictedTranslation {s : Set X} (hs : IsSubrack s) (y : s) :
+    Equiv.Perm s where
+  toFun x := ⟨Shelf.act y.val x.val, (hs y.val y.property x.val x.property).1⟩
+  invFun x := ⟨(_root_.Rack.act' y.val).symm x.val,
+    (hs y.val y.property x.val x.property).2⟩
+  left_inv x := Subtype.ext ((_root_.Rack.act' y.val).symm_apply_apply x.val)
+  right_inv x := Subtype.ext ((_root_.Rack.act' y.val).apply_symm_apply x.val)
+
+def intrinsicGenerators {s : Set X} (hs : IsSubrack s) :
+    Set (Equiv.Perm s) := Set.range (restrictedTranslation hs)
+
+/-- Lift an ambient walk to the subtype, tracking membership at every step. -/
+theorem lift_walk {s : Set X} (hs : IsSubrack s) (x : s) {z : X}
+    (h : Walk ((_root_.Rack.act' : X → Equiv.Perm X) '' s) x.val z) :
+    ∃ hz : z ∈ s, Walk (intrinsicGenerators hs) x (⟨z, hz⟩ : s) := by
+  induction h with
+  | nil => exact ⟨x.property, Walk.nil⟩
+  | forward h hg ih =>
+    obtain ⟨hz, hw⟩ := ih
+    obtain ⟨y, hy, rfl⟩ := hg
+    exact ⟨(hs y hy _ hz).1,
+      Walk.forward hw ⟨(⟨y, hy⟩ : s), rfl⟩⟩
+  | backward h hg ih =>
+    obtain ⟨hz, hw⟩ := ih
+    obtain ⟨y, hy, rfl⟩ := hg
+    exact ⟨(hs y hy _ hz).2,
+      Walk.backward hw ⟨(⟨y, hy⟩ : s), rfl⟩⟩
+
+/-- Forgetting the subtype turns an intrinsic walk into an ambient walk. -/
+theorem forget_walk {s : Set X} (hs : IsSubrack s) (x z : s)
+    (h : Walk (intrinsicGenerators hs) x z) :
+    Walk ((_root_.Rack.act' : X → Equiv.Perm X) '' s) x.val z.val := by
+  induction h with
+  | nil => exact Walk.nil
+  | forward h hg ih =>
+    obtain ⟨y, rfl⟩ := hg
+    exact Walk.forward ih ⟨y.val, y.property, rfl⟩
+  | backward h hg ih =>
+    obtain ⟨y, rfl⟩ := hg
+    exact Walk.backward ih ⟨y.val, y.property, rfl⟩
+
+/-- The BCNW ambient orbit is precisely the image of the intrinsic orbit
+on the subtype. No faithfulness of the restriction homomorphism is needed. -/
+theorem orbitIn_eq_intrinsic_image {s : Set X} (hs : IsSubrack s) (x : s) :
+    orbitIn s x.val = Subtype.val ''
+      MulAction.orbit (Subgroup.closure (intrinsicGenerators hs)) x := by
+  ext z
+  constructor
+  · intro hz
+    have hw := (walk_iff_orbit _ _ _).mpr hz.2
+    obtain ⟨hz', hw'⟩ := lift_walk hs x hw
+    exact ⟨⟨z, hz'⟩, (walk_iff_orbit _ _ _).mp hw', rfl⟩
+  · rintro ⟨y, hy, rfl⟩
+    have hw := (walk_iff_orbit _ _ _).mpr hy
+    exact ⟨y.property, (walk_iff_orbit _ _ _).mp (forget_walk hs x y hw)⟩
+
+end OrbitSemantics
+
 end QuandleResearch.Q57.StatementAudit
