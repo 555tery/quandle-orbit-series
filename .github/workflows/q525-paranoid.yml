@@ -1,0 +1,55 @@
+name: Q525 paranoid comparator
+on:
+  push:
+    branches: ['lean/mathlib-4.36-q525']
+    paths: ['lean/**', '.github/workflows/q525-paranoid.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paranoid:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+        working-directory: lean
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install sandbox and Lean
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify sandbox and bundled kernels
+        run: |
+          lake --version
+          lean --version
+          bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev /bin/true
+          sysroot="$(lake env lean --print-prefix)"
+          for exe in lean4export leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
+            test -x "$sysroot/bin/$exe"
+            echo "Found $exe"
+          done
+      - name: Resolve dependencies and retrieve Mathlib cache
+        run: |
+          lake update
+          lake exe cache get
+      - name: Check submitted proof and separate specification
+        run: |
+          lake build QuandleResearch.Proofs.Q525.Audit QuandleResearch.Checks.Q525Challenge
+      - name: Compare and verify with all six kernels
+        run: |
+          set -euo pipefail
+          lake comparator --config q525-comparator.json --paranoid 2>&1 | tee q525-paranoid.log
+          for kernel in "Lean default" "Lean paranoid" lean4lean nanoda con-leche con-ron; do
+            grep -F "$kernel kernel accepts the solution" q525-paranoid.log
+          done
+          grep -F "Your solution is okay!" q525-paranoid.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: q525-paranoid-log
+          path: lean/q525-paranoid.log
+          if-no-files-found: warn

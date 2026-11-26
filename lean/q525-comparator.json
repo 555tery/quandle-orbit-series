@@ -1,0 +1,14 @@
+{
+  "challenge_module": "QuandleResearch.Checks.Q525Challenge",
+  "solution_module": "QuandleResearch.Proofs.Q525.Audit",
+  "theorem_names": [
+    "QuandleResearch.Q525.MatrixModel.partA",
+    "QuandleResearch.Q525.partB",
+    "QuandleResearch.Q525.MatrixModel.solution"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ]
+}
