@@ -56,7 +56,8 @@ theorem rho_eq_translation {a : G} (x : Class a) :
 theorem translationGroup_eq_map {a : G} (s : Set (Class a)) :
     translationGroup s =
       (Subgroup.closure (Subtype.val '' s)).map (rho a) := by
-  rw [Subgroup.map_closure]
+  rw [MonoidHom.map_closure]
+  unfold translationGroup
   congr 1
   rw [Set.image_image]
   ext p
@@ -94,7 +95,7 @@ theorem locallyReductiveTwo {a : G} (ha : a*a = 1)
   have hc : x.val*y.val*x.val*y.val =
       y.val*x.val*y.val*x.val := by
     calc
-      _ = (x.val*y.val)^2 := by group
+      _ = (x.val*y.val)^2 := by rw [pow_two]
       _ = ((x.val*y.val)^2)⁻¹ := by
         apply eq_inv_of_mul_eq_one_right
         rw [← pow_add]
@@ -193,9 +194,11 @@ theorem layer_next (a : G) (H : Subgroup G) (ha : a ∈ H) :
   constructor
   · intro hx
     obtain ⟨p,hp⟩ := MulAction.mem_orbit_iff.mp hx.2
-    have hp' := p.property
-    rw [hgroup] at hp'
-    obtain ⟨g,hg,hgp⟩ := hp'
+    have hp' : (p.val : Equiv.Perm (Class a)) ∈ translationGroup (layer a H) := p.property
+    have hp'' : (p.val : Equiv.Perm (Class a)) ∈ (next a H).map (Class.rho a) :=
+      (congrArg (fun H : Subgroup (Equiv.Perm (Class a)) => (p.val : Equiv.Perm (Class a)) ∈ H) hgroup).mp hp'
+    clear hp'
+    obtain ⟨g,hg,hgp⟩ := hp''
     refine ⟨⟨g,hg⟩, ?_⟩
     change p.val (Class.anchor a) = x at hp
     rw [hgp]
