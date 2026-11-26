@@ -27,9 +27,14 @@ jobs:
           lake --version
           lean --version
           bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev /bin/true
-          sysroot="$(lake env lean --print-prefix)"
-          for exe in lean4export leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
-            test -x "$sysroot/bin/$exe"
+          sysroot="$(lean --print-prefix)"
+          echo "Lean sysroot: $sysroot"
+          for exe in leanexport leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
+            if ! test -x "$sysroot/bin/$exe"; then
+              echo "::error::Missing bundled executable: $sysroot/bin/$exe"
+              ls -l "$sysroot/bin"
+              exit 1
+            fi
             echo "Found $exe"
           done
       - name: Resolve dependencies and retrieve Mathlib cache
