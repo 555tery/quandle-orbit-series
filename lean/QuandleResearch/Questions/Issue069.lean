@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.LinkPresentations
 
 /-!
 # Issue 69: Darné Remark 7.31 (2026 v3) — completeness of the reduced fundamental quandle
 https://github.com/555tery/quandle-orbit-series/issues/69
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct reduced fundamental quandle and the precise equivalence relation in S^4.
+Remaining obligation: Universal reduced quotient and fundamental quandle presentation specified. Welded link-homotopy and reversed mirror of non-split components in S4 still need geometric encoding.
 
 Source and target from the issue:
 ## Source / explicitly formulated conjecture
@@ -25,6 +26,18 @@ noncomputable section
 def question {Link : Type} (reducedFundamental : Link → Quandle)
     (weldedHomotopyAndReversedMirrorsInS4 : Link → Link → Prop) : Prop :=
   ∀ l m, (reducedFundamental l).Iso (reducedFundamental m) ↔ weldedHomotopyAndReversedMirrorsInS4 l m
+
+/-- Definition 7.26: the fundamental quandle followed by its universal
+reduced quotient. The exact S4 equivalence is still external. -/
+def completeReducedPresented {n : Nat} {Link : Type}
+    (diagram : Link → ArcPresentation n)
+    (weldedHomotopyAndReversedMirrorsInS4 : Link → Link → Prop) : Prop :=
+  ∀ (l m : Link) (Q R U V : Quandle)
+    (ql : (diagram l).Arc → Q.carrier) (qm : (diagram m).Arc → R.carrier)
+    (p : Q.HomType U) (q : R.HomType V),
+    (diagram l).PresentsQuandle Q ql → (diagram m).PresentsQuandle R qm →
+    Q.IsReducedQuotient U p → R.IsReducedQuotient V q →
+      (U.Iso V ↔ weldedHomotopyAndReversedMirrorsInS4 l m)
 
 end
 end QuandleResearch.Issue069

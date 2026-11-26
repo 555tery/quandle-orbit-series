@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.QuandleCocycles
 
 /-!
 # Issue 17: Inoue Problem 2.3 (2013) — classifying link-homotopy by quandle cocycle invariants
 https://github.com/555tery/quandle-orbit-series/issues/17
 
 Formalization status: PARTIAL.
-Remaining obligation: Link-homotopy, actual cocycle invariants and unlink/Brunnian constructions.
+Remaining obligation: Inoue C1–C3 and componentwise weight multiplicities are explicit for finite targets. Geometric link-homotopy and Brunnian predicates and infinite-target scope remain to be encoded.
 
 Source and target from the issue:
 ## Source / published problem
@@ -22,6 +23,19 @@ def complete {Link Test Value : Type} (homotopic : Link → Link → Prop)
 def brunnianCase {Link Test Value : Type} (homotopic : Link → Link → Prop)
     (value : Test → Link → Value) (brunnian : Link → Prop) (unlink : Link → Link) : Prop :=
   ∀ l, brunnian l → ¬ homotopic l (unlink l) → ∃ t, value t l ≠ value t (unlink l)
+
+/-- The actual Inoue invariants (finite quandle targets), rather than
+arbitrary functions. The geometric link-homotopy and Brunnian predicates
+still require a separate topology formalization. -/
+def completeFiniteTargets {n : Nat} {Link : Type}
+    (diagram : Link → ArcPresentation n) (homotopic : Link → Link → Prop) : Prop :=
+  ∀ l m, homotopic l m ↔ SameCocycleData (diagram l) (diagram m)
+
+def distinguishesBrunnianFiniteTargets {n : Nat} {Link : Type}
+    (diagram : Link → ArcPresentation n) (homotopic : Link → Link → Prop)
+    (brunnian : Link → Prop) (unlink : Link) : Prop :=
+  ∀ l, brunnian l → ¬ homotopic l unlink →
+    ¬ SameCocycleData (diagram l) (diagram unlink)
 
 end
 end QuandleResearch.Issue017

@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.LinkPresentations
 
 /-!
 # Issue 57: BNS §1 (2019) — classical knots with equal quandles and different biquandles
 https://github.com/555tery/quandle-orbit-series/issues/57
 
 Formalization status: PARTIAL.
-Remaining obligation: Instantiate with classical knots and actual fundamental invariants.
+Remaining obligation: Fundamental quandle and strong biquandle specified by actual crossing relations; classical realizability and geometric domain remain external.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -23,6 +24,17 @@ noncomputable section
 
 def question (K : KnotInterface) : Prop :=
   ∃ x y, (K.fundamentalQ x).Iso (K.fundamentalQ y) ∧ ¬ (K.fundamentalBQ x).Iso (K.fundamentalBQ y)
+
+/-- The geometric domain must consist of classical knots with actual
+diagram presentations; the algebraic invariants are no longer arbitrary. -/
+def existsPresented {Knot : Type} (arc : Knot → ArcPresentation 1)
+    (semi : Knot → SemiArcPresentation) : Prop :=
+  ∃ (x y : Knot) (Q R : Quandle) (B C : StrongBiquandle)
+    (qx : (arc x).Arc → Q.carrier) (qy : (arc y).Arc → R.carrier)
+    (bx : (semi x).Arc → B.carrier) (by' : (semi y).Arc → C.carrier),
+    (arc x).PresentsQuandle Q qx ∧ (arc y).PresentsQuandle R qy ∧
+    (semi x).PresentsBiquandle B bx ∧ (semi y).PresentsBiquandle C by' ∧
+    Q.Iso R ∧ ¬ B.Iso C
 
 end
 end QuandleResearch.Issue057

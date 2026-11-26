@@ -43,7 +43,7 @@ namespace Quandle
 abbrev Inn (Q : Quandle) : Subgroup (Equiv.Perm Q.carrier) := Q.rack.translationGroup Set.univ
 abbrev Connected (Q : Quandle) : Prop := MulAction.IsPretransitive Q.Inn Q.carrier
 def ResiduallyNilpotent (Q : Quandle) : Prop :=
-  ∀ x y, (∀ n, y ∈ MulAction.orbit (lowerCentral Q.Inn n) x) → x = y
+  ∀ x y : Q.carrier, (∀ n, y ∈ MulAction.orbit (lowerCentral Q.Inn n) x) → x = y
 end Quandle
 end
 end QuandleResearch

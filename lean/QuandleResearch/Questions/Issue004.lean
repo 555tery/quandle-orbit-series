@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.QuandleCocycles
 
 /-!
 # Issue 4: Inoue Question 2.4 (2013) — quandle cocycle invariants and Milnor invariants
 https://github.com/555tery/quandle-orbit-series/issues/4
 
 Formalization status: PARTIAL.
-Remaining obligation: Actual cocycle and Milnor invariants, coefficients, indeterminacy and meaningful relation; arbitrary relations do not count as answers.
+Remaining obligation: Actual finite-target quandle 2-cocycle weights and multiplicities are specified. Milnor invariants and indeterminacy remain external; the requested relationship is descriptive.
 
 Source and target from the issue:
 ## Source / published question
@@ -20,6 +21,17 @@ noncomputable section
 
 def verifiesRelation {Link C M : Type} (cocycle : Link → C) (milnor : Link → M)
     (relation : C → M → Prop) : Prop := ∀ l, relation (cocycle l) (milnor l)
+
+/-- Concrete cocycle side of the requested relationship.
+The Milnor invariant, its indeterminacy and the precise proposed
+relation remain to be supplied independently. -/
+def verifiesCocycleRelation {n : Nat} {Link M : Type}
+    (diagram : Link → ArcPresentation n) (milnor : Link → M)
+    (Q : Quandle) (A : Type) [AddCommGroup A]
+    (theta : Q.carrier → Q.carrier → A)
+    (relation : (Fin n → A → Nat) → M → Prop) : Prop :=
+  Finite Q.carrier → Q.Reduced → IsReducedTwoCocycle Q theta →
+    ∀ l, relation ((diagram l).cocycleMultiplicity Q theta) (milnor l)
 
 end
 end QuandleResearch.Issue004

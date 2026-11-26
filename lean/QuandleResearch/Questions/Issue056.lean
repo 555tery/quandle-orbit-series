@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.LinkPresentations
 
 /-!
 # Issue 56: Fenn–Jordan-Santana–Kauffman conjecture — completeness of fundamental virtual knot biquandle
 https://github.com/555tery/quandle-orbit-series/issues/56
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct fundamental biquandle and precise equivalence of virtual knots.
+Remaining obligation: Fundamental strong biquandle specified by actual crossing relations; geometric virtual knot equivalence and source scope remain.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -23,6 +24,16 @@ noncomputable section
 
 def question (K : KnotInterface) : Prop :=
   ∀ x y, (K.fundamentalBQ x).Iso (K.fundamentalBQ y) ↔ K.equiv.r x y
+
+/-- Fundamental objects are now required to present the specified
+crossing relations. The geometric equivalence convention is not yet
+fixed by this module. -/
+def completePresented {Knot : Type} (diagram : Knot → SemiArcPresentation)
+    (equiv : Setoid Knot) : Prop :=
+  ∀ (x y : Knot) (B C : StrongBiquandle)
+    (gx : (diagram x).Arc → B.carrier) (gy : (diagram y).Arc → C.carrier),
+    (diagram x).PresentsBiquandle B gx → (diagram y).PresentsBiquandle C gy →
+      (B.Iso C ↔ equiv.r x y)
 
 end
 end QuandleResearch.Issue056

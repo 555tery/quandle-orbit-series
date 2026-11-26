@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.LinkPresentations
 
 /-!
 # Issue 65: Fenn–Ilyutko–Kauffman–Manturov Problem 28B (2014) — topological model of the fundamental biquandle
 https://github.com/555tery/quandle-orbit-series/issues/65
 
 Formalization status: PARTIAL.
-Remaining obligation: Topological construction and naturality not encoded; pointwise isomorphism is only a component.
+Remaining obligation: Fundamental strong biquandle specified by actual crossing relations; geometric model and naturality are requested, not asserted.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -22,6 +23,13 @@ noncomputable section
 
 def verifiesTopologicalModel (K : KnotInterface) (model : K.knot → Biquandle) : Prop :=
   ∀ k, (model k).Iso (K.fundamentalBQ k)
+
+/-- Pointwise algebraic criterion for a proposed topological model.
+Construction from geometry and naturality are separate obligations. -/
+def verifiesPresentedModel {Knot : Type} (diagram : Knot → SemiArcPresentation)
+    (model : Knot → StrongBiquandle) : Prop :=
+  ∀ k (B : StrongBiquandle) (gen : (diagram k).Arc → B.carrier),
+    (diagram k).PresentsBiquandle B gen → (model k).Iso B
 
 end
 end QuandleResearch.Issue065
