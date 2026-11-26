@@ -1,27 +1,53 @@
-import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.OrbitSeriesCore
 
-/-!
-# Issue 13: BCNW Question 5.7 — extension closure of orbit-series classes
+/-! BCNW Question 5.7, arXiv:2004.10227v3 §5.1.
+https://arxiv.org/html/2004.10227v3
 https://github.com/555tery/quandle-orbit-series/issues/13
 
-Formalization status: STATEMENT.
-The main statement is expressed using the shared mathematical definitions; source/convention review and compilation remain pending.
-
-Source and target from the issue:
-## Source / published open question
-M. Bonatto, A. S. Crans, T. Nasybullov, G. T. Whitney, *Quandles with orbit series conditions*, Journal of Algebra (2021), [DOI](https://doi.org/10.1016/j.jalgebra.2020.09.026), [arXiv v3, Question 5.7](https://arxiv.org/html/2004.10227v3).
-Are the classes \(\mathcal{OS}\) and \(\mathcal{OS}_\omega\) closed under extensions?
+The base and each full fibre must individually belong to the class.
+In particular there is NO uniformity hypothesis on the fibre bounds
+in the OS_omega question. The ambient action on each subquandle is
+the shared BCNW representation already used for Question 5.25.
 -/
-
 namespace QuandleResearch.Issue013
-noncomputable section
+open BCNW
+universe u v
 
+def OSomega {X : Type*} [_root_.Quandle X] (s : Set X) : Prop :=
+  ∃ n : Nat, 0 < n ∧ OSBound s n
+
+def fibre {X Y : Type*} [_root_.Quandle X] [_root_.Quandle Y]
+    (f : ShelfHom X Y) (b : Y) : Set X := f ⁻¹' {b}
+
+/-- First question: extension closure, with no finiteness hypothesis. -/
 def extensionOS : Prop :=
-  ∀ (Q B : Quandle) (f : Q.carrier → B.carrier), Q.Hom B f → Function.Surjective f →
-    B.rack.OS Set.univ → (∀ b, Q.rack.OS {x | f x = b}) → Q.rack.OS Set.univ
-def extensionOSomega : Prop :=
-  ∀ (Q B : Quandle) (f : Q.carrier → B.carrier), Q.Hom B f → Function.Surjective f →
-    B.rack.OSomega Set.univ → (∀ b, Q.rack.OSomega {x | f x = b}) → Q.rack.OSomega Set.univ
+  ∀ (X : Type u) (Y : Type v) [_root_.Quandle X] [_root_.Quandle Y]
+    [Nonempty X] [Nonempty Y] (f : ShelfHom X Y), Function.Surjective f →
+    OS (Set.univ : Set Y) → (∀ b : Y, OS (fibre f b)) →
+    OS (Set.univ : Set X)
 
-end
+/-- Second question: the bound on each fibre may depend on b. -/
+def extensionOSomega : Prop :=
+  ∀ (X : Type u) (Y : Type v) [_root_.Quandle X] [_root_.Quandle Y]
+    [Nonempty X] [Nonempty Y] (f : ShelfHom X Y), Function.Surjective f →
+    OSomega (Set.univ : Set Y) → (∀ b : Y, OSomega (fibre f b)) →
+    OSomega (Set.univ : Set X)
+
+def answer : Prop := extensionOS.{u,v} ∧ ¬ extensionOSomega.{u,v}
+
+/-- A principal series has stabilized at the specified step. The
+finite-index formulation avoids assigning a value to infinity. -/
+def StableAt {X : Type*} [_root_.Rack X] (s : Set X) (x : X) (n : Nat) : Prop :=
+  principalSeries s x n = principalSeries s x (n+1)
+
+/-- Stronger manuscript target, not needed in its sharp form to answer
+the original question. No assertion of minimal depth is assumed. -/
+def additiveBound : Prop :=
+  ∀ (X : Type u) (Y : Type v) [_root_.Quandle X] [_root_.Quandle Y]
+    (f : ShelfHom X Y), Function.Surjective f →
+    ∀ (x : X) (r m : Nat),
+      StableAt Set.univ (f x) r →
+      StableAt (fibre f (f x)) x m →
+      StableAt Set.univ x (r+m)
+
 end QuandleResearch.Issue013

@@ -23,5 +23,5 @@ jobs:
         if: github.ref_name == 'lean/mathlib-4.36-q525'
         run: lake build QuandleResearch.Proofs.Q525.Audit
       - name: Full library build
-        if: github.ref_name != 'lean/mathlib-4.36-q525'
+        if: github.ref_name != 'lean/mathlib-4.36-q525' && github.ref_name != 'lean/mathlib-4.36-q57'
         run: lake build

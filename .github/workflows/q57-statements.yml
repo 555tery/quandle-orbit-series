@@ -1,0 +1,24 @@
+name: Q57 formalization
+on:
+  push:
+    branches: ['lean/mathlib-4.36-q57']
+    paths: ['lean/**', '.github/workflows/q57-statements.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - run: lake update
+      - run: lake exe cache get
+      - name: Focused Question 5.7 build
+        run: lake build QuandleResearch.Proofs.Q57.Principal
