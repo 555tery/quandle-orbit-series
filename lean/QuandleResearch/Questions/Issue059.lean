@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 59: Burau faithfulness problem for B_4 — recorded by Bardakov–Nasybullov (2019)
 https://github.com/555tery/quandle-orbit-series/issues/59
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct B_4 and the unreduced Burau matrices over Laurent polynomials.
+Remaining obligation: Concrete B4 and unreduced generator matrices; coefficient ring and canonical Laurent generator still not encoded.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -21,7 +22,21 @@ Distinguish faithful over the Laurent polynomial ring from specialized represent
 namespace QuandleResearch.Issue059
 noncomputable section
 
-def question (burau : Representation) : Prop := burau.Faithful
+open Braids
+/-- Laurent coefficients are encoded as the group algebra of the additive
+group of integers. The distinguished unit t is supplied by the monomial map. -/
+def burauEntry {R : Type} [CommRing R] (t : R) (i : Index 4) (a b : Fin 4) : R :=
+  if a = left i ∧ b = left i then 1-t else
+  if a = left i ∧ b = right i then t else
+  if a = right i ∧ b = left i then 1 else
+  if a = right i ∧ b = right i then 0 else if a = b then 1 else 0
+def question (R : Type) [CommRing R] (t : Rˣ)
+    (isLaurentPolynomialRing : Prop) : Prop :=
+  isLaurentPolynomialRing →
+    ∃ f : B 4 →* (Matrix (Fin 4) (Fin 4) R)ˣ,
+      (∀ i : Index 4, ∀ a b,
+        (f (PresentedGroup.of (rels := classicalRels 4) i)).val a b =
+          burauEntry (t : R) i a b) ∧ Function.Injective f
 
 end
 end QuandleResearch.Issue059

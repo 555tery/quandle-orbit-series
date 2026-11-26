@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 61: Kourovka 19.7(b) — linearity of pure virtual braid groups VP_n, n≥4
 https://github.com/555tery/quandle-orbit-series/issues/61
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct VP_n and verify field scope.
+Remaining obligation: Concrete VP_n; field scope and source-convention audit remain.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -21,7 +22,8 @@ Proposition 5 of the source proves linearity of VB_3 only. Nonfaithfulness of sp
 namespace QuandleResearch.Issue061
 noncomputable section
 
-def question (VP : Nat → GroupObject) : Prop := ∀ n, 4 ≤ n → Linear (VP n).carrier
+open Braids
+def question : Prop := ∀ n, 4 ≤ n → Linear (VP n)
 
 end
 end QuandleResearch.Issue061

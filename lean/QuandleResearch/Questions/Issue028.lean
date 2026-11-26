@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 28: Bardakov et al. Question 4.2 (2021) — image of H_n under Psi
 https://github.com/555tery/quandle-orbit-series/issues/28
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct H_n as the stated kernel and Psi by source generator formulas.
+Remaining obligation: Concrete VB and H_n; Psi generator matrices and Laurent ring still required.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -18,9 +19,10 @@ Describe Ψ(H_n), where H_n is the kernel of the map VB_n → S_n sending σ_i t
 namespace QuandleResearch.Issue028
 noncomputable section
 
-def verifiesImage (G H : GroupObject) (psi : G.carrier →* H.carrier)
-    (K : Subgroup G.carrier) (answer : Subgroup H.carrier) : Prop :=
-  K.map psi = answer
+open Braids
+def verifiesImage {K : Type} [Group K] (psi : ∀ n, VB n →* K)
+    (answer : Nat → Subgroup K) : Prop :=
+  ∀ n, 2 ≤ n → (H n).map (psi n) = answer n
 
 end
 end QuandleResearch.Issue028

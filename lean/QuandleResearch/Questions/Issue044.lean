@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 44: Bardakov et al. Problem 2 (2020) — kernel of the integral flat virtual braid representation Delta
 https://github.com/555tery/quandle-orbit-series/issues/44
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct FVB_n and Delta matrices from Theorem 3.
+Remaining obligation: Concrete FVB and integral matrix target; Delta generator matrices still required.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,8 +22,10 @@ Theorem 3 distinguishes Δ from Θ by the elements (ρ_iσ_{i+1})^6. The origina
 namespace QuandleResearch.Issue044
 noncomputable section
 
-def verifiesKernel (delta : Representation) (answer : Subgroup delta.source.carrier) : Prop :=
-  delta.map.ker = answer
+open Braids
+def verifiesKernel (delta : ∀ n, FVB n →* (Matrix (Fin (3*n)) (Fin (3*n)) Int)ˣ)
+    (answer : ∀ n, Subgroup (FVB n)) : Prop :=
+  ∀ n, 2 ≤ n → (delta n).ker = answer n
 
 end
 end QuandleResearch.Issue044

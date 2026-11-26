@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 45: Bardakov et al. Problem 3 (2020) — presentations of intersections of pure and Rabenda kernels
 https://github.com/555tery/quandle-orbit-series/issues/45
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct the three braid groups and projection homomorphisms; normal generators alone are insufficient.
+Remaining obligation: Concrete presentations and both kernel-image subgroups; verify Gauss relations and source projection conventions.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -21,9 +22,12 @@ Section 5 gives normal generators, which need not constitute an ordinary generat
 namespace QuandleResearch.Issue045
 noncomputable section
 
-def verifiesPresentations (D : Nat → Fin 3 → TwoProjections)
-    (answer : Nat → Fin 3 → Presentation) : Prop :=
-  ∀ n k, Presents (answer n k) (D n k).intersection
+open Braids
+def verifiesPresentations (virtual flat gauss : Nat → Presentation) : Prop :=
+  ∀ n, 2 ≤ n →
+    Presents (virtual n) (intersection (virtualRels n)) ∧
+    Presents (flat n) (intersection (flatRels n)) ∧
+    Presents (gauss n) (intersection (gaussRels n))
 
 end
 end QuandleResearch.Issue045

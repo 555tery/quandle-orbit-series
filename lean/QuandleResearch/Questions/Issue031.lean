@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 31: Bardakov et al. Question 5.1 (2021) — presentation of UP_n
 https://github.com/555tery/quandle-orbit-series/issues/31
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct UP_n as the source kernel.
+Remaining obligation: Concrete UP; explicit answer presentation and source audit required.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -18,8 +19,9 @@ For n > 3, find generators and defining relations of the pure universal braid gr
 namespace QuandleResearch.Issue031
 noncomputable section
 
-def verifiesPresentation (UP : Nat → GroupObject) (answer : Nat → Presentation) : Prop :=
-  ∀ n, 3 < n → Presents (answer n) (UP n).carrier
+open Braids
+def verifiesPresentation (answer : Nat → Presentation) : Prop :=
+  ∀ n, 3 < n → Presents (answer n) (UP n)
 
 end
 end QuandleResearch.Issue031

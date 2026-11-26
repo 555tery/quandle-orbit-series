@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 26: Bardakov et al. Question 3.2 (2021 preprint) — classify Bieberbach subgroups of VB_n/VP_n′
 https://github.com/555tery/quandle-orbit-series/issues/26
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct quotient and geometric Bieberbach predicate; explicit classification required.
+Remaining obligation: Concrete quotient and algebraic Bieberbach condition; independent subgroup classification and geometric convention audit remain.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -18,8 +19,16 @@ Determine which Bieberbach subgroups occur in VB_n/VP_n′.
 namespace QuandleResearch.Issue026
 noncomputable section
 
-def verifiesClassification (G : Type) [Group G] (bieberbach answer : Subgroup G → Prop) : Prop :=
-  ∀ H, answer H ↔ bieberbach H
+open Braids
+/-- Algebraic characterization: torsion-free, finitely generated and
+virtually free abelian (including rank zero). The geometric equivalence
+and the intended ambient subgroup classification still need audit. -/
+def Bieberbach (G : Type) [Group G] : Prop :=
+  FinitelyGenerated G ∧ (∀ x : G, 0 < orderOf x → x = 1) ∧
+    ∃ H : Subgroup G, H.Normal ∧ Finite (G ⧸ H) ∧
+      ∃ d : Nat, Nonempty (H ≃* Multiplicative (Fin d → Int))
+def verifiesClassification (answer : ∀ n, Subgroup (VBmodVPderived n) → Prop) : Prop :=
+  ∀ n (H : Subgroup (VBmodVPderived n)), 2 ≤ n → (answer n H ↔ Bieberbach H)
 
 end
 end QuandleResearch.Issue026

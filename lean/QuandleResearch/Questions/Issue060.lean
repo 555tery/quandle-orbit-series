@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 60: Gassner faithfulness problem for P_n, n≥4 — recorded by Bardakov–Nasybullov (2019)
 https://github.com/555tery/quandle-orbit-series/issues/60
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct pure braid groups and Fox derivative Gassner matrices.
+Remaining obligation: Concrete pure braid group and matrix dimension; Fox derivatives and Laurent coefficients still required.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -21,7 +22,10 @@ Do not conflate Gassner with the Burau specialization t_1=…=t_n or with its ex
 namespace QuandleResearch.Issue060
 noncomputable section
 
-def question (gassner : Nat → Representation) : Prop := ∀ n, 3 < n → (gassner n).Faithful
+open Braids
+def question (R : Nat → Type) [∀ n, CommRing (R n)]
+    (gassner : ∀ n, P n →* (Matrix (Fin n) (Fin n) (R n))ˣ) : Prop :=
+  ∀ n, 3 < n → Function.Injective (gassner n)
 
 end
 end QuandleResearch.Issue060

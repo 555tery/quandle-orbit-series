@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 27: Bardakov et al. Question 4.1 (2021) — minimal faithful linear dimension of VP_3
 https://github.com/555tery/quandle-orbit-series/issues/27
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct VP_3 and verify field scope.
+Remaining obligation: Concrete VP_3; field scope and equivalence of kernel-image construction require audit.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -18,8 +19,9 @@ Determine the minimum dimension of a faithful linear representation of the pure 
 namespace QuandleResearch.Issue027
 noncomputable section
 
-def minimalDimension (VP3 : GroupObject) (d : Nat) : Prop :=
-  LinearDim VP3.carrier d ∧ ∀ e, LinearDim VP3.carrier e → d ≤ e
+open Braids
+def minimalDimension (d : Nat) : Prop :=
+  LinearDim (VP 3) d ∧ ∀ e, LinearDim (VP 3) e → d ≤ e
 
 end
 end QuandleResearch.Issue027

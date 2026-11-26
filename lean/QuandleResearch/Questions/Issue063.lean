@@ -1,11 +1,13 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
+import QuandleResearch.Questions.Issue026
 
 /-!
 # Issue 63: Bardakov et al. Question 3.4 (2022 journal version) — which virtual braid quotients are Bieberbach groups?
 https://github.com/555tery/quandle-orbit-series/issues/63
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct quotient and Bieberbach predicate; distinct from #26.
+Remaining obligation: Concrete quotient and algebraic Bieberbach condition; journal wording and geometric equivalence require audit.
 
 Source and target from the issue:
 ## Source and exact scope
@@ -20,9 +22,9 @@ This is distinct from the stronger subgroup-classification question in [arXiv:21
 namespace QuandleResearch.Issue063
 noncomputable section
 
-def verifiesClassification (quotient : Nat → GroupObject)
-    (bieberbach : GroupObject → Prop) (answer : Nat → Prop) : Prop :=
-  ∀ n, 0 < n → (answer n ↔ bieberbach (quotient n))
+open Braids
+def verifiesClassification (answer : Nat → Prop) : Prop :=
+  ∀ n, 0 < n → (answer n ↔ Issue026.Bieberbach (VBmodVPderived n))
 
 end
 end QuandleResearch.Issue063

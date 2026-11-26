@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.BraidGroups
 
 /-!
 # Issue 30: Bardakov et al. Problem 5.2 (2021) — faithful parameters of Psi_{k,l}
 https://github.com/555tery/quandle-orbit-series/issues/30
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct UB_n and Psi_{k,l} by source generator formulas.
+Remaining obligation: Concrete UB and psi generator images; verify source's capital Psi convention and integer scope.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -18,8 +19,11 @@ Determine whether there exist integers k,l for which Ψ_{k,l} is faithful for al
 namespace QuandleResearch.Issue030
 noncomputable section
 
-def question (psi : Nat → Int → Int → Representation) : Prop :=
-  ∃ k l, ∀ n, 2 < n → (psi n k l).Faithful
+open Braids
+def question : Prop :=
+  ∃ k l : Int, ∀ n : Nat, 2 < n →
+    ∃ f : UB n →* (FreeGroup (Fin n) ≃* FreeGroup (Fin n)),
+      IsExtendedPsi k l f ∧ Function.Injective f
 
 end
 end QuandleResearch.Issue030
