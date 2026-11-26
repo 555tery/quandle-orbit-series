@@ -112,43 +112,63 @@ theorem neg_eq_self (hc : ∀ x : R, x+x=0) (x : R) : -x=x := by
     -x = -x+(x+x) := by rw [hc x,add_zero]
     _ = x := by abel
 
+theorem T_inv_self (hc : ∀ x : R, x+x=0) (i j : Fin 3) (h : i≠j) (r : R) :
+    (T i j h r)⁻¹ = T i j h r := by
+  apply inv_eq_of_mul_eq_one_right
+  rw [T_mul,hc,T_zero]
+
+set_option maxHeartbeats 2000000 in
 /-- All five required elementary commutators, with signs absorbed by
 characteristic two. No normal forms or upper filtration bounds. -/
 theorem comm_23_12 (hc : ∀ x : R, x+x=0) (x : R) :
     T23 x*T12 1*(T23 x)⁻¹*(T12 1)⁻¹=T13 x := by
+  simp only [T_inv_self hc]
   apply Units.ext
+  simp only [Units.val_mul,val_T]
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.transvection,Matrix.mul_apply,Fin.sum_univ_succ,
       Matrix.one_apply,Matrix.single_apply,neg_eq_self hc,hc]
 
+set_option maxHeartbeats 2000000 in
 theorem comm_31_12 (hc : ∀ x : R, x+x=0) (x : R) :
     T31 x*T12 1*(T31 x)⁻¹*(T12 1)⁻¹=T32 x := by
+  simp only [T_inv_self hc]
   apply Units.ext
+  simp only [Units.val_mul,val_T]
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.transvection,Matrix.mul_apply,Fin.sum_univ_succ,
       Matrix.one_apply,Matrix.single_apply,neg_eq_self hc,hc]
 
+set_option maxHeartbeats 2000000 in
 theorem comm_21_13 (hc : ∀ x : R, x+x=0) (x y : R) :
     T21 x*T13 y*(T21 x)⁻¹*(T13 y)⁻¹=T23 (x*y) := by
+  simp only [T_inv_self hc]
   apply Units.ext
+  simp only [Units.val_mul,val_T]
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.transvection,Matrix.mul_apply,Fin.sum_univ_succ,
       Matrix.one_apply,Matrix.single_apply,neg_eq_self hc,hc]
 
+set_option maxHeartbeats 2000000 in
 theorem comm_21_32 (hc : ∀ x : R, x+x=0) (x y : R) :
     T21 x*T32 y*(T21 x)⁻¹*(T32 y)⁻¹=T31 (x*y) := by
+  simp only [T_inv_self hc]
   apply Units.ext
+  simp only [Units.val_mul,val_T]
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.transvection,Matrix.mul_apply,Fin.sum_univ_succ,
       Matrix.one_apply,Matrix.single_apply,neg_eq_self hc,hc,mul_comm]
 
+set_option maxHeartbeats 2000000 in
 theorem comm_31_23 (hc : ∀ x : R, x+x=0) (x y : R) :
     T31 x*T23 y*(T31 x)⁻¹*(T23 y)⁻¹=T21 (x*y) := by
+  simp only [T_inv_self hc]
   apply Units.ext
+  simp only [Units.val_mul,val_T]
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.transvection,Matrix.mul_apply,Fin.sum_univ_succ,
