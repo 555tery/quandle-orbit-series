@@ -6,7 +6,7 @@ import QuandleResearch.Theory.BraidGroups
 https://github.com/555tery/quandle-orbit-series/issues/30
 
 Formalization status: PARTIAL.
-Remaining obligation: Concrete UB and psi generator images; verify source's capital Psi convention and integer scope.
+Remaining obligation: Capital Psi on F_(n+1) encoded directly; literal F_(n-1) in Problem 5.2 conflicts with preceding definition. Source right action converted using inverse automorphisms.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -20,10 +20,12 @@ namespace QuandleResearch.Issue030
 noncomputable section
 
 open Braids
+/-- The displayed definition immediately preceding Problem 5.2 uses F_(n+1).
+The occurrence of F_(n-1) in the question is recorded as a textual discrepancy. -/
 def question : Prop :=
   ∃ k l : Int, ∀ n : Nat, 2 < n →
-    ∃ f : UB n →* (FreeGroup (Fin n) ≃* FreeGroup (Fin n)),
-      IsExtendedPsi k l f ∧ Function.Injective f
+    ∃ f : UB n →* (ExtendedFree n ≃* ExtendedFree n),
+      IsCapitalPsi k l f ∧ Function.Injective f
 
 end
 end QuandleResearch.Issue030

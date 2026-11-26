@@ -6,7 +6,7 @@ import QuandleResearch.Theory.BraidGroups
 https://github.com/555tery/quandle-orbit-series/issues/60
 
 Formalization status: PARTIAL.
-Remaining obligation: Concrete pure braid group and matrix dimension; Fox derivatives and Laurent coefficients still required.
+Remaining obligation: Laurent ring, Artin action and abelianized Fox derivatives characterized by generator values and product rule; matrix convention and existence/typechecking still require audit.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -23,9 +23,35 @@ namespace QuandleResearch.Issue060
 noncomputable section
 
 open Braids
-def question (R : Nat → Type) [∀ n, CommRing (R n)]
-    (gassner : ∀ n, P n →* (Matrix (Fin n) (Fin n) (R n))ˣ) : Prop :=
-  ∀ n, 3 < n → Function.Injective (gassner n)
+/-- Laurent ring Z[t_1^±1,...,t_n^±1] as a group algebra. -/
+abbrev Laurent (n : Nat) := AddMonoidAlgebra Int (Fin n → Int)
+def variableMonomial {n : Nat} (i : Fin n) : Laurent n :=
+  Finsupp.single (fun j => if j = i then 1 else 0) 1
+/-- Abelianization evaluated as Laurent monomials, specified on each
+free generator. This condition uniquely determines the group map. -/
+def IsAbel {n : Nat} (a : FreeGroup (Fin n) →* (Laurent n)ˣ) : Prop :=
+  ∀ i, (a (FreeGroup.of i)).val = variableMonomial i
+/-- Abelianized Fox derivative characterized by the product rule
+and values on free generators, avoiding an arbitrary matrix representation. -/
+def IsFox {n : Nat} (a : FreeGroup (Fin n) →* (Laurent n)ˣ)
+    (D : Fin n → FreeGroup (Fin n) → Laurent n) : Prop :=
+  (∀ i j, D i (FreeGroup.of j) = if i = j then 1 else 0) ∧
+  (∀ i u v, D i (u*v) = D i u + (a u).val * D i v)
+def IsArtin {n : Nat} (A : B n →* (FreeGroup (Fin n) ≃* FreeGroup (Fin n))) : Prop :=
+  ∀ (i : Index n) (j : Fin n),
+    (A (PresentedGroup.of (rels := classicalRels n) i)).symm (FreeGroup.of j) = artinImage i j
+def IsGassner {n : Nat}
+    (A : B n →* (FreeGroup (Fin n) ≃* FreeGroup (Fin n)))
+    (D : Fin n → FreeGroup (Fin n) → Laurent n)
+    (G : P n →* (Matrix (Fin n) (Fin n) (Laurent n))ˣ) : Prop :=
+  ∀ g i j, (G g).val i j = D j ((A g.val).symm (FreeGroup.of i))
+def question : Prop :=
+  ∀ n, 3 < n →
+    ∃ (a : FreeGroup (Fin n) →* (Laurent n)ˣ)
+      (D : Fin n → FreeGroup (Fin n) → Laurent n)
+      (A : B n →* (FreeGroup (Fin n) ≃* FreeGroup (Fin n)))
+      (G : P n →* (Matrix (Fin n) (Fin n) (Laurent n))ˣ),
+      IsAbel a ∧ IsFox a D ∧ IsArtin A ∧ IsGassner A D G ∧ Function.Injective G
 
 end
 end QuandleResearch.Issue060

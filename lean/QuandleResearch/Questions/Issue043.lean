@@ -34,8 +34,8 @@ def virtualImage {n : Nat} (i : Index n) (a : Bool × Fin n) : FreeGroup (Bool �
 def IsTheta {n : Nat}
     (f : FVB n →* (FreeGroup (Bool × Fin n) ≃* FreeGroup (Bool × Fin n))) : Prop :=
   ∀ i : Index n, ∀ a : Bool × Fin n,
-    f (PresentedGroup.of (rels := flatRels n) (false,i)) (FreeGroup.of a) = thetaImage i a ∧
-    f (PresentedGroup.of (rels := flatRels n) (true,i)) (FreeGroup.of a) = virtualImage i a
+    (f (PresentedGroup.of (rels := flatRels n) (false,i))).symm (FreeGroup.of a) = thetaImage i a ∧
+    (f (PresentedGroup.of (rels := flatRels n) (true,i))).symm (FreeGroup.of a) = virtualImage i a
 def verifiesKernel (answer : ∀ n, Subgroup (FVB n)) : Prop :=
   ∀ n, 2 ≤ n → ∃ f : FVB n →* (FreeGroup (Bool × Fin n) ≃* FreeGroup (Bool × Fin n)),
     IsTheta f ∧ f.ker = answer n

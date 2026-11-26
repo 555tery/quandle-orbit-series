@@ -107,8 +107,38 @@ def swapImage {n : Nat} (i : Index n) (j : Fin n) : FreeGroup (Fin n) :=
 def IsExtendedPsi {n : Nat} (k l : Int)
     (f : UB n →* (FreeGroup (Fin n) ≃* FreeGroup (Fin n))) : Prop :=
   ∀ i : Index n, ∀ j : Fin n,
-    f (PresentedGroup.of (rels := universalRels n) (false,i)) (FreeGroup.of j) = artinImage i j ∧
-    f (PresentedGroup.of (rels := universalRels n) (true,i)) (FreeGroup.of j) = psiImage k l i j
+    (f (PresentedGroup.of (rels := universalRels n) (false,i))).symm (FreeGroup.of j) = artinImage i j ∧
+    (f (PresentedGroup.of (rels := universalRels n) (true,i))).symm (FreeGroup.of j) = psiImage k l i j
+
+/-- The capital Psi of §5.1 acts on the n strand generators plus y.
+The article's right-action convention is represented by inverse images
+under Mathlib's ordinary composition of automorphisms. -/
+abbrev ExtendedFree (n : Nat) := FreeGroup (Option (Fin n))
+def strand {n : Nat} (j : Fin n) : ExtendedFree n := FreeGroup.of (some j)
+def extraGen (n : Nat) : ExtendedFree n := FreeGroup.of none
+def capitalArtin {n : Nat} (i : Index n) (j : Option (Fin n)) : ExtendedFree n :=
+  match j with
+  | none => extraGen n
+  | some j =>
+    let x := strand (left i)
+    let y := strand (right i)
+    if j = left i then x*y*x⁻¹ else if j = right i then x else strand j
+def capitalPsiImage {n : Nat} (k l : Int) (i : Index n) (j : Option (Fin n)) : ExtendedFree n :=
+  match j with
+  | none => extraGen n
+  | some j =>
+    let x := strand (left i)
+    let z := strand (right i)
+    let y := extraGen n
+    if j = left i then y⁻¹*x^(-l)*z^(-k)*x*z^k*x^l*y
+    else if j = right i then y⁻¹*x^(-l)*z*x^l*y else strand j
+def IsCapitalPsi {n : Nat} (k l : Int)
+    (f : UB n →* (ExtendedFree n ≃* ExtendedFree n)) : Prop :=
+  ∀ (i : Index n) (j : Option (Fin n)),
+    (f (PresentedGroup.of (rels := universalRels n) (false,i))).symm (FreeGroup.of j) =
+      capitalArtin i j ∧
+    (f (PresentedGroup.of (rels := universalRels n) (true,i))).symm (FreeGroup.of j) =
+      capitalPsiImage k l i j
 
 end
 end QuandleResearch.Braids

@@ -37,6 +37,10 @@ The earlier commit fae06e7 compiled 67 of 69 issue modules and all then-existing
 
 `Basic/StrongBiquandle.lean` directly encodes the strong switch axioms (braid equation, nondegeneracy, both fixed-pair uniqueness conditions) in the convention of the repository note. Issue064 now uses this category, separately from BNS biquandles.
 
+## Source-level representation refinements
+
+Issues 028, 030 and 060 now specify the Laurent coefficient rings, generator matrices or Fox product rule directly. Issue030 distinguishes lowercase extended psi from capital Psi (the latter acts on the n strand generators and an additional y). The discrepancy F_(n-1) in the printed question versus F_(n+1) in the defining display is retained in the module comment. Source: https://arxiv.org/html/2107.03875v1 §§3, 5.1. Right-action automorphism formulas are encoded via inverse images under standard composition.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
@@ -70,9 +74,9 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#25](https://github.com/555tery/quandle-orbit-series/issues/25) | [Issue025](QuandleResearch/Questions/Issue025.lean) | PARTIAL | Concrete quotient and distinguished symmetric subgroup now defined; independent order classification and presentation-convention audit remain. |
 | [#26](https://github.com/555tery/quandle-orbit-series/issues/26) | [Issue026](QuandleResearch/Questions/Issue026.lean) | PARTIAL | Concrete quotient and algebraic Bieberbach condition; independent subgroup classification and geometric convention audit remain. |
 | [#27](https://github.com/555tery/quandle-orbit-series/issues/27) | [Issue027](QuandleResearch/Questions/Issue027.lean) | PARTIAL | Concrete VP_3; field scope and equivalence of kernel-image construction require audit. |
-| [#28](https://github.com/555tery/quandle-orbit-series/issues/28) | [Issue028](QuandleResearch/Questions/Issue028.lean) | PARTIAL | Concrete VB and H_n; Psi generator matrices and Laurent ring still required. |
+| [#28](https://github.com/555tery/quandle-orbit-series/issues/28) | [Issue028](QuandleResearch/Questions/Issue028.lean) | PARTIAL | Source equations (30)–(31) encoded on ordered pair basis over explicit Laurent ring. Independent audit of matrix convention and construction of the representation remain. |
 | [#29](https://github.com/555tery/quandle-orbit-series/issues/29) | [Issue029](QuandleResearch/Questions/Issue029.lean) | PARTIAL | Concrete UB and source psi generator images; verify extension on sigma and right-action convention against source. |
-| [#30](https://github.com/555tery/quandle-orbit-series/issues/30) | [Issue030](QuandleResearch/Questions/Issue030.lean) | PARTIAL | Concrete UB and psi generator images; verify source's capital Psi convention and integer scope. |
+| [#30](https://github.com/555tery/quandle-orbit-series/issues/30) | [Issue030](QuandleResearch/Questions/Issue030.lean) | PARTIAL | Capital Psi on F_(n+1) encoded directly; literal F_(n-1) in Problem 5.2 conflicts with preceding definition. Source right action converted using inverse automorphisms. |
 | [#31](https://github.com/555tery/quandle-orbit-series/issues/31) | [Issue031](QuandleResearch/Questions/Issue031.lean) | PARTIAL | Concrete UP; explicit answer presentation and source audit required. |
 | [#32](https://github.com/555tery/quandle-orbit-series/issues/32) | [Issue032](QuandleResearch/Questions/Issue032.lean) | STATEMENT | Source audit and typecheck |
 | [#33](https://github.com/555tery/quandle-orbit-series/issues/33) | [Issue033](QuandleResearch/Questions/Issue033.lean) | STATEMENT | Source audit and typecheck |
@@ -102,7 +106,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#57](https://github.com/555tery/quandle-orbit-series/issues/57) | [Issue057](QuandleResearch/Questions/Issue057.lean) | PARTIAL | Instantiate with classical knots and actual fundamental invariants. |
 | [#58](https://github.com/555tery/quandle-orbit-series/issues/58) | [Issue058](QuandleResearch/Questions/Issue058.lean) | PARTIAL | Instantiate with surface knots and actual fundamental invariants. |
 | [#59](https://github.com/555tery/quandle-orbit-series/issues/59) | [Issue059](QuandleResearch/Questions/Issue059.lean) | PARTIAL | Concrete Laurent group algebra and Burau matrix images; verify matrix convention and typecheck. |
-| [#60](https://github.com/555tery/quandle-orbit-series/issues/60) | [Issue060](QuandleResearch/Questions/Issue060.lean) | PARTIAL | Concrete pure braid group and matrix dimension; Fox derivatives and Laurent coefficients still required. |
+| [#60](https://github.com/555tery/quandle-orbit-series/issues/60) | [Issue060](QuandleResearch/Questions/Issue060.lean) | PARTIAL | Laurent ring, Artin action and abelianized Fox derivatives characterized by generator values and product rule; matrix convention and existence/typechecking still require audit. |
 | [#61](https://github.com/555tery/quandle-orbit-series/issues/61) | [Issue061](QuandleResearch/Questions/Issue061.lean) | PARTIAL | Concrete VP_n; field scope and source-convention audit remain. |
 | [#62](https://github.com/555tery/quandle-orbit-series/issues/62) | [Issue062](QuandleResearch/Questions/Issue062.lean) | PARTIAL | Concrete rational function matrix model; group defined by closure, equality with the source matrix set still requires a construction audit. |
 | [#63](https://github.com/555tery/quandle-orbit-series/issues/63) | [Issue063](QuandleResearch/Questions/Issue063.lean) | PARTIAL | Concrete quotient and algebraic Bieberbach condition; journal wording and geometric equivalence require audit. |
