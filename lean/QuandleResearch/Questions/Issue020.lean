@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Interfaces
 https://github.com/555tery/quandle-orbit-series/issues/20
 
 Formalization status: PARTIAL.
-Remaining obligation: Construct dihedral quandles and quasi-inner group; verify source conventions.
+Remaining obligation: The dihedral operation, inner group and orbit-preserving condition are explicit; verify the precise QInn convention against the original article.
 
 Source and target from the issue:
 ## Source / explicit published research question
@@ -18,9 +18,17 @@ Determine whether Inn(R_{2n}) = QInn(R_{2n}) for n > 2.
 namespace QuandleResearch.Issue020
 noncomputable section
 
-def question (dihedral : Nat → Quandle)
-    (quasiInner : ∀ n, Subgroup (Equiv.Perm (dihedral n).carrier)) : Prop :=
-  ∀ n, 2 < n → (dihedral (2*n)).Inn = quasiInner (2*n)
+/-- Orbit-preserving automorphisms of the even dihedral quandle. The
+identification of this definition with QInn in the source is to be audited. -/
+def dihedralOp {m : Nat} (x y : ZMod m) : ZMod m := 2*y-x
+def isAut {m : Nat} (f : Equiv.Perm (ZMod m)) : Prop :=
+  ∀ x y, f (dihedralOp x y) = dihedralOp (f x) (f y)
+def isInner {m : Nat} (f : Equiv.Perm (ZMod m)) : Prop :=
+  f ∈ Subgroup.closure {e : Equiv.Perm (ZMod m) | ∃ y, ∀ x, e x = dihedralOp x y}
+def isQuasiInner {m : Nat} (f : Equiv.Perm (ZMod m)) : Prop :=
+  isAut f ∧ ∀ x, ∃ e : Equiv.Perm (ZMod m), isInner e ∧ e x = f x
+def question : Prop :=
+  ∀ n, 2 < n → ∀ f : Equiv.Perm (ZMod (2*n)), isInner f ↔ isQuasiInner f
 
 end
 end QuandleResearch.Issue020

@@ -4,8 +4,8 @@ import QuandleResearch.Theory.Interfaces
 # Issue 42: Gonçalves–Nasybullov Problem 3 (2017) — abelianness of finite abelian-by-C_p groups
 https://github.com/555tery/quandle-orbit-series/issues/42
 
-Formalization status: PARTIAL.
-Remaining obligation: Verify source hypothesis (automorphisms versus inner automorphisms) and finite-group scope.
+Formalization status: STATEMENT.
+Remaining obligation: Exact issue hypotheses (odd prime, finite abelian kernel and all automorphisms) are encoded; independent source audit and typecheck remain pending.
 
 Source and target from the issue:
 ## Source / explicitly formulated question
@@ -22,8 +22,9 @@ namespace QuandleResearch.Issue042
 noncomputable section
 
 def question : Prop :=
-  ∀ (G : Type) [Group G] [Finite G] (N : Subgroup G) [N.Normal] (p : Nat),
-    Nat.Prime p → Abelian N → Nat.card (G ⧸ N) = p → AllInner G → Abelian G
+  ∀ (G : Type) [Group G] (A : Subgroup G) [A.Normal] (p : Nat),
+    Nat.Prime p → p ≠ 2 → Finite A → Abelian A →
+    Nat.card (G ⧸ A) = p → AllAut G → Abelian G
 
 end
 end QuandleResearch.Issue042
