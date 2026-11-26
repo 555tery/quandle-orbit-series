@@ -24,4 +24,4 @@ jobs:
         run: lake build QuandleResearch.Questions.Issue013 QuandleResearch.Checks.Q57StatementAudit QuandleResearch.Checks.Q57SemanticRegression
 
       - name: Positive proof infrastructure (Mathlib)
-        run: lake build QuandleResearch.Proofs.Q57.Principal QuandleResearch.Proofs.Q57.Absorption QuandleResearch.Proofs.Q57.OrbitTools
+        run: lake build QuandleResearch.Proofs.Q57.Principal QuandleResearch.Proofs.Q57.Absorption QuandleResearch.Proofs.Q57.OrbitTools QuandleResearch.Proofs.Q57.Connected
