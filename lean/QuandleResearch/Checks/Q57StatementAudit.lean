@@ -230,4 +230,134 @@ theorem orbitIn_eq_intrinsic_image {s : Set X} (hs : IsSubrack s) (x : s) :
 
 end OrbitSemantics
 
+
+section CongruenceSemantics
+
+variable {X : Type u} [_root_.Quandle X]
+
+/-- The source's §2.2 equivalence relation respecting both operations. -/
+structure QuandleCongruence (X : Type u) [_root_.Quandle X] extends Setoid X where
+  act_compat : ∀ {a b x y : X}, r a b → r x y →
+    r (Shelf.act a x) (Shelf.act b y)
+  inv_compat : ∀ {a b x y : X}, r a b → r x y →
+    r (Rack.invAct a x) (Rack.invAct b y)
+
+namespace QuandleCongruence
+
+variable (c : QuandleCongruence X)
+
+/-- The implicit inverse compatibility condition in BCNW §2.2. -/
+theorem source_inverse_condition {a b x y z w : X}
+    (hab : c.r a b) (hzw : c.r z w)
+    (hx : Shelf.act a x = z) (hy : Shelf.act b y = w) :
+    c.r x y := by
+  have h := c.inv_compat hab hzw
+  rw [← hx, ← hy] at h
+  simpa only [Rack.invAct_act_eq] using h
+
+abbrev Carrier := Quotient c.toSetoid
+
+def mk (x : X) : c.Carrier := Quotient.mk c.toSetoid x
+
+def quotientAct (a b : c.Carrier) : c.Carrier :=
+  Quotient.liftOn₂ a b (fun x y => c.mk (Shelf.act x y))
+    (fun _ _ _ _ hx hy => Quotient.sound (c.act_compat hx hy))
+
+def quotientInv (a b : c.Carrier) : c.Carrier :=
+  Quotient.liftOn₂ a b (fun x y => c.mk (Rack.invAct x y))
+    (fun _ _ _ _ hx hy => Quotient.sound (c.inv_compat hx hy))
+
+/-- Genuine quotient by the given setoid, not an assumed homomorphic image. -/
+instance quotientQuandle : _root_.Quandle c.Carrier where
+  act := c.quotientAct
+  invAct := c.quotientInv
+  self_distrib := by
+    intro a b d
+    refine Quotient.inductionOn₃ a b d ?_
+    intro x y z
+    change c.mk (Shelf.act x (Shelf.act y z)) =
+      c.mk (Shelf.act (Shelf.act x y) (Shelf.act x z))
+    rw [Shelf.self_distrib]
+  left_inv := by
+    intro a b
+    refine Quotient.inductionOn₂ a b ?_
+    intro x y
+    change c.mk (Rack.invAct x (Shelf.act x y)) = c.mk y
+    rw [Rack.invAct_act_eq]
+  right_inv := by
+    intro a b
+    refine Quotient.inductionOn₂ a b ?_
+    intro x y
+    change c.mk (Shelf.act x (Rack.invAct x y)) = c.mk y
+    rw [Rack.act_invAct_eq]
+  fix := by
+    intro a
+    refine Quotient.inductionOn a ?_
+    intro x
+    change c.mk (Shelf.act x x) = c.mk x
+    rw [_root_.Quandle.fix]
+
+def projection : ShelfHom X c.Carrier where
+  toFun := c.mk
+  map_act' := rfl
+
+theorem projection_surjective : Function.Surjective c.projection := by
+  intro q
+  refine Quotient.inductionOn q ?_
+  intro x
+  exact ⟨x, rfl⟩
+
+def classOf (x : X) : Set X := {z | c.r z x}
+
+theorem fibre_projection (x : X) :
+    fibre c.projection (c.projection x) = c.classOf x := by
+  ext z
+  change c.mk z = c.mk x ↔ c.r z x
+  exact ⟨Quotient.exact, Quotient.sound⟩
+
+/-- The kernel is a congruence, including inverse-operation compatibility. -/
+def kernel {Y : Type v} [_root_.Quandle Y] (f : ShelfHom X Y) :
+    QuandleCongruence X where
+  r x y := f x = f y
+  iseqv := ⟨fun _ => rfl, fun h => h.symm, fun h k => h.trans k⟩
+  act_compat := by
+    intro a b x y hab hxy
+    change f (Shelf.act a x) = f (Shelf.act b y)
+    rw [f.map_act, f.map_act, hab, hxy]
+  inv_compat := by
+    intro a b x y hab hxy
+    change f (Rack.invAct a x) = f (Rack.invAct b y)
+    rw [map_invAct, map_invAct, hab, hxy]
+
+/-- The homomorphism induced from the actual kernel quotient. -/
+def factor {Y : Type v} [_root_.Quandle Y] (f : ShelfHom X Y) :
+    ShelfHom (kernel f).Carrier Y where
+  toFun := Quotient.lift f (fun _ _ h => h)
+  map_act' := by
+    intro a b
+    refine Quotient.inductionOn₂ a b ?_
+    intro x y
+    exact f.map_act
+
+theorem factor_injective {Y : Type v} [_root_.Quandle Y] (f : ShelfHom X Y) :
+    Function.Injective (factor f) := by
+  intro a b
+  refine Quotient.inductionOn₂ a b ?_
+  intro x y h
+  exact Quotient.sound h
+
+theorem factor_surjective {Y : Type v} [_root_.Quandle Y]
+    (f : ShelfHom X Y) (hf : Function.Surjective f) :
+    Function.Surjective (factor f) := by
+  intro y
+  obtain ⟨x, hx⟩ := hf y
+  exact ⟨(kernel f).mk x, hx⟩
+
+theorem kernel_class_fibre {Y : Type v} [_root_.Quandle Y]
+    (f : ShelfHom X Y) (x : X) :
+    (kernel f).classOf x = fibre f (f x) := rfl
+
+end QuandleCongruence
+end CongruenceSemantics
+
 end QuandleResearch.Q57.StatementAudit
