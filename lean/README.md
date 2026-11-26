@@ -74,6 +74,10 @@ Issue044 specifies the actual integral representation by generator matrices from
 
 CI: stage 1 (66ab229) compiled all 69 modules. Stage 2 (85f20bd) failed because OrbitSeries omitted the explicit carrier type on two orbit variables; fixed here. New CI is required.
 
+## Additional source-specific refinements
+
+Issue024 now has explicit switch axioms and a group-valued specialization of the algebraic-system invariant, with native PresentedGroup and FreeGroup. The exact equivalence convention and other algebraic systems remain outstanding. Issue050 now uses Mathlib GenContFract for S(p,q) and fixes chi using the source's epsilon/genus cases. Issue066 records candidate PartialEquiv-based semantics with both preserving and reflecting morphisms; the journal Problem 28 does not define the intended partial-biquandle category. These do not count as completed source formalizations.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
@@ -103,7 +107,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#21](https://github.com/555tery/quandle-orbit-series/issues/21) | [Issue021](QuandleResearch/Questions/Issue021.lean) | PARTIAL | Native functors and adjunction statements; source morphism convention and typecheck remain to be audited. |
 | [#22](https://github.com/555tery/quandle-orbit-series/issues/22) | [Issue022](QuandleResearch/Questions/Issue022.lean) | PARTIAL | Native functors and adjunction statements; source morphism convention and typecheck remain to be audited. |
 | [#23](https://github.com/555tery/quandle-orbit-series/issues/23) | [Issue023](QuandleResearch/Questions/Issue023.lean) | PARTIAL | Design constraints only; need a meaningful action, embedding and product structure. |
-| [#24](https://github.com/555tery/quandle-orbit-series/issues/24) | [Issue024](QuandleResearch/Questions/Issue024.lean) | PARTIAL | Virtual-switch axioms, canonical twist and invariant construction. |
+| [#24](https://github.com/555tery/quandle-orbit-series/issues/24) | [Issue024](QuandleResearch/Questions/Issue024.lean) | PARTIAL | Switch laws, twist, group words and group-valued invariant explicit. General algebraic systems and geometric equivalence remain. |
 | [#25](https://github.com/555tery/quandle-orbit-series/issues/25) | [Issue025](QuandleResearch/Questions/Issue025.lean) | PARTIAL | Concrete quotient and distinguished symmetric subgroup now defined; independent order classification and presentation-convention audit remain. |
 | [#26](https://github.com/555tery/quandle-orbit-series/issues/26) | [Issue026](QuandleResearch/Questions/Issue026.lean) | PARTIAL | Concrete quotient and algebraic Bieberbach condition; independent subgroup classification and geometric convention audit remain. |
 | [#27](https://github.com/555tery/quandle-orbit-series/issues/27) | [Issue027](QuandleResearch/Questions/Issue027.lean) | PARTIAL | Concrete VP_3; field scope and equivalence of kernel-image construction require audit. |
@@ -129,7 +133,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#47](https://github.com/555tery/quandle-orbit-series/issues/47) | [Issue047](QuandleResearch/Questions/Issue047.lean) | PARTIAL | Concrete GL, actual field hypotheses and entrywise automorphisms; verify dimension restrictions against source. |
 | [#48](https://github.com/555tery/quandle-orbit-series/issues/48) | [Issue048](QuandleResearch/Questions/Issue048.lean) | STATEMENT | Source audit and typecheck |
 | [#49](https://github.com/555tery/quandle-orbit-series/issues/49) | [Issue049](QuandleResearch/Questions/Issue049.lean) | PARTIAL | Independent structural classification required. |
-| [#50](https://github.com/555tery/quandle-orbit-series/issues/50) | [Issue050](QuandleResearch/Questions/Issue050.lean) | PARTIAL | Construct Seifert spaces, admissibility, complexity, Euler characteristic and S function. |
+| [#50](https://github.com/555tery/quandle-orbit-series/issues/50) | [Issue050](QuandleResearch/Questions/Issue050.lean) | PARTIAL | Mathlib GenContFract and capped-base Euler characteristic explicit; geometric Seifert realization, irreducibility and Matveev complexity remain. |
 | [#51](https://github.com/555tery/quandle-orbit-series/issues/51) | [Issue051](QuandleResearch/Questions/Issue051.lean) | STATEMENT | Source audit and typecheck |
 | [#52](https://github.com/555tery/quandle-orbit-series/issues/52) | [Issue052](QuandleResearch/Questions/Issue052.lean) | STATEMENT | Source audit and typecheck |
 | [#53](https://github.com/555tery/quandle-orbit-series/issues/53) | [Issue053](QuandleResearch/Questions/Issue053.lean) | STATEMENT | Source audit and typecheck |
@@ -145,7 +149,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#63](https://github.com/555tery/quandle-orbit-series/issues/63) | [Issue063](QuandleResearch/Questions/Issue063.lean) | PARTIAL | Concrete quotient and algebraic Bieberbach condition; journal wording and geometric equivalence require audit. |
 | [#64](https://github.com/555tery/quandle-orbit-series/issues/64) | [Issue064](QuandleResearch/Questions/Issue064.lean) | PARTIAL | Strong-switch axioms and universal property explicit; descriptive model is the requested answer, not a proof obligation at this stage. |
 | [#65](https://github.com/555tery/quandle-orbit-series/issues/65) | [Issue065](QuandleResearch/Questions/Issue065.lean) | PARTIAL | Fundamental strong biquandle specified by actual crossing relations; geometric model and naturality are requested, not asserted. |
-| [#66](https://github.com/555tery/quandle-orbit-series/issues/66) | [Issue066](QuandleResearch/Questions/Issue066.lean) | PARTIAL | Establish author's partial-biquandle category, admissibility, morphisms and generator scope. |
+| [#66](https://github.com/555tery/quandle-orbit-series/issues/66) | [Issue066](QuandleResearch/Questions/Issue066.lean) | PARTIAL | PartialEquiv-based candidate with preserving/reflecting morphisms. Exact author's admissibility and category remain unspecified. |
 | [#67](https://github.com/555tery/quandle-orbit-series/issues/67) | [Issue067](QuandleResearch/Questions/Issue067.lean) | STATEMENT | Source audit and typecheck |
 | [#68](https://github.com/555tery/quandle-orbit-series/issues/68) | [Issue068](QuandleResearch/Questions/Issue068.lean) | PARTIAL | Concrete enveloping group and injectivity, all eight statements; verify Darné indexing. |
 | [#69](https://github.com/555tery/quandle-orbit-series/issues/69) | [Issue069](QuandleResearch/Questions/Issue069.lean) | PARTIAL | Universal reduced quotient and fundamental quandle presentation specified. Welded link-homotopy and reversed mirror of non-split components in S4 still need geometric encoding. |

@@ -5,7 +5,7 @@ import QuandleResearch.Theory.Interfaces
 https://github.com/555tery/quandle-orbit-series/issues/66
 
 Formalization status: PARTIAL.
-Remaining obligation: Establish author's partial-biquandle category, admissibility, morphisms and generator scope.
+Remaining obligation: The journal Problem 28 does not specify the partial-biquandle category. Native PartialEquiv-based candidate semantics are recorded separately; they are not asserted to be the authors' intended category.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -22,6 +22,41 @@ noncomputable section
 
 def question (I : PartialCategoryInterface) : Prop :=
   ∀ X : Type, ∃ (A : PartialOperations) (gen : X → A.carrier), I.FreeOn A gen
+
+/-- Candidate interpretation only: partial invertible switches with a
+specified source domain. Mathlib's PartialEquiv supplies all inverse laws.
+The 2014 Problem 28 does not define this category. -/
+structure PartialSwitch where
+  carrier : Type
+  swap : PartialEquiv (carrier × carrier) (carrier × carrier)
+
+namespace PartialSwitch
+def WeakHom (A B : PartialSwitch) (f : A.carrier → B.carrier) : Prop :=
+  (∀ p ∈ A.swap.source,
+    (f p.1,f p.2) ∈ B.swap.source ∧
+      B.swap (f p.1,f p.2) = (f (A.swap p).1,f (A.swap p).2)) ∧
+  (∀ p ∈ A.swap.target,
+    (f p.1,f p.2) ∈ B.swap.target ∧
+      B.swap.symm (f p.1,f p.2) = (f (A.swap.symm p).1,f (A.swap.symm p).2))
+
+def ReflectingHom (A B : PartialSwitch) (f : A.carrier → B.carrier) : Prop :=
+  A.WeakHom B f ∧
+    (∀ p : A.carrier × A.carrier, (f p.1,f p.2) ∈ B.swap.source → p ∈ A.swap.source) ∧
+    (∀ p : A.carrier × A.carrier, (f p.1,f p.2) ∈ B.swap.target → p ∈ A.swap.target)
+
+/-- These universal properties are not equivalent by definition.
+Partial Yang–Baxter and type-I axioms must be fixed before either
+candidate is promoted to an original-problem formalization. -/
+def FreeOnWeak (admissible : PartialSwitch → Prop) (A : PartialSwitch)
+    {X : Type} (gen : X → A.carrier) : Prop :=
+  admissible A ∧ ∀ (B : PartialSwitch), admissible B → ∀ f : X → B.carrier,
+    ∃! h : A.carrier → B.carrier, A.WeakHom B h ∧ ∀ x, h (gen x) = f x
+
+def FreeOnReflecting (admissible : PartialSwitch → Prop) (A : PartialSwitch)
+    {X : Type} (gen : X → A.carrier) : Prop :=
+  admissible A ∧ ∀ (B : PartialSwitch), admissible B → ∀ f : X → B.carrier,
+    ∃! h : A.carrier → B.carrier, A.ReflectingHom B h ∧ ∀ x, h (gen x) = f x
+end PartialSwitch
 
 end
 end QuandleResearch.Issue066
