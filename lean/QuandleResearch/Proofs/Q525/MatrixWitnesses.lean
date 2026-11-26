@@ -43,7 +43,10 @@ theorem reduce_T (aug : R →+* ZMod 2) (i j : Fin 3) (h : i≠j) (x : R) :
     reduce aug (T i j h x) = T i j h (aug x) := by
   apply Units.ext
   change (Matrix.transvection i j x).map aug = Matrix.transvection i j (aug x)
-  simp [Matrix.transvection, Matrix.map_single]
+  change aug.mapMatrix (1 + Matrix.single i j x) = 1 + Matrix.single i j (aug x)
+  rw [map_add, map_one]
+  change 1 + (Matrix.single i j x).map aug = 1 + Matrix.single i j (aug x)
+  rw [Matrix.map_single]
 
 def mark (aug : R →+* ZMod 2) : ambient aug :=
   ⟨T12 1, by
@@ -95,7 +98,7 @@ theorem fourth_mark (aug : R →+* ZMod 2) (hc : ∀ x : R, x+x=0)
   have hKH : K*H=1 := congrArg (fun x : ambient aug => x.val.val) (inv_mul_cancel g)
   have hN : N*N=0 := by
     dsimp [N]
-    exact Matrix.single_mul_single_of_ne 0 1 0 (by decide) 1
+    exact Matrix.single_mul_single_of_ne (1 : R) (0 : Fin 3) 1 0 (by decide) 1
   have hM : M*M=0 := by
     calc
       M*M = H*N*(K*H)*N*K := by dsimp [M]; noncomm_ring
@@ -163,9 +166,9 @@ theorem good_prod (aug : R →+* ZMod 2) (n : Nat) (ts : List R)
     | nil => simp at hl
     | cons t rest =>
       have hr : rest=[] := by
-        apply List.length_eq_zero_iff.mp
-        simp at hl
-        omega
+        have hlen : rest.length + 1 = 1 := by
+          simpa only [List.length_cons, pow_zero] using hl
+        exact List.length_eq_zero_iff.mp (by omega)
       subst rest
       change aug ([t].prod)=0
       simpa using hz t (by simp)
@@ -235,7 +238,14 @@ theorem tower_products (aug : R →+* ZMod 2) (hc : ∀ x : R, x+x=0)
       lift_comm (ih a ha).2.2 h23 (comm_31_23 hc a (b*c))
     have hp := two (a*b) c (good_mul aug n ha b) hc'
     refine ⟨?_,hp.1,hp.2⟩
-    simpa only [mul_assoc] using h21
+    change U21 aug (a*b*c) _ ∈ next (mark aug) H
+    have he : U21 aug (a*b*c) (by simp [good_zero aug n ha]) =
+        U21 aug (a*(b*c)) (by simp [good_zero aug n ha]) := by
+      apply Subtype.ext
+      change T21 (a*b*c) = T21 (a*(b*c))
+      rw [mul_assoc]
+    rw [he]
+    exact h21
 
 theorem finite_witness (n : Nat) :
     ∃ (X : Type) (q : _root_.Quandle X),
