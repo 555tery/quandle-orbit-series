@@ -1,26 +1,68 @@
-import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.OrbitSeriesCore
 
 /-!
-# Issue 14: BCNW Question 5.25 — bounds on local reductivity, orbit depth and reductivity
+# Issue 14 — BCNW Question 5.25
+Source: Bonatto, Crans, Nasybullov, Whitney, Quandles with orbit series
+conditions, J. Algebra 567 (2021), 284–309.
+https://arxiv.org/html/2004.10227v3
 https://github.com/555tery/quandle-orbit-series/issues/14
 
-Formalization status: STATEMENT.
-Remaining obligation: Source §3.1, §4.1 and Question 5.25 checked; positive indices and singleton trivialization now explicit. Independent typecheck pending.
-
-Source and target from the issue:
-## Source / published open question
-Bonatto–Crans–Nasybullov–Whitney, *Quandles with orbit series conditions*, [arXiv:2004.10227v3, Question 5.25](https://arxiv.org/html/2004.10227v3). For finite quandles with local reductivity index \(k\), trivializing orbit-series index \(j\), and reductivity index \(i\), can \(j\) be bounded in terms of \(k\), or \(i\) in terms of \(j\)?
+Formalization status: STATEMENT (source audit; CI must verify this revision).
+The question asks for uniform bounds on finite nonempty quandles.
+No proof of either answer is included. The two parts are independent.
 -/
 
 namespace QuandleResearch.Issue014
-noncomputable section
+open BCNW
+universe u
 
+/-- A specified uniform bound for the first part:
+LR_k intersect finite quandles is contained in tOS_j. -/
+def IsBoundJByK (k j : Nat) : Prop :=
+  ∀ (X : Type u) [_root_.Quandle X] [Finite X] [Nonempty X],
+    LocallyReductive (X := X) k → Trivializing (X := X) j
+
+/-- A specified uniform bound for the second part:
+tOS_j intersect finite quandles is contained in R_i. -/
+def IsBoundIByJ (j i : Nat) : Prop :=
+  ∀ (X : Type u) [_root_.Quandle X] [Finite X] [Nonempty X],
+    Trivializing (X := X) j → Reductive (X := X) i
+
+/-- Question 5.25(a), uniform bound depending only on k. -/
 def boundJByK : Prop :=
-  ∃ f : Nat → Nat, ∀ (Q : Quandle) (k j : Nat), Finite Q.carrier → Nonempty Q.carrier →
-    0 < k → 0 < j → PositiveExactIndex Q.rack.LocallyReductive k → PositiveExactIndex Q.rack.Trivializing j → j ≤ f k
-def boundIByJ : Prop :=
-  ∃ f : Nat → Nat, ∀ (Q : Quandle) (j i : Nat), Finite Q.carrier → Nonempty Q.carrier →
-    0 < j → 0 < i → PositiveExactIndex Q.rack.Trivializing j → PositiveExactIndex Q.rack.Reductive i → i ≤ f j
+  ∀ k : Nat, 0 < k → ∃ j : Nat, 0 < j ∧ IsBoundJByK.{u} k j
 
-end
+/-- Question 5.25(b), uniform bound depending only on j. -/
+def boundIByJ : Prop :=
+  ∀ j : Nat, 0 < j → ∃ i : Nat, 0 < i ∧ IsBoundIByJ.{u} j i
+
+/-- The two proposed negative answers are separately specified.
+A failure of the conjunction is not a negative answer to both parts. -/
+def negativeA : Prop := ¬ boundJByK.{u}
+def negativeB : Prop := ¬ boundIByJ.{u}
+def bothNegative : Prop := negativeA.{u} ∧ negativeB.{u}
+
+/-- Stronger fixed-input counterexample specification relevant to the
+working manuscript. These are targets, not asserted results. -/
+def unboundedJAt (k : Nat) : Prop :=
+  ∀ j : Nat, 0 < j → ∃ (X : Type u) (q : _root_.Quandle X),
+    letI := q
+    Finite X ∧ Nonempty X ∧ LocallyReductive (X := X) k ∧
+      ¬ Trivializing (X := X) j
+
+def unboundedIAt (j : Nat) : Prop :=
+  ∀ i : Nat, 0 < i → ∃ (X : Type u) (q : _root_.Quandle X),
+    letI := q
+    Finite X ∧ Nonempty X ∧ Trivializing (X := X) j ∧
+      ¬ Reductive (X := X) i
+
+def manuscriptTargets : Prop := unboundedJAt.{u} 2 ∧ unboundedIAt.{u} 2
+
+/-- Exact positive index profile, for checking the concrete families
+later, without making exactness a hypothesis of Question 5.25. -/
+def HasProfile (X : Type u) [_root_.Quandle X] (k j i : Nat) : Prop :=
+  ExactPositiveIndex (LocallyReductive (X := X)) k ∧
+  ExactPositiveIndex (Trivializing (X := X)) j ∧
+  ExactPositiveIndex (Reductive (X := X)) i
+
 end QuandleResearch.Issue014

@@ -91,6 +91,10 @@ Issue024 now has explicit switch axioms and a group-valued specialization of the
 - #4: two precise comparison directions for nonrepeating Milnor residues, not the whole descriptive question. #17: literal Brunnian wording and the homotopically nontrivial case separately. #58: concrete surface domain and presentation specifications.
 - These modules are partial. The diagram maps and choice of geometric preferred peripheral elements still need a construction; neither arbitrary diagram maps nor all continuous embeddings are silently identified with the classical tame category.
 
+## Focused Question 5.25 review (Mathlib v4.36.0)
+
+The stable Lean/Mathlib version is v4.36.0. The q525 branch focuses on Issue014; the full migration of unrelated modules is not verified. Source: arXiv:2004.10227v3 §§2.1, 3.1 equation (3), 3.2 equation (5), 4.1 equation (7), Question 5.25. The native unbundled OrbitSeriesCore uses Rack, Shelf.act, Rack.act', Subgroup.closure, MulAction.orbit/orbitRel and List.foldl/replicate. The previous bundled OrbitSeries API is retained via aliases. The original question is stated as two independent uniform inclusions of finite nonempty quandle classes, without requiring minimal indices or assuming the desired bound. Their negations, fixed-input unboundedness targets at 2, and exact positive profiles using IsLeast are separate propositions. No proof of a research answer is included. CI on this branch builds only Issue014 and its dependencies; success is not evidence of full library compatibility.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
@@ -110,7 +114,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#11](https://github.com/555tery/quandle-orbit-series/issues/11) | [Issue011](QuandleResearch/Questions/Issue011.lean) | STATEMENT | Source audit and typecheck |
 | [#12](https://github.com/555tery/quandle-orbit-series/issues/12) | [Issue012](QuandleResearch/Questions/Issue012.lean) | PARTIAL | An explicit classification model, not a tautological parameterization. |
 | [#13](https://github.com/555tery/quandle-orbit-series/issues/13) | [Issue013](QuandleResearch/Questions/Issue013.lean) | STATEMENT | Source audit and typecheck |
-| [#14](https://github.com/555tery/quandle-orbit-series/issues/14) | [Issue014](QuandleResearch/Questions/Issue014.lean) | STATEMENT | Source positive indices and singleton tOS_n audited; typecheck pending. |
+| [#14](https://github.com/555tery/quandle-orbit-series/issues/14) | [Issue014](QuandleResearch/Questions/Issue014.lean) | STATEMENT | Source identities and all orbit series; independent uniform bounds and negations; focused CI pending. |
 | [#15](https://github.com/555tery/quandle-orbit-series/issues/15) | [Issue015](QuandleResearch/Questions/Issue015.lean) | STATEMENT | Source audit and typecheck |
 | [#16](https://github.com/555tery/quandle-orbit-series/issues/16) | [Issue016](QuandleResearch/Questions/Issue016.lean) | PARTIAL | Check residual definition against paper; embeddings encode the iterates without constructing them. |
 | [#17](https://github.com/555tery/quandle-orbit-series/issues/17) | [Issue017](QuandleResearch/Questions/Issue017.lean) | PARTIAL | Continuous link-homotopy, unlink and Brunnian conditions explicit; tame-category and diagram correspondence remain. |

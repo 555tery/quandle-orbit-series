@@ -1,4 +1,4 @@
-import Mathlib.Algebra.Quandle
+import QuandleResearch.Theory.OrbitSeriesCore
 import Mathlib
 
 /-! Mathlib-first: these bundles store a carrier and the native Mathlib
@@ -25,8 +25,7 @@ abbrev op (R : Rack) (x y : R.carrier) : R.carrier := Shelf.act y x
 abbrev HomType (R S : Rack) := ShelfHom R.carrier S.carrier
 def Hom (R S : Rack) (f : R.carrier → S.carrier) : Prop :=
   ∃ h : R.HomType S, (h : R.carrier → S.carrier) = f
-def IsSubrack (R : Rack) (s : Set R.carrier) : Prop :=
-  ∀ y ∈ s, ∀ x ∈ s, R.right y x ∈ s ∧ (R.right y).symm x ∈ s
+abbrev IsSubrack (R : Rack) (s : Set R.carrier) : Prop := BCNW.IsSubrack s
 end Rack
 
 namespace Quandle
