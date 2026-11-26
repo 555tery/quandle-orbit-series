@@ -243,8 +243,10 @@ theorem infiniteSeries_strict (n : Nat) :
   have hm : (d : Dinf) ∈ infiniteSeries n := ⟨1, by simp [d]⟩
   rw [h] at hm
   obtain ⟨k,hk⟩ := hm
-  have he : d = d*2*k := by simpa only [d, pow_succ] using hk
-  have hz : d*(1-2*k)=0 := by linear_combination -he
+  have he : d = d*2*k := by
+    change d = ((2 : Int)^(n+1))*k at hk
+    simpa only [d, pow_succ] using hk
+  have hz : d*(1-2*k)=0 := by linear_combination he
   rcases mul_eq_zero.mp hz with h0 | h0
   · omega
   · omega
