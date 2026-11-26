@@ -78,11 +78,12 @@ theorem orbit_sc (hc : ∀ x : R, x + x = 0) (a b : Affine R) :
   intro h
   obtain ⟨g, hg⟩ := MulAction.mem_orbit_iff.mp h.2
   change g.val a = b at hg
-  have hall : ∀ x : Affine R, sc (g.val x) = sc x := by
-    have hg' := g.property
-    change g.val ∈ Subgroup.closure
-      ((_root_.Rack.act' : Affine R → Equiv.Perm (Affine R)) '' Set.univ) at hg'
-    induction hg' using Subgroup.closure_induction with
+  have hall : ∀ (p : Equiv.Perm (Affine R)), p ∈ translationGroup
+      (Set.univ : Set (Affine R)) → ∀ x : Affine R, sc (p x) = sc x := by
+    intro p hp
+    change p ∈ Subgroup.closure
+      ((_root_.Rack.act' : Affine R → Equiv.Perm (Affine R)) '' Set.univ) at hp
+    induction hp using Subgroup.closure_induction with
     | mem p hp =>
       obtain ⟨y, _, rfl⟩ := hp
       intro x
@@ -97,7 +98,7 @@ theorem orbit_sc (hc : ∀ x : R, x + x = 0) (a b : Affine R) :
       have h := ih (p.symm x)
       simpa using h.symm
   rw [← hg]
-  exact hall a
+  exact hall g.val g.property a
 
 /-- Equal-scalar fibers are trivial, hence so are all inner orbits. -/
 theorem trivial_orbits (hc : ∀ x : R, x + x = 0) :
@@ -141,7 +142,10 @@ theorem nonreductive_witness (hc : ∀ x : R, x + x = 0) (n : Nat)
   obtain ⟨ts, hlen, hsq, hp⟩ := hw
   let cs := ts.attach.map (fun t => scalar t.val (hsq t.val t.property))
   have hmap : cs.map sc = ts := by
-    simp [cs, sc, scalar, List.map_map]
+    unfold cs
+    rw [List.map_map]
+    change ts.attach.map Subtype.val = ts
+    simp
   refine ⟨translation 1, translation 0, cs, by simp [cs, hlen], ?_⟩
   intro h
   have hd := fold_difference hc cs (translation 1) (translation 0) rfl
@@ -153,7 +157,7 @@ end Affine
 /-- The full second negative answer, via the finite affine model.
 Only standard ring identities and the dual-number construction above
 are used. -/
-theorem partB : QuandleResearch.Issue014.negativeB := by
+theorem partB : QuandleResearch.Issue014.negativeB.{0} := by
   apply QuandleResearch.Issue014.negativeB_of_unboundedIAt 2 (by decide)
   apply QuandleResearch.Issue014.unboundedIAt_two_of_trivial_orbit_witnesses
   intro n hn
