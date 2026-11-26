@@ -50,10 +50,6 @@ def ExactIndex (P : Nat → Prop) (k : Nat) : Prop := P k ∧ ∀ m < k, ¬ P m
 def PositiveExactIndex (P : Nat → Prop) (k : Nat) : Prop :=
   0 < k ∧ P k ∧ ∀ m, 0 < m → m < k → ¬ P m
 namespace Quandle
-abbrev Inn (Q : Quandle) : Subgroup (Equiv.Perm Q.carrier) := Q.rack.translationGroup Set.univ
-abbrev Connected (Q : Quandle) : Prop := MulAction.IsPretransitive Q.Inn Q.carrier
-/-- Darné v3 Definition 2.1: nilpotence of the inner group.
-His class c corresponds to Mathlib lower central index c-1. -/
 abbrev Nilpotent (Q : Quandle) : Prop := Group.IsNilpotent Q.Inn
 def NilpotentClassAtMost (Q : Quandle) (c : Nat) : Prop :=
   0 < c ∧ lowerCentralSeries Q.Inn (c-1) = ⊥

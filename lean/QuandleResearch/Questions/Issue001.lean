@@ -1,4 +1,3 @@
-import QuandleResearch.Theory.Interfaces
 import QuandleResearch.Theory.Profinite
 
 /-!
@@ -6,7 +5,7 @@ import QuandleResearch.Theory.Profinite
 https://github.com/555tery/quandle-orbit-series/issues/1
 
 Formalization status: PARTIAL.
-Remaining obligation: Definition 3.5 is now specified using Mathlib functors and compatible sections. The transfinite partition formulation is a proposed interpretation of the open-ended §6 research direction, not a source-defined construction. Bottom-up reconstruction and the interpretation of semi-disjoint unions require review.
+Remaining obligation: Native finite-type and Stone-space limits plus explicit generalized mesh and total-space topology. The original §6 does not fix a transfinite assembly operation; the limit-stage reconstruction and adequacy of this candidate interpretation remain to be reviewed.
 
 Source and target from the issue:
 ## Source / explicitly proposed open research question

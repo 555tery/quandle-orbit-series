@@ -1,4 +1,4 @@
-import QuandleResearch.Theory.OrbitSeries
+import QuandleResearch.Basic.Quandle
 import Mathlib.Topology.Category.Profinite.Basic
 import Mathlib.CategoryTheory.Limits.Types.Limits
 import Mathlib.CategoryTheory.Category.Preorder
@@ -105,6 +105,63 @@ inductive Constructible : TopologicalQuandle → Prop
       Profinite T → StoneUnion T I F →
       (∀ i, Constructible (F i)) → Constructible T
 
+/-- Generalization of the finite mesh of Ehrman–Gurpinar–Thibault–Yetter,
+Definition 3.3 and Theorem 3.2. We use the Mathlib augmentation
+generator (not its inverse): its action is the source's right
+translation, with ordinary composition of permutations.
+The compatibility law is the full right self-distributivity equation
+on all triples, avoiding special cases for repeated indices. -/
+structure StoneMesh (I : StoneIndex) (F : I → TopologicalQuandle) where
+  action : ∀ i j : I, _root_.Rack.EnvelGroup (F j).Q.carrier →*
+    Equiv.Perm (F i).Q.carrier
+  automorphism : ∀ i j (g : _root_.Rack.EnvelGroup (F j).Q.carrier),
+    (F i).Q.Aut (action i j g)
+  diagonal : ∀ i (y : (F i).Q.carrier),
+    action i i (_root_.Rack.toEnvelGroup (F i).Q.carrier y) = (F i).Q.rack.right y
+  compatible : ∀ i j k (x : (F i).Q.carrier) (y : (F j).Q.carrier)
+      (z : (F k).Q.carrier),
+    let a := fun (u v : I) (w : (F v).Q.carrier) =>
+      action u v (_root_.Rack.toEnvelGroup (F v).Q.carrier w)
+    a i k z (a i j y x) = a i j (a j k z y) (a i k z x)
+
+namespace StoneMesh
+def op {I : StoneIndex} {F : I → TopologicalQuandle} (M : StoneMesh I F)
+    (x y : Σ i : I, (F i).Q.carrier) : Σ i : I, (F i).Q.carrier :=
+  ⟨x.1, M.action x.1 y.1
+    (_root_.Rack.toEnvelGroup (F y.1).Q.carrier y.2) x.2⟩
+
+def invOp {I : StoneIndex} {F : I → TopologicalQuandle} (M : StoneMesh I F)
+    (x y : Σ i : I, (F i).Q.carrier) : Σ i : I, (F i).Q.carrier :=
+  ⟨x.1, (M.action x.1 y.1
+    (_root_.Rack.toEnvelGroup (F y.1).Q.carrier y.2)).symm x.2⟩
+end StoneMesh
+
+/-- Candidate Stone-indexed assembly. The total-space topology is data,
+NOT the disjoint-sum topology; this distinction is necessary for the
+Cantor-quandle example. The operation and inverse operation come from
+the mesh, not from an arbitrary predicate on a pre-existing quandle.
+The homeomorphism verifies that this assembly realizes T. -/
+structure StoneAssembly (T : TopologicalQuandle) (I : StoneIndex)
+    (F : I → TopologicalQuandle) where
+  pieceProfinite : ∀ i, Profinite (F i)
+  pieceNonempty : ∀ i, Nonempty (F i).Q.carrier
+  mesh : StoneMesh I F
+  topology : TopologicalSpace (Σ i : I, (F i).Q.carrier)
+  projectionContinuous : letI := topology
+                         Continuous (fun x : Σ i : I, (F i).Q.carrier => x.1)
+  fiberTopology : ∀ i, (F i).topology =
+    TopologicalSpace.induced (Sigma.mk i : (F i).Q.carrier → Σ j : I, (F j).Q.carrier)
+      topology
+  continuousOp : letI := topology
+                 Continuous (fun p : (Σ i : I, (F i).Q.carrier) ×
+                   (Σ i : I, (F i).Q.carrier) => mesh.op p.1 p.2)
+  continuousInv : letI := topology
+                  Continuous (fun p : (Σ i : I, (F i).Q.carrier) ×
+                    (Σ i : I, (F i).Q.carrier) => mesh.invOp p.1 p.2)
+  identify : letI := topology; T.Q.carrier ≃ₜ (Σ i : I, (F i).Q.carrier)
+  preserves : ∀ x y : T.Q.carrier,
+    identify (T.Q.op x y) = mesh.op (identify x) (identify y)
+
 /-- A profinite piece of the ambient quandle, identified with an actual
 subset by a homomorphism and the subspace topology. -/
 structure ProfinitePiece (T : TopologicalQuandle) (s : Set T.Q.carrier) where
@@ -125,9 +182,9 @@ At limits, the partition is the intersection of the earlier partitions.
 Each cell has the structure of a profinite subquandle; terminal cells
 are algebraically connected, not just topologically connected.
 
-The operations on the parent are retained as part of each piece.
-Thus this is a precise candidate decomposition problem, not yet a
-complete prescription for constructing all interaction maps bottom-up. -/
+Each successor has explicit mesh and total-space topology data. Limit
+stages are expressed as intersections of partitions, not a prescribed
+bottom-up limit constructor. This remains a candidate interpretation. -/
 structure TransfiniteDecomposition (T : TopologicalQuandle) where
   height : Ordinal.{0}
   partition : Ordinal.{0} → Setoid T.Q.carrier
@@ -139,11 +196,11 @@ structure TransfiniteDecomposition (T : TopologicalQuandle) where
   successor : ∀ (a : Ordinal.{0}) (ha : a ≤ height), a+1 ≤ height →
     ∀ (x : T.Q.carrier),
     let C := cell a ha x
-    ∃ (I : StoneIndex) (proj : ContinuousMap C.piece.Q.carrier I),
-      Function.Surjective proj ∧
-      (∀ u v, proj (C.piece.Q.op u v) = proj u) ∧
-      (∀ u v, proj u = proj v ↔
-        (partition (a+1)).r (C.incl u) (C.incl v))
+    ∃ (I : StoneIndex) (F : I → TopologicalQuandle)
+      (A : StoneAssembly C.piece I F),
+      ∀ u v : C.piece.Q.carrier,
+        (A.identify u).1 = (A.identify v).1 ↔
+          (partition (a+1)).r (C.incl u) (C.incl v)
   limitStage : ∀ a, a ≤ height → a ≠ 0 →
     (∀ b < a, b+1 < a) →
     ∀ x y, (partition a).r x y ↔ ∀ b < a, (partition b).r x y

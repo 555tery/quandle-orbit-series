@@ -27,6 +27,9 @@ def Hom (R S : Rack) (f : R.carrier → S.carrier) : Prop :=
   ∃ h : R.HomType S, (h : R.carrier → S.carrier) = f
 def IsSubrack (R : Rack) (s : Set R.carrier) : Prop :=
   ∀ y ∈ s, ∀ x ∈ s, R.right y x ∈ s ∧ (R.right y).symm x ∈ s
+/-- Right translations belonging to a subset generate a permutation group. -/
+def translationGroup (R : Rack) (s : Set R.carrier) : Subgroup (Equiv.Perm R.carrier) :=
+  Subgroup.closure (R.right '' s)
 end Rack
 
 namespace Quandle
@@ -46,5 +49,10 @@ def IsFree (Q : Quandle) : Prop := ∃ (X : Type) (gen : X → Q.carrier), Q.Fre
 def DoublyTransitive (Q : Quandle) : Prop :=
   ∀ a b c d : Q.carrier, a ≠ b → c ≠ d →
     ∃ e : Equiv.Perm Q.carrier, Q.Aut e ∧ e a = c ∧ e b = d
+/-- Algebraic inner group and transitivity; no topological completion. -/
+abbrev Inn (Q : Quandle) : Subgroup (Equiv.Perm Q.carrier) :=
+  Q.rack.translationGroup Set.univ
+abbrev Connected (Q : Quandle) : Prop :=
+  MulAction.IsPretransitive Q.Inn Q.carrier
 end Quandle
 end QuandleResearch

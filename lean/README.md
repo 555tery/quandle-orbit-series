@@ -100,13 +100,19 @@ For Issue001, the inverse system uses a native `Functor` on an opposite directed
 
 Source: https://arxiv.org/html/2406.15387v2#S6 . This migration branch does not change the verified v4.19.0 main branch (successful CI 45883664812). The focused build and the full 69-issue build must both be verified before integration.
 
+## Issue 001 second audit
+
+Source: Byard et al. arXiv:2406.15387v2 §§2, 3, 6; Ehrman et al., Toward a Classification of Finite Quandles, Theorem 3.2 and Definitions 3.3–3.4 (https://www.math.ksu.edu/research/reu/reu2005-2008/2006/pdfs/fin05quan.pdf).
+The inverse diagram now uses FintypeCat, FintypeCat.toProfinite and Profinite.limitCone (native compatible families and topology); the comparison is a homeomorphism with coordinatewise quandle operations. StoneMesh records actual enveloping-group homomorphisms, automorphisms, diagonal translations and the full triple compatibility equation. StoneAssembly records the dependent sum, mesh-induced operations, chosen topology, continuity and identifying homeomorphism. The topology is not the coproduct topology. TransfiniteDecomposition now requires these data at successors; limits are still intersections of partitions, not a specified bottom-up construction. This is a candidate interpretation, not an exact claim of source equivalence.
+Focused Issue001 no longer imports unrelated biquandle/group-operator infrastructure. Inner groups and connectedness are shared in Basic/Quandle, not redefined. The full v4.36 migration is not verified; earlier CI reported changes to commutator scope, lower central series and the reserved word over. No solution proof is added.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
 
 | Issue | Module | Status | Outstanding |
 |---|---|---|---|
-| [#1](https://github.com/555tery/quandle-orbit-series/issues/1) | [Issue001](QuandleResearch/Questions/Issue001.lean) | PARTIAL | Native inverse diagrams and sections, candidate ordinal-indexed Stone decomposition; exact generalized construction remains open-ended. |
+| [#1](https://github.com/555tery/quandle-orbit-series/issues/1) | [Issue001](QuandleResearch/Questions/Issue001.lean) | PARTIAL | Native finite-discrete and Stone limits; explicit mesh and topology; exact transfinite construction and CI remain. |
 | [#2](https://github.com/555tery/quandle-orbit-series/issues/2) | [Issue002](QuandleResearch/Questions/Issue002.lean) | STATEMENT | Source audit and typecheck |
 | [#3](https://github.com/555tery/quandle-orbit-series/issues/3) | [Issue003](QuandleResearch/Questions/Issue003.lean) | PARTIAL | Unitriangular group and conjugacy carrier explicit; exact orbit count and multipermutation convention need audit. |
 | [#4](https://github.com/555tery/quandle-orbit-series/issues/4) | [Issue004](QuandleResearch/Questions/Issue004.lean) | PARTIAL | Magnus coefficients, ideal indeterminacy and peripheral approximation explicit; actual geometric peripheral data and relationship remain. |
