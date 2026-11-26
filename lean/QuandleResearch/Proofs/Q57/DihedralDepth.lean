@@ -111,9 +111,8 @@ theorem principal_at_zero (k n : Nat) :
 /-- The component of order 2^(n+1) witnesses failure of the proposed
 uniform bound n. It suffices to exhibit strictness at the last step;
 earlier stabilization would persist. -/
-theorem not_bound (n : Nat) : ¬ OSBound (Set.univ : Set (D (n+1))) n := by
-  intro hb
-  have he := stable_of_OSBound univ_isSubrack hb (Set.mem_univ (zero (n+1)))
+theorem not_stable (n : Nat) : ¬ StableAt Set.univ (zero (n+1)) n := by
+  intro he
   change principalSeries Set.univ (zero (n+1)) n =
     principalSeries Set.univ (zero (n+1)) (n+1) at he
   rw [principal_at_zero,principal_at_zero] at he
@@ -136,6 +135,10 @@ theorem not_bound (n : Nat) : ¬ OSBound (Set.univ : Set (D (n+1))) n := by
   have hle := Nat.le_of_dvd hp hd
   rw [pow_succ] at hle
   omega
+
+theorem not_bound (n : Nat) : ¬ OSBound (Set.univ : Set (D (n+1))) n := by
+  intro hb
+  exact not_stable n (stable_of_OSBound univ_isSubrack hb (Set.mem_univ (zero (n+1))))
 
 end DihedralDepth
 end QuandleResearch.Q57

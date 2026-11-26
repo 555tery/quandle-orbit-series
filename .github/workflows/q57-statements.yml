@@ -28,4 +28,4 @@ jobs:
 
       - name: Dihedral counterexample ingredients
         if: always()
-        run: lake build QuandleResearch.Proofs.Q57.DihedralDepth
+        run: lake build QuandleResearch.Proofs.Q57.DihedralDepth QuandleResearch.Proofs.Q57.Disjoint
