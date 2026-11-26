@@ -1,12 +1,13 @@
 import QuandleResearch.Theory.Interfaces
 import QuandleResearch.Theory.QuandleCocycles
+import QuandleResearch.Theory.Milnor
 
 /-!
 # Issue 4: Inoue Question 2.4 (2013) — quandle cocycle invariants and Milnor invariants
 https://github.com/555tery/quandle-orbit-series/issues/4
 
 Formalization status: PARTIAL.
-Remaining obligation: Actual finite-target quandle 2-cocycle weights and multiplicities are specified. Milnor invariants and indeterminacy remain external; the requested relationship is descriptive.
+Remaining obligation: Magnus coefficients, indeterminacy ideals and peripheral word approximations now concrete; identification with the actual preferred longitudes of a geometric link and the requested relation remain.
 
 Source and target from the issue:
 ## Source / published question
@@ -32,6 +33,21 @@ def verifiesCocycleRelation {n : Nat} {Link M : Type}
     (relation : (Fin n → A → Nat) → M → Prop) : Prop :=
   Finite Q.carrier → Q.Reduced → IsReducedTwoCocycle Q theta →
     ∀ l, relation ((diagram l).cocycleMultiplicity Q theta) (milnor l)
+
+/-- Test whether equality of all finite-target quandle cocycle data
+forces equality of the nonrepeating Milnor residues. This is one precise
+direction of the open-ended Question 2.4, not its entire wording. The
+longitude words must be sufficiently deep peripheral approximations
+of the links represented by D and E. -/
+def cocycleDeterminesNonrepeating {n : Nat} (D E : ArcPresentation n)
+    (a b : Fin n → Milnor.Word n) : Prop :=
+  SameCocycleData D E →
+    ∀ I : List (Fin n), I.Nodup → 2 ≤ I.length → Milnor.SameResidue a b I
+
+def nonrepeatingDeterminesCocycle {n : Nat} (D E : ArcPresentation n)
+    (a b : Fin n → Milnor.Word n) : Prop :=
+  (∀ I : List (Fin n), I.Nodup → 2 ≤ I.length → Milnor.SameResidue a b I) →
+    SameCocycleData D E
 
 end
 end QuandleResearch.Issue004

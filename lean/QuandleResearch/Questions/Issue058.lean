@@ -1,11 +1,12 @@
 import QuandleResearch.Theory.Interfaces
+import QuandleResearch.Theory.GeometricLinks
 
 /-!
 # Issue 58: BNS §1 (2019) — surface knots with equal quandles and different biquandles
 https://github.com/555tery/quandle-orbit-series/issues/58
 
 Formalization status: PARTIAL.
-Remaining obligation: Instantiate with surface knots and actual fundamental invariants.
+Remaining obligation: Compact connected embedded surfaces in S4 and presentation-based algebraic invariants now available. Orientability/local flatness and the broken-surface diagram correspondence still need encoding.
 
 Source and target from the issue:
 ## Source / explicitly stated problem
@@ -23,6 +24,18 @@ noncomputable section
 
 def question (K : KnotInterface) : Prop :=
   ∃ x y, (K.fundamentalQ x).Iso (K.fundamentalQ y) ∧ ¬ (K.fundamentalBQ x).Iso (K.fundamentalBQ y)
+
+/-- Sheet and semisheet relations along double curves have the same
+algebraic format as the crossing relations. The two diagram maps must
+be obtained from the actual broken-surface diagram of each surface. -/
+def existsPresented (arc : EmbeddedSurface → ArcPresentation 1)
+    (semi : EmbeddedSurface → SemiArcPresentation) : Prop :=
+  ∃ (x y : EmbeddedSurface) (Q R : Quandle) (B C : StrongBiquandle)
+    (qx : (arc x).Arc → Q.carrier) (qy : (arc y).Arc → R.carrier)
+    (bx : (semi x).Arc → B.carrier) (by' : (semi y).Arc → C.carrier),
+    (arc x).PresentsQuandle Q qx ∧ (arc y).PresentsQuandle R qy ∧
+    (semi x).PresentsBiquandle B bx ∧ (semi y).PresentsBiquandle C by' ∧
+    Q.Iso R ∧ ¬ B.Iso C
 
 end
 end QuandleResearch.Issue058

@@ -1,12 +1,13 @@
 import QuandleResearch.Theory.Interfaces
 import QuandleResearch.Theory.QuandleCocycles
+import QuandleResearch.Theory.GeometricLinks
 
 /-!
 # Issue 17: Inoue Problem 2.3 (2013) — classifying link-homotopy by quandle cocycle invariants
 https://github.com/555tery/quandle-orbit-series/issues/17
 
 Formalization status: PARTIAL.
-Remaining obligation: Inoue C1–C3 and componentwise weight multiplicities are explicit for finite targets. Geometric link-homotopy and Brunnian predicates and infinite-target scope remain to be encoded.
+Remaining obligation: Continuous link-homotopy and disjoint spanning disks now explicit for ordered parametrized links. The tame-category equivalence and the link-to-diagram correspondence remain unverified.
 
 Source and target from the issue:
 ## Source / published problem
@@ -36,6 +37,25 @@ def distinguishesBrunnianFiniteTargets {n : Nat} {Link : Type}
     (brunnian : Link → Prop) (unlink : Link) : Prop :=
   ∀ l, brunnian l → ¬ homotopic l unlink →
     ¬ SameCocycleData (diagram l) (diagram unlink)
+
+/-- Geometric finite-target formulation. The map to arc presentations
+must actually come from link diagrams; it is not arbitrary in the source.
+This remaining correspondence is recorded rather than asserted. -/
+def geometricCompleteness (n : Nat)
+    (diagram : GeometricLink n → ArcPresentation n) : Prop :=
+  ∀ L M, L.LinkHomotopic M ↔ SameCocycleData (diagram L) (diagram M)
+
+def geometricBrunnian (n : Nat)
+    (diagram : GeometricLink n → ArcPresentation n) : Prop :=
+  ∀ L U, L.Brunnian → U.Unlink → ¬ L.LinkHomotopic U →
+    ¬ SameCocycleData (diagram L) (diagram U)
+
+/-- Literal distinction question, without assuming nontrivial
+link-homotopy. Kept separate to preserve the source's wording. -/
+def literalBrunnian (n : Nat)
+    (diagram : GeometricLink n → ArcPresentation n) : Prop :=
+  ∀ L U, L.Brunnian → U.Unlink →
+    ¬ SameCocycleData (diagram L) (diagram U)
 
 end
 end QuandleResearch.Issue017
