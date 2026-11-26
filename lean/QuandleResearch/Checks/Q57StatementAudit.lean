@@ -257,14 +257,14 @@ theorem source_inverse_condition {a b x y z w : X}
 
 abbrev Carrier := Quotient c.toSetoid
 
-def mk (x : X) : c.Carrier := Quotient.mk c.toSetoid x
+def classMk (x : X) : c.Carrier := Quotient.mk c.toSetoid x
 
 def quotientAct (a b : c.Carrier) : c.Carrier :=
-  Quotient.liftOn₂ a b (fun x y => c.mk (Shelf.act x y))
+  Quotient.liftOn₂ a b (fun x y => c.classMk (Shelf.act x y))
     (fun _ _ _ _ hx hy => Quotient.sound (c.act_compat hx hy))
 
 def quotientInv (a b : c.Carrier) : c.Carrier :=
-  Quotient.liftOn₂ a b (fun x y => c.mk (Rack.invAct x y))
+  Quotient.liftOn₂ a b (fun x y => c.classMk (Rack.invAct x y))
     (fun _ _ _ _ hx hy => Quotient.sound (c.inv_compat hx hy))
 
 /-- Genuine quotient by the given setoid, not an assumed homomorphic image. -/
@@ -275,30 +275,30 @@ instance quotientQuandle : _root_.Quandle c.Carrier where
     intro a b d
     refine Quotient.inductionOn₃ a b d ?_
     intro x y z
-    change c.mk (Shelf.act x (Shelf.act y z)) =
-      c.mk (Shelf.act (Shelf.act x y) (Shelf.act x z))
+    change c.classMk (Shelf.act x (Shelf.act y z)) =
+      c.classMk (Shelf.act (Shelf.act x y) (Shelf.act x z))
     rw [Shelf.self_distrib]
   left_inv := by
     intro a b
     refine Quotient.inductionOn₂ a b ?_
     intro x y
-    change c.mk (Rack.invAct x (Shelf.act x y)) = c.mk y
+    change c.classMk (Rack.invAct x (Shelf.act x y)) = c.classMk y
     rw [Rack.invAct_act_eq]
   right_inv := by
     intro a b
     refine Quotient.inductionOn₂ a b ?_
     intro x y
-    change c.mk (Shelf.act x (Rack.invAct x y)) = c.mk y
+    change c.classMk (Shelf.act x (Rack.invAct x y)) = c.classMk y
     rw [Rack.act_invAct_eq]
   fix := by
     intro a
     refine Quotient.inductionOn a ?_
     intro x
-    change c.mk (Shelf.act x x) = c.mk x
+    change c.classMk (Shelf.act x x) = c.classMk x
     rw [_root_.Quandle.fix]
 
 def projection : ShelfHom X c.Carrier where
-  toFun := c.mk
+  toFun := c.classMk
   map_act' := rfl
 
 theorem projection_surjective : Function.Surjective c.projection := by
@@ -312,7 +312,7 @@ def classOf (x : X) : Set X := {z | c.r z x}
 theorem fibre_projection (x : X) :
     fibre c.projection (c.projection x) = c.classOf x := by
   ext z
-  change c.mk z = c.mk x ↔ c.r z x
+  change c.classMk z = c.classMk x ↔ c.r z x
   exact ⟨Quotient.exact, Quotient.sound⟩
 
 /-- The kernel is a congruence, including inverse-operation compatibility. -/
@@ -337,6 +337,7 @@ def factor {Y : Type v} [_root_.Quandle Y] (f : ShelfHom X Y) :
     intro a b
     refine Quotient.inductionOn₂ a b ?_
     intro x y
+    change f (Shelf.act x y) = Shelf.act (f x) (f y)
     exact f.map_act
 
 theorem factor_injective {Y : Type v} [_root_.Quandle Y] (f : ShelfHom X Y) :
@@ -351,7 +352,7 @@ theorem factor_surjective {Y : Type v} [_root_.Quandle Y]
     Function.Surjective (factor f) := by
   intro y
   obtain ⟨x, hx⟩ := hf y
-  exact ⟨(kernel f).mk x, hx⟩
+  exact ⟨(kernel f).classMk x, hx⟩
 
 theorem kernel_class_fibre {Y : Type v} [_root_.Quandle Y]
     (f : ShelfHom X Y) (x : X) :
@@ -492,7 +493,7 @@ def congruenceOSomega : Prop :=
 theorem congruenceOS_of_extensionOS
     (h : extensionOS.{u,u}) : congruenceOS.{u} := by
   intro X _ _ c hbase hclass
-  letI : Nonempty c.Carrier := ⟨c.mk (Classical.choice ‹Nonempty X›)⟩
+  letI : Nonempty c.Carrier := ⟨c.classMk (Classical.choice ‹Nonempty X›)⟩
   apply h X c.Carrier c.projection c.projection_surjective hbase
   intro b
   obtain ⟨x, rfl⟩ := c.projection_surjective b
@@ -502,7 +503,7 @@ theorem congruenceOS_of_extensionOS
 theorem congruenceOSomega_of_extensionOSomega
     (h : extensionOSomega.{u,u}) : congruenceOSomega.{u} := by
   intro X _ _ c hbase hclass
-  letI : Nonempty c.Carrier := ⟨c.mk (Classical.choice ‹Nonempty X›)⟩
+  letI : Nonempty c.Carrier := ⟨c.classMk (Classical.choice ‹Nonempty X›)⟩
   apply h X c.Carrier c.projection c.projection_surjective hbase
   intro b
   obtain ⟨x, rfl⟩ := c.projection_surjective b
