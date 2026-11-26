@@ -360,4 +360,185 @@ theorem kernel_class_fibre {Y : Type v} [_root_.Quandle Y]
 end QuandleCongruence
 end CongruenceSemantics
 
+
+section Transport
+
+variable {X : Type u} {Y : Type v} [_root_.Quandle X] [_root_.Quandle Y]
+
+theorem walk_map (f : ShelfHom X Y) (s : Set X) (x z : X)
+    (h : Walk ((_root_.Rack.act' : X → Equiv.Perm X) '' s) x z) :
+    Walk ((_root_.Rack.act' : Y → Equiv.Perm Y) '' (f '' s)) (f x) (f z) := by
+  induction h with
+  | nil => exact Walk.nil
+  | forward h hg ih =>
+    obtain ⟨y, hy, rfl⟩ := hg
+    rw [_root_.Rack.act'_apply, f.map_act]
+    exact Walk.forward ih ⟨f y, ⟨y, hy, rfl⟩, rfl⟩
+  | backward h hg ih =>
+    obtain ⟨y, hy, rfl⟩ := hg
+    rw [_root_.Rack.act'_symm_apply, map_invAct]
+    exact Walk.backward ih ⟨f y, ⟨y, hy, rfl⟩, rfl⟩
+
+theorem walk_lift (f : ShelfHom X Y) (s : Set X) (x : X) (z : Y)
+    (h : Walk ((_root_.Rack.act' : Y → Equiv.Perm Y) '' (f '' s)) (f x) z) :
+    ∃ w : X, f w = z ∧
+      Walk ((_root_.Rack.act' : X → Equiv.Perm X) '' s) x w := by
+  induction h with
+  | nil => exact ⟨x, rfl, Walk.nil⟩
+  | forward h hg ih =>
+    obtain ⟨w, hw, hwalk⟩ := ih
+    obtain ⟨_, ⟨y, hy, rfl⟩, rfl⟩ := hg
+    exact ⟨Shelf.act y w, by rw [f.map_act, hw]; rfl,
+      Walk.forward hwalk ⟨y, hy, rfl⟩⟩
+  | backward h hg ih =>
+    obtain ⟨w, hw, hwalk⟩ := ih
+    obtain ⟨_, ⟨y, hy, rfl⟩, rfl⟩ := hg
+    exact ⟨Rack.invAct y w, by rw [map_invAct, hw]; rfl,
+      Walk.backward hwalk ⟨y, hy, rfl⟩⟩
+
+theorem image_subrack (f : ShelfHom X Y) {s : Set X} (hs : IsSubrack s) :
+    IsSubrack (f '' s) := by
+  rintro _ ⟨y, hy, rfl⟩ _ ⟨x, hx, rfl⟩
+  constructor
+  · exact ⟨Shelf.act y x, (hs y hy x hx).1, f.map_act⟩
+  · exact ⟨Rack.invAct y x, (hs y hy x hx).2, map_invAct f y x⟩
+
+theorem image_orbitIn (f : ShelfHom X Y) (hf : Function.Injective f)
+    (s : Set X) (x : X) :
+    f '' orbitIn s x = orbitIn (f '' s) (f x) := by
+  ext z
+  constructor
+  · rintro ⟨w, hw, rfl⟩
+    exact ⟨⟨w, hw.1, rfl⟩,
+      (walk_iff_orbit _ _ _).mp (walk_map f s x w ((walk_iff_orbit _ _ _).mpr hw.2))⟩
+  · intro hz
+    obtain ⟨y, hy, hyz⟩ := hz.1
+    obtain ⟨w, hw, hwalk⟩ := walk_lift f s x z ((walk_iff_orbit _ _ _).mpr hz.2)
+    have he : w = y := hf (hw.trans hyz.symm)
+    subst y
+    exact ⟨w, ⟨hy, (walk_iff_orbit _ _ _).mp hwalk⟩, hw⟩
+
+theorem image_series (f : ShelfHom X Y) (hf : Function.Injective f)
+    {s : Set X} {a : Nat → Set X} (ha : IsOrbitSeries s a) :
+    IsOrbitSeries (f '' s) (fun n => f '' a n) := by
+  refine ⟨congrArg (fun t : Set X => f '' t) ha.1, ?_, ?_⟩
+  · intro n
+    exact image_subrack f (ha.2.1 n)
+  · intro n
+    obtain ⟨x, hx, he⟩ := ha.2.2 n
+    exact ⟨f x, ⟨x, hx, rfl⟩,
+      (congrArg (fun t : Set X => f '' t) he).trans (image_orbitIn f hf _ _)⟩
+
+theorem eq_of_image_eq (f : ShelfHom X Y) (hf : Function.Injective f)
+    {s t : Set X} (h : f '' s = f '' t) : s = t := by
+  ext x
+  constructor
+  · intro hx
+    have hfx : f x ∈ f '' s := ⟨x, hx, rfl⟩
+    rw [h] at hfx
+    obtain ⟨y, hy, he⟩ := hfx
+    exact (hf he) ▸ hy
+  · intro hx
+    have hfx : f x ∈ f '' t := ⟨x, hx, rfl⟩
+    rw [← h] at hfx
+    obtain ⟨y, hy, he⟩ := hfx
+    exact (hf he) ▸ hy
+
+theorem OS_pullback (f : ShelfHom X Y) (hf : Function.Injective f)
+    {s : Set X} (h : OS (f '' s)) : OS s := by
+  intro a ha
+  obtain ⟨n, hn⟩ := h _ (image_series f hf ha)
+  exact ⟨n, eq_of_image_eq f hf hn⟩
+
+theorem OSBound_pullback (f : ShelfHom X Y) (hf : Function.Injective f)
+    {s : Set X} {n : Nat} (h : OSBound (f '' s) n) : OSBound s n := by
+  intro a ha
+  obtain ⟨m, hm, he⟩ := h _ (image_series f hf ha)
+  exact ⟨m, hm, eq_of_image_eq f hf he⟩
+
+theorem OSomega_pullback (f : ShelfHom X Y) (hf : Function.Injective f)
+    {s : Set X} (h : OSomega (f '' s)) : OSomega s := by
+  obtain ⟨n, hn, hb⟩ := h
+  exact ⟨n, hn, OSBound_pullback f hf hb⟩
+
+theorem image_univ_of_surjective (f : ShelfHom X Y) (hf : Function.Surjective f) :
+    f '' (Set.univ : Set X) = Set.univ := by
+  ext y
+  constructor
+  · intro _
+    exact Set.mem_univ _
+  · intro _
+    obtain ⟨x, hx⟩ := hf y
+    exact ⟨x, Set.mem_univ _, hx⟩
+
+end Transport
+
+section SourceFormulation
+
+open QuandleCongruence
+
+/-- Literal congruence formulation of §2.2, for the first class. -/
+def congruenceOS : Prop :=
+  ∀ (X : Type u) [_root_.Quandle X] [Nonempty X] (c : QuandleCongruence X),
+    OS (Set.univ : Set c.Carrier) → (∀ x : X, OS (c.classOf x)) →
+      OS (Set.univ : Set X)
+
+/-- Literal congruence formulation of §2.2, for the second class. -/
+def congruenceOSomega : Prop :=
+  ∀ (X : Type u) [_root_.Quandle X] [Nonempty X] (c : QuandleCongruence X),
+    OSomega (Set.univ : Set c.Carrier) → (∀ x : X, OSomega (c.classOf x)) →
+      OSomega (Set.univ : Set X)
+
+theorem congruenceOS_of_extensionOS
+    (h : extensionOS.{u,u}) : congruenceOS.{u} := by
+  intro X _ _ c hbase hclass
+  letI : Nonempty c.Carrier := ⟨c.mk (Classical.choice ‹Nonempty X›)⟩
+  apply h X c.Carrier c.projection c.projection_surjective hbase
+  intro b
+  obtain ⟨x, rfl⟩ := c.projection_surjective b
+  rw [c.fibre_projection]
+  exact hclass x
+
+theorem congruenceOSomega_of_extensionOSomega
+    (h : extensionOSomega.{u,u}) : congruenceOSomega.{u} := by
+  intro X _ _ c hbase hclass
+  letI : Nonempty c.Carrier := ⟨c.mk (Classical.choice ‹Nonempty X›)⟩
+  apply h X c.Carrier c.projection c.projection_surjective hbase
+  intro b
+  obtain ⟨x, rfl⟩ := c.projection_surjective b
+  rw [c.fibre_projection]
+  exact hclass x
+
+theorem extensionOS_of_congruenceOS
+    (h : congruenceOS.{u}) : extensionOS.{u,v} := by
+  intro X Y _ _ _ _ f hf hbase hfibre
+  apply h X (kernel f)
+  · apply OS_pullback (factor f) (factor_injective f)
+    rw [image_univ_of_surjective (factor f) (factor_surjective f hf)]
+    exact hbase
+  · intro x
+    rw [kernel_class_fibre]
+    exact hfibre (f x)
+
+theorem extensionOSomega_of_congruenceOSomega
+    (h : congruenceOSomega.{u}) : extensionOSomega.{u,v} := by
+  intro X Y _ _ _ _ f hf hbase hfibre
+  apply h X (kernel f)
+  · apply OSomega_pullback (factor f) (factor_injective f)
+    rw [image_univ_of_surjective (factor f) (factor_surjective f hf)]
+    exact hbase
+  · intro x
+    rw [kernel_class_fibre]
+    exact hfibre (f x)
+
+theorem extensionOS_iff_congruenceOS :
+    extensionOS.{u,u} ↔ congruenceOS.{u} :=
+  ⟨congruenceOS_of_extensionOS, extensionOS_of_congruenceOS⟩
+
+theorem extensionOSomega_iff_congruenceOSomega :
+    extensionOSomega.{u,u} ↔ congruenceOSomega.{u} :=
+  ⟨congruenceOSomega_of_extensionOSomega, extensionOSomega_of_congruenceOSomega⟩
+
+end SourceFormulation
+
 end QuandleResearch.Q57.StatementAudit
