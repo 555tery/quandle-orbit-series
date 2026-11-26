@@ -5,8 +5,8 @@ import QuandleResearch.Theory.ConcreteEnveloping
 # Issue 68: Darné Remark 2.22 (2026 v3) — residual nilpotency of the enveloping group
 https://github.com/555tery/quandle-orbit-series/issues/68
 
-Formalization status: PARTIAL.
-Remaining obligation: Concrete enveloping group and injectivity, all eight statements; verify Darné indexing.
+Formalization status: STATEMENT.
+Remaining obligation: Darné v3 Definition 2.20 and Proposition 2.24 audited; literal separation definition and native enveloping group used. The eight implications are separate statements, not claims that all are open.
 
 Source and target from the issue:
 ## Source / explicitly stated open relation

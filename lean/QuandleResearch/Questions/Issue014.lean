@@ -4,8 +4,8 @@ import QuandleResearch.Theory.Interfaces
 # Issue 14: BCNW Question 5.25 — bounds on local reductivity, orbit depth and reductivity
 https://github.com/555tery/quandle-orbit-series/issues/14
 
-Formalization status: PARTIAL.
-Remaining obligation: Check BCNW convention and exact index offsets against source.
+Formalization status: STATEMENT.
+Remaining obligation: Source §3.1, §4.1 and Question 5.25 checked; positive indices and singleton trivialization now explicit. Independent typecheck pending.
 
 Source and target from the issue:
 ## Source / published open question
@@ -16,11 +16,11 @@ namespace QuandleResearch.Issue014
 noncomputable section
 
 def boundJByK : Prop :=
-  ∃ f : Nat → Nat, ∀ (Q : Quandle) (k j : Nat), Finite Q.carrier →
-    ExactIndex Q.rack.LocallyReductive k → ExactIndex Q.rack.Trivializing j → j ≤ f k
+  ∃ f : Nat → Nat, ∀ (Q : Quandle) (k j : Nat), Finite Q.carrier → Nonempty Q.carrier →
+    0 < k → 0 < j → PositiveExactIndex Q.rack.LocallyReductive k → PositiveExactIndex Q.rack.Trivializing j → j ≤ f k
 def boundIByJ : Prop :=
-  ∃ f : Nat → Nat, ∀ (Q : Quandle) (j i : Nat), Finite Q.carrier →
-    ExactIndex Q.rack.Trivializing j → ExactIndex Q.rack.Reductive i → i ≤ f j
+  ∃ f : Nat → Nat, ∀ (Q : Quandle) (j i : Nat), Finite Q.carrier → Nonempty Q.carrier →
+    0 < j → 0 < i → PositiveExactIndex Q.rack.Trivializing j → PositiveExactIndex Q.rack.Reductive i → i ≤ f j
 
 end
 end QuandleResearch.Issue014

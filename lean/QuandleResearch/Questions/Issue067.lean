@@ -20,5 +20,10 @@ noncomputable section
 
 def question : Prop := ∀ Q : Quandle, ResiduallyNilpotent Q.Inn → Q.ResiduallyNilpotent
 
+/-- Source's equivalent orbit formulation, kept separately from the
+literal Definition 2.20 used in question. -/
+def questionByOrbits : Prop :=
+  ∀ Q : Quandle, ResiduallyNilpotent Q.Inn → Q.ResiduallyNilpotentByOrbits
+
 end
 end QuandleResearch.Issue067

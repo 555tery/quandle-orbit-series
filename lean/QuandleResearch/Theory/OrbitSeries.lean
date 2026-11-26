@@ -14,7 +14,7 @@ def OrbitRel (R : Rack) (s : Set R.carrier) (x z : R.carrier) : Prop :=
 def orbit (R : Rack) (s : Set R.carrier) (x : R.carrier) : Set R.carrier :=
   s ∩ MulAction.orbit (R.translationGroup s) x
 def IsSeries (R : Rack) (s : Set R.carrier) (a : Nat → Set R.carrier) : Prop :=
-  a 0 = s ∧ ∀ n, ∃ x ∈ a n, a (n+1) = R.orbit (a n) x
+  a 0 = s ∧ (∀ n, R.IsSubrack (a n)) ∧ ∀ n, ∃ x ∈ a n, a (n+1) = R.orbit (a n) x
 def OS (R : Rack) (s : Set R.carrier) : Prop :=
   ∀ a, R.IsSeries s a → ∃ n, a n = a (n+1)
 def OSBound (R : Rack) (s : Set R.carrier) (k : Nat) : Prop :=
@@ -27,8 +27,15 @@ def PointDepth (R : Rack) (s : Set R.carrier) (x : R.carrier) (n : Nat) : Prop :
   R.principalSeries s x n = R.principalSeries s x (n+1) ∧
     ∀ m < n, R.principalSeries s x m ≠ R.principalSeries s x (m+1)
 def TrivialOn (R : Rack) (s : Set R.carrier) : Prop := ∀ x ∈ s, ∀ y ∈ s, R.op x y = x
+/-- BCNW §4.1: trivializing means reaching T₁, not merely a
+trivial subquandle of arbitrary cardinality. -/
 def Trivializing (R : Rack) (k : Nat) : Prop :=
-  ∀ a, R.IsSeries Set.univ a → R.TrivialOn (a k)
+  ∀ a, R.IsSeries Set.univ a → ∃ j ≤ k, ∃ x : R.carrier, a j = {x}
+/-- The unbounded trivializing condition tOS. -/
+def TrivializingEventually (R : Rack) : Prop :=
+  ∀ a, R.IsSeries Set.univ a → ∃ j, ∃ x : R.carrier, a j = {x}
+/-- The class tOS_ω, a uniform finite bound on every series. -/
+def TrivializingOmega (R : Rack) : Prop := ∃ k, R.Trivializing k
 /-- Right-convention translation of the BCNW left-nested expression:
 the varying first operand becomes the varying right operand. -/
 def leftFold (R : Rack) (x : R.carrier) (ys : List R.carrier) : R.carrier :=
@@ -39,11 +46,27 @@ def LocallyReductive (R : Rack) (k : Nat) : Prop :=
   ∀ x y, R.leftFold x (List.replicate k y) = y
 end Rack
 def ExactIndex (P : Nat → Prop) (k : Nat) : Prop := P k ∧ ∀ m < k, ¬ P m
+/-- Published BCNW families are indexed by positive integers. -/
+def PositiveExactIndex (P : Nat → Prop) (k : Nat) : Prop :=
+  0 < k ∧ P k ∧ ∀ m, 0 < m → m < k → ¬ P m
 namespace Quandle
 abbrev Inn (Q : Quandle) : Subgroup (Equiv.Perm Q.carrier) := Q.rack.translationGroup Set.univ
 abbrev Connected (Q : Quandle) : Prop := MulAction.IsPretransitive Q.Inn Q.carrier
+/-- Darné v3 Definition 2.1: nilpotence of the inner group.
+His class c corresponds to Mathlib lower central index c-1. -/
+abbrev Nilpotent (Q : Quandle) : Prop := Group.IsNilpotent Q.Inn
+def NilpotentClassAtMost (Q : Quandle) (c : Nat) : Prop :=
+  0 < c ∧ lowerCentralSeries Q.Inn (c-1) = ⊥
+/-- Darné v3 Definition 2.20, literally: distinct elements are
+separated by a surjective morphism to a nilpotent quandle. -/
 def ResiduallyNilpotent (Q : Quandle) : Prop :=
-  ∀ x y : Q.carrier, (∀ n, y ∈ MulAction.orbit (lowerCentral Q.Inn n) x) → x = y
+  ∀ x y : Q.carrier, x ≠ y → ∃ (R : Quandle) (f : Q.HomType R),
+    Function.Surjective f ∧ R.Nilpotent ∧ f x ≠ f y
+/-- Equivalent criterion in the text following Definition 2.20.
+Equivalence is a statement, not a new assumption or a proved result. -/
+def ResiduallyNilpotentByOrbits (Q : Quandle) : Prop :=
+  ∀ x y : Q.carrier,
+    (∀ n : Nat, y ∈ (MulAction.orbit (lowerCentral Q.Inn n) x : Set Q.carrier)) → x = y
 end Quandle
 end
 end QuandleResearch

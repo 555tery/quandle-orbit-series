@@ -78,6 +78,12 @@ CI: stage 1 (66ab229) compiled all 69 modules. Stage 2 (85f20bd) failed because 
 
 Issue024 now has explicit switch axioms and a group-valued specialization of the algebraic-system invariant, with native PresentedGroup and FreeGroup. The exact equivalence convention and other algebraic systems remain outstanding. Issue050 now uses Mathlib GenContFract for S(p,q) and fixes chi using the source's epsilon/genus cases. Issue066 records candidate PartialEquiv-based semantics with both preserving and reflecting morphisms; the journal Problem 28 does not define the intended partial-biquandle category. These do not count as completed source formalizations.
 
+## Source audit: BCNW, Darné, and BNS
+
+- BCNW arXiv:2004.10227v3, §3.1, §4.1 and Question 5.25: `Trivializing` now means reaching a singleton T1 within the bound, not merely a trivial subquandle; `PositiveExactIndex` matches the positive-index families. Orbit-series layers are required to be subracks. This changes the shared predicates used by #3, #7, #13 and #14.
+- Darné arXiv:2205.02480v3, Definition 2.20: residual nilpotence is expressed literally by separation through surjective ShelfHom into nilpotent quandles. The orbit criterion is named separately, with no equivalence theorem asserted. #67 and #68 use the source definition. Proposition 2.24 is a known direction, not a new open problem.
+- BNS arXiv:1908.08301v1, Corollary 4.14 and Problem 4.15: #23 encodes both displayed operations and the action equation; compatibility with them is a test of a proposed general semidirect-product definition, not a claim to have defined the unique intended general construction.
+
 ## Coverage
 
 STATEMENT means the principal proposition is expressed using concrete shared definitions, not that source correspondence or typechecking has been verified. PARTIAL means at least one source-specific construction, descriptive component, or convention remains to be encoded or checked. Candidate-answer predicates must be instantiated with independently specified constructions, not tautological restatements.
@@ -97,7 +103,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#11](https://github.com/555tery/quandle-orbit-series/issues/11) | [Issue011](QuandleResearch/Questions/Issue011.lean) | STATEMENT | Source audit and typecheck |
 | [#12](https://github.com/555tery/quandle-orbit-series/issues/12) | [Issue012](QuandleResearch/Questions/Issue012.lean) | PARTIAL | An explicit classification model, not a tautological parameterization. |
 | [#13](https://github.com/555tery/quandle-orbit-series/issues/13) | [Issue013](QuandleResearch/Questions/Issue013.lean) | STATEMENT | Source audit and typecheck |
-| [#14](https://github.com/555tery/quandle-orbit-series/issues/14) | [Issue014](QuandleResearch/Questions/Issue014.lean) | PARTIAL | Check BCNW convention and exact index offsets against source. |
+| [#14](https://github.com/555tery/quandle-orbit-series/issues/14) | [Issue014](QuandleResearch/Questions/Issue014.lean) | STATEMENT | Source positive indices and singleton tOS_n audited; typecheck pending. |
 | [#15](https://github.com/555tery/quandle-orbit-series/issues/15) | [Issue015](QuandleResearch/Questions/Issue015.lean) | STATEMENT | Source audit and typecheck |
 | [#16](https://github.com/555tery/quandle-orbit-series/issues/16) | [Issue016](QuandleResearch/Questions/Issue016.lean) | PARTIAL | Check residual definition against paper; embeddings encode the iterates without constructing them. |
 | [#17](https://github.com/555tery/quandle-orbit-series/issues/17) | [Issue017](QuandleResearch/Questions/Issue017.lean) | PARTIAL | Inoue C1–C3 and componentwise weight multiplicities are explicit for finite targets. Geometric link-homotopy and Brunnian predicates and infinite-target scope remain to be encoded. |
@@ -106,7 +112,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#20](https://github.com/555tery/quandle-orbit-series/issues/20) | [Issue020](QuandleResearch/Questions/Issue020.lean) | PARTIAL | The dihedral operation, inner group and orbit-preserving condition are explicit; verify the precise QInn convention against the original article. |
 | [#21](https://github.com/555tery/quandle-orbit-series/issues/21) | [Issue021](QuandleResearch/Questions/Issue021.lean) | PARTIAL | Native functors and adjunction statements; source morphism convention and typecheck remain to be audited. |
 | [#22](https://github.com/555tery/quandle-orbit-series/issues/22) | [Issue022](QuandleResearch/Questions/Issue022.lean) | PARTIAL | Native functors and adjunction statements; source morphism convention and typecheck remain to be audited. |
-| [#23](https://github.com/555tery/quandle-orbit-series/issues/23) | [Issue023](QuandleResearch/Questions/Issue023.lean) | PARTIAL | Design constraints only; need a meaningful action, embedding and product structure. |
+| [#23](https://github.com/555tery/quandle-orbit-series/issues/23) | [Issue023](QuandleResearch/Questions/Issue023.lean) | PARTIAL | Exact Corollary 4.14 operations and action equation encoded; the requested general definition remains open-ended. |
 | [#24](https://github.com/555tery/quandle-orbit-series/issues/24) | [Issue024](QuandleResearch/Questions/Issue024.lean) | PARTIAL | Switch laws, twist, group words and group-valued invariant explicit. General algebraic systems and geometric equivalence remain. |
 | [#25](https://github.com/555tery/quandle-orbit-series/issues/25) | [Issue025](QuandleResearch/Questions/Issue025.lean) | PARTIAL | Concrete quotient and distinguished symmetric subgroup now defined; independent order classification and presentation-convention audit remain. |
 | [#26](https://github.com/555tery/quandle-orbit-series/issues/26) | [Issue026](QuandleResearch/Questions/Issue026.lean) | PARTIAL | Concrete quotient and algebraic Bieberbach condition; independent subgroup classification and geometric convention audit remain. |
@@ -151,7 +157,7 @@ STATEMENT means the principal proposition is expressed using concrete shared def
 | [#65](https://github.com/555tery/quandle-orbit-series/issues/65) | [Issue065](QuandleResearch/Questions/Issue065.lean) | PARTIAL | Fundamental strong biquandle specified by actual crossing relations; geometric model and naturality are requested, not asserted. |
 | [#66](https://github.com/555tery/quandle-orbit-series/issues/66) | [Issue066](QuandleResearch/Questions/Issue066.lean) | PARTIAL | PartialEquiv-based candidate with preserving/reflecting morphisms. Exact author's admissibility and category remain unspecified. |
 | [#67](https://github.com/555tery/quandle-orbit-series/issues/67) | [Issue067](QuandleResearch/Questions/Issue067.lean) | STATEMENT | Source audit and typecheck |
-| [#68](https://github.com/555tery/quandle-orbit-series/issues/68) | [Issue068](QuandleResearch/Questions/Issue068.lean) | PARTIAL | Concrete enveloping group and injectivity, all eight statements; verify Darné indexing. |
+| [#68](https://github.com/555tery/quandle-orbit-series/issues/68) | [Issue068](QuandleResearch/Questions/Issue068.lean) | STATEMENT | Literal Definition 2.20 audited; native enveloping group and eight directions, with Proposition 2.24 already known. |
 | [#69](https://github.com/555tery/quandle-orbit-series/issues/69) | [Issue069](QuandleResearch/Questions/Issue069.lean) | PARTIAL | Universal reduced quotient and fundamental quandle presentation specified. Welded link-homotopy and reversed mirror of non-split components in S4 still need geometric encoding. |
 
 Multi-part questions have separate definitions wherever practical. Research directions and literature corrections retain their distinct nature. An open-ended classification or construction problem is not replaced by an existential quantifier over arbitrary predicates and called solved.
