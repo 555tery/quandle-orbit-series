@@ -18979,4 +18979,95 @@ theorem ribbon_rank_compression_end_dichotomy {D : Type} [Fintype D]
 
 #print axioms ribbon_rank_compression_end_dichotomy
 
+
+/-- Ordered preservation of the full based peripheral lists implies
+that compression commutes with the original rotation on every
+retained dart. This is stronger than preservation of membership
+in the peripheral cycle. -/
+theorem compressed_peripheral_rotation {D E : Type} [Fintype D] [Fintype E]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E ↪ D) (keep : D → Prop)
+    (hread : ∀ d, ¬ keep (f d) →
+      (Q.vertexBoundary d).map f = P.vertexBoundary (f d))
+    (hcycles : ∀ d e, Q.rotation.SameCycle d e →
+      (keep (f d) ↔ keep (f e)))
+    (d : E) (hd : ¬ keep (f d)) :
+    f (Q.rotation d) = P.rotation (f d) := by
+  have hcyc : Q.rotation.SameCycle d (Q.rotation d) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have hd' : ¬ keep (f (Q.rotation d)) :=
+    fun h => hd ((hcycles d (Q.rotation d) hcyc).mpr h)
+  obtain ⟨l,hl⟩ := cycleBoundary_cons Q.rotation d
+  have hQnext := cycleBoundary_next Q.rotation d l hl
+  change Q.vertexBoundary d = d::l at hl
+  change Q.vertexBoundary (Q.rotation d) = l++[d] at hQnext
+  have hP : P.vertexBoundary (f d) = f d :: l.map f := by
+    rw [← hread d hd,hl,List.map_cons]
+  have hPnext := cycleBoundary_next P.rotation (f d) (l.map f) hP
+  change P.vertexBoundary (P.rotation (f d)) = l.map f ++ [f d] at hPnext
+  have he : P.vertexBoundary (f (Q.rotation d)) =
+      P.vertexBoundary (P.rotation (f d)) := by
+    rw [← hread (Q.rotation d) hd',hQnext,List.map_append,List.map_singleton,hPnext]
+  obtain ⟨u,hu⟩ := cycleBoundary_cons P.rotation (f (Q.rotation d))
+  obtain ⟨v,hv⟩ := cycleBoundary_cons P.rotation (P.rotation (f d))
+  change P.vertexBoundary (f (Q.rotation d)) = f (Q.rotation d)::u at hu
+  change P.vertexBoundary (P.rotation (f d)) = P.rotation (f d)::v at hv
+  rw [hu,hv] at he
+  exact (List.cons.inj he).1
+
+/-- The internal-edge-free compression cannot introduce a monogon.
+A lower vertex cannot support one because its paired dart lies
+at a retained vertex; a retained monogon would lift to an original
+monogon by the actual preserved rotation and edge. -/
+theorem compressed_no_monogons {D E : Type} [Fintype D] [Fintype E]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E ↪ D) (keep : D → Prop)
+    (hedge : ∀ d, f (Q.edge d) = P.edge (f d))
+    (hread : ∀ d, ¬ keep (f d) →
+      (Q.vertexBoundary d).map f = P.vertexBoundary (f d))
+    (hcycles : ∀ d e, Q.rotation.SameCycle d e →
+      (keep (f d) ↔ keep (f e)))
+    (hterminal : ∀ d, keep (f d) → ¬ keep (f (Q.edge d)))
+    (hmono : ∀ d, P.face d ≠ d) :
+    ∀ d, Q.face d ≠ d := by
+  intro d hf
+  have he : Q.edge d = Q.rotation d := by
+    have hh := congrArg Q.rotation hf
+    simpa only [RibbonMap.face_apply,Equiv.apply_symm_apply] using hh
+  by_cases hd : keep (f d)
+  · apply hterminal d hd
+    rw [he]
+    exact (hcycles d (Q.rotation d)
+      (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))).mp hd
+  · apply hmono (f d)
+    have hrot := compressed_peripheral_rotation P Q f keep hread hcycles d hd
+    have hh : P.edge (f d) = P.rotation (f d) := by
+      rw [← hedge,he,hrot]
+    rw [RibbonMap.face_apply,hh,Equiv.symm_apply_apply]
+
+/-- The entire internal-edge-free compression is available without
+monogon faces as soon as the original ribbon had no monogon faces.
+This discharges the corresponding hypothesis in the rank-compressed
+Euler dichotomy, without presuming any lower-region metric transfer. -/
+theorem exists_monogon_free_internal_edge_compression {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality)
+    (hmono : ∀ d, P.face d ≠ d) :
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D),
+      Q.EulerEquality ∧ (P.Connected → Q.Connected) ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) →
+        (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) ∧
+      (∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e))) ∧
+      (∀ d, keep (f d) → ¬ keep (f (Q.edge d))) ∧
+      (∀ d, Q.face d ≠ d) := by
+  obtain ⟨E,inst,Q,f,hQ,hconn,he,hs,hr,hc,ht⟩ :=
+    exists_internal_edge_free_compression P keep hkeep hE
+  exact ⟨E,inst,Q,f,hQ,hconn,he,hs,hr,hc,ht,
+    compressed_no_monogons P Q f keep he hr hc ht hmono⟩
+
+#print axioms compressed_peripheral_rotation
+#print axioms compressed_no_monogons
+#print axioms exists_monogon_free_internal_edge_compression
+
 end QuandleResearch.Issue070
