@@ -10808,4 +10808,98 @@ theorem rankRibbon_shortest_kernel_distinct_faces
 
 #print axioms rankRibbon_shortest_kernel_distinct_faces
 
+
+/-- Every nonempty interval of a canonical word below the first
+failure threshold survives in the preceding quotient. The full
+interval is allowed; it need not be a proper factor. -/
+theorem short_canonical_factor_survives
+    (N : Subgroup F) (B : ℕ)
+    (hshort : ∀ z : F, z ∈ N → weightedLength z ≤ B → z = 1)
+    (z : F) (hbound : weightedLength z ≤ B)
+    (u : RawWord) (hu : u ≠ []) (hfactor : u <:+: z.toWord) :
+    FreeGroup.mk u ∉ N := by
+  have hred : FreeGroup.IsReduced u := FreeGroup.isReduced_toWord.infix hfactor
+  have hword : (FreeGroup.mk u).toWord = u := by
+    rw [FreeGroup.toWord_mk,hred.reduce_eq]
+  have hweight : weightedLength (FreeGroup.mk u) = rawWeight u := by
+    rw [weightedLength,hword]
+  have hle : rawWeight u ≤ weightedLength z := by
+    obtain ⟨p,r,h⟩ := hfactor
+    have he : z.toWord = p ++ u ++ r := by
+      simpa only [List.append_assoc] using h.symm
+    unfold weightedLength
+    rw [he,rawWeight_append,rawWeight_append]
+    omega
+  intro hm
+  have he := hshort (FreeGroup.mk u) hm (by omega)
+  have hn : (FreeGroup.mk u).toWord = [] := FreeGroup.toWord_eq_nil_iff.mpr he
+  exact hu (hword.symm.trans hn)
+
+/-- Every nonempty interval at any corner of a shortest failing
+kernel boundary survives in the previous stage. This uses the
+stronger all-corners cyclic reduction, not just the fixed base. -/
+theorem shortest_kernel_outer_factor_survives {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter)
+    (N M : Subgroup F) [M.Normal] (B : ℕ)
+    (hshort : ∀ z : F, z ∈ N → weightedLength z ≤ B → z = 1)
+    (a c : D) (hac : P.rotation.SameCycle a c)
+    (w : F) (hw : w ≠ 1) (hm : w ∈ M)
+    (hbase : (P.vertexBoundary a).map read = w.toWord)
+    (hmin : ∀ z : F, z ∈ M → z ≠ 1 → weightedLength w ≤ weightedLength z)
+    (hbound : weightedLength w ≤ B)
+    (u : RawWord) (hu : u ≠ [])
+    (hfactor : u <:+: (P.vertexBoundary c).map read) :
+    FreeGroup.mk u ∉ N := by
+  let z := FreeGroup.mk ((P.vertexBoundary c).map read)
+  have hz : z.toWord = (P.vertexBoundary c).map read :=
+    shortest_kernel_cyclic_read P read M a c hac w hw hm hbase hmin
+  have hweight : weightedLength z = weightedLength w := by
+    unfold weightedLength
+    rw [hz,← hbase]
+    exact (ribbon_perimeter_sameCycle P read a c hac).symm
+  apply short_canonical_factor_survives N B hshort z (by omega) u hu
+  rw [hz]
+  exact hfactor
+
+/-- A genuine contiguous outer block cannot be the sole peripheral
+block of a lower-stage coefficient component of the shortest failure.
+In contrast to a mere non-singleton dart count, the additional
+outlet is outside the entire block. -/
+theorem shortest_kernel_outer_block_has_other_outlet {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter)
+    (N M : Subgroup F) [N.Normal] [M.Normal] (B : ℕ)
+    (hshort : ∀ z : F, z ∈ N → weightedLength z ≤ B → z = 1)
+    (keep : D → Prop) (hstep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (tau : Equiv.Perm D)
+    (hE : P.EulerEquality) (href : SplitRefinement P.rotation tau)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hprotected : ∀ d, keep d →
+      (P.withRotation tau).vertexBoundary d = P.vertexBoundary d)
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (hcomp : ∀ d e, (P.withRotation tau).SameComponent d e ↔
+      (P.coefficientRegions keep hstep).SameComponent d e)
+    (a c : D) (hac : P.rotation.SameCycle a c)
+    (w : F) (hw : w ≠ 1) (hm : w ∈ M)
+    (hbase : (P.vertexBoundary a).map read = w.toWord)
+    (hmin : ∀ z : F, z ∈ M → z ≠ 1 → weightedLength w ≤ weightedLength z)
+    (hbound : weightedLength w ≤ B)
+    (d : D) (u : List D)
+    (hread : (P.withRotation tau).vertexBoundary d = d :: u)
+    (hfactor : (d :: u).map read <:+: (P.vertexBoundary c).map read) :
+    ∃ e, (P.coefficientRegions keep hstep).SameComponent d e ∧
+      ¬ keep e ∧ e ∉ d :: u := by
+  classical
+  by_contra hn
+  apply shortest_kernel_outer_factor_survives P read N M B hshort
+    a c hac w hw hm hbase hmin hbound ((d :: u).map read) (by simp) hfactor
+  apply coefficient_one_block_mem P read N keep hstep tau hE href
+    hedge hprotected hint hcomp d u hread
+  intro e he hk
+  by_contra hmem
+  exact hn ⟨e,he,hk,hmem⟩
+
+#print axioms short_canonical_factor_survives
+#print axioms shortest_kernel_outer_factor_survives
+#print axioms shortest_kernel_outer_block_has_other_outlet
+
 end QuandleResearch.Issue070
