@@ -150,7 +150,9 @@ jobs:
                    "ribbon_vertex_mem_sameCycle", "boundaryRibbon_vertex_mem_of_label", "rankRibbon_lower_vertex_mem", "refined_vertex_read_of_agreement", "rankRibbon_refined_two_boundary_mem",
                    "vertexCut_rotation_eq_on_protected", "vertexCut_protected_invariant", "protected_splitRefinement_agreement", "lowerRankDart", "lowerRankDart_sameCycle", "rankRibbon_protected_cuts_boundary_mem",
                    "fixed_vertex_read_singleton", "coefficientRegions_no_unique_outlet", "rankRibbon_lower_regions_no_unique_outlet",
-                   "guba23_firstKind_weight", "guba23_perimeter_arithmetic", "guba23_row_perimeter_of_coverage"]
+                   "guba23_firstKind_weight", "guba23_perimeter_arithmetic", "guba23_row_perimeter_of_coverage",
+                   "guba23_sublist_weight", "guba23_flatMap_weight", "guba23_outer_arcs_weight", "guba23_arc_transfer_sum", "guba23_boundary_transfer", "guba23_row_perimeter_of_arcs",
+                   "guba22_component_support", "guba22_mem_component_support", "guba22_component_support_disjoint", "guba22_exists_component_representatives", "guba22_component_partition_weight", "guba22_second_kind_card", "guba22_prune_coverage", "guba22_prune_preserves_geometry"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
