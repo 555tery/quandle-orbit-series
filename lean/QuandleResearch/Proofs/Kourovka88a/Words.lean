@@ -602,4 +602,239 @@ theorem weightedLength_longConjugator_twice (q : List (Fin 2)) (m : ℕ) :
   rw [← positiveWord_longRaw]
   exact weightedLength_longRaw_twice q m
 
+
+/-! ## Resolvent interval estimate (Guba, property 1.9)
+
+The two endpoints of a resolvent are the start of a block and the end
+of the following separator. First prove a weighted-coordinate lemma,
+then recover actual contiguous subwords using strictly positive weights.
+No uniqueness of resolvents, nor graded-diagram claim, is made here.
+-/
+
+theorem markerInterval_of_large (S : ℕ → ℕ) (L D h l r : ℕ)
+    (hz : S 0 = 0)
+    (hs : ∀ j, S (j+1) = S j + D + (j+1)*L)
+    (hh : 8 ≤ h) (hD : 2*D ≤ L)
+    (hearly : S 7 + D ≤ 2*h*L)
+    (hr : r ≤ S h) (hlong : l + 2*h*L < r) :
+    ∃ k, 7 ≤ k ∧ k < h ∧ l ≤ S (k-1) ∧ S k + D ≤ r := by
+  classical
+  have hmono : Monotone S := by
+    apply monotone_nat_of_le_succ
+    intro n
+    rw [hs]
+    omega
+  have hex : ∃ j, l < S j := ⟨h, by omega⟩
+  let j := Nat.find hex
+  have hj : l < S j := Nat.find_spec hex
+  have hjh : j ≤ h := Nat.find_min' hex (by omega)
+  have hjpos : 0 < j := by
+    by_contra hn
+    have he : j = 0 := by omega
+    rw [he, hz] at hj
+    omega
+  have hjprev : S (j-1) ≤ l := by
+    by_contra hn
+    have hlt : l < S (j-1) := by omega
+    have hm : j ≤ j-1 := Nat.find_min' hex hlt
+    omega
+  by_cases hsmall : j ≤ 6
+  · refine ⟨7, by omega, by omega, ?_, by omega⟩
+    have hm := hmono hsmall
+    change l ≤ S 6
+    omega
+  · by_cases hmid : j+1 < h
+    · refine ⟨j+1, by omega, hmid, ?_, ?_⟩
+      · simpa only [Nat.add_sub_cancel] using (le_of_lt hj)
+      · have hej : j-1+1 = j := by omega
+        have hsj := hs (j-1)
+        rw [hej] at hsj
+        have hsj1 := hs j
+        have hm1 : (j+2)*L ≤ h*L :=
+          Nat.mul_le_mul_right L (by omega)
+        have hm2 : (j+1)*L ≤ h*L :=
+          Nat.mul_le_mul_right L (by omega)
+        have he1 : (j+2)*L = j*L+2*L := by ring
+        have he2 : 2*h*L = h*L+h*L := by ring
+        omega
+    · have hidx : h-2 ≤ j-1 := by omega
+      have hm := hmono hidx
+      have he1 : h-2+1 = h-1 := by omega
+      have he2 : h-1+1 = h := by omega
+      have hstep1 := hs (h-2)
+      have hstep2 := hs (h-1)
+      rw [he1] at hstep1
+      rw [he2] at hstep2
+      have hm1 : (h-1)*L+L = h*L := by
+        calc
+          _ = (h-1+1)*L := by ring
+          _ = _ := by rw [he2]
+      have hm2 : 2*h*L = h*L+h*L := by ring
+      omega
+
+abbrev positiveWeight (q : List (Fin 2)) : ℕ :=
+  weightedLength (positiveWord q)
+
+theorem positiveWeight_append (p q : List (Fin 2)) :
+    positiveWeight (p ++ q) = positiveWeight p + positiveWeight q := by
+  rw [positiveWord_append, weightedLength_positive_mul]
+
+theorem positiveWeight_nil : positiveWeight [] = 0 := by
+  simp [positiveWeight, weightedLength, toWord_positiveWord, rawWeight]
+
+theorem positiveWeight_zero_imp_nil (q : List (Fin 2))
+    (hq : positiveWeight q = 0) : q = [] := by
+  have hl := positiveWord_length_le q
+  have hz : q.length = 0 := by omega
+  exact List.length_eq_zero_iff.mp hz
+
+/-- For two prefixes of the same word, their weighted lengths determine
+their inclusion order; no assumption of equal letter weights is used. -/
+theorem prefix_of_positiveWeight_le {p q x : List (Fin 2)}
+    (hp : p <+: x) (hq : q <+: x)
+    (h : positiveWeight p ≤ positiveWeight q) : p <+: q := by
+  rcases List.prefix_or_prefix_of_prefix hp hq with hpre | hpre
+  · exact hpre
+  · obtain ⟨t, ht⟩ := List.prefix_iff_exists_append_eq.mp hpre
+    have hsum := congrArg positiveWeight ht
+    rw [positiveWeight_append] at hsum
+    have hzero : positiveWeight t = 0 := by omega
+    have hnil := positiveWeight_zero_imp_nil t hzero
+    subst t
+    simp only [List.append_nil] at ht
+    subst p
+    exact List.prefix_rfl
+
+/-- Inclusion of weighted intervals of a single word implies literal
+contiguous factor containment. -/
+theorem factor_of_weighted_interval
+    (p z r u m v : List (Fin 2))
+    (heq : p ++ z ++ r = u ++ m ++ v)
+    (hstart : positiveWeight p ≤ positiveWeight u)
+    (hend : positiveWeight (u ++ m) ≤ positiveWeight (p ++ z)) :
+    ∃ left right, z = left ++ m ++ right := by
+  have hp : p <+: p ++ z ++ r := by
+    rw [List.append_assoc]
+    exact List.prefix_append _ _
+  have hu : u <+: p ++ z ++ r := by
+    rw [heq, List.append_assoc]
+    exact List.prefix_append _ _
+  have hum : u ++ m <+: p ++ z ++ r := by
+    rw [heq]
+    exact List.prefix_append _ _
+  have hpz : p ++ z <+: p ++ z ++ r := List.prefix_append _ _
+  obtain ⟨left, hl⟩ := List.prefix_iff_exists_append_eq.mp
+    (prefix_of_positiveWeight_le hp hu hstart)
+  obtain ⟨right, hh⟩ := List.prefix_iff_exists_append_eq.mp
+    (prefix_of_positiveWeight_le hum hpz hend)
+  refine ⟨left, right, ?_⟩
+  have hc : p ++ z = p ++ (left ++ m ++ right) := by
+    rw [← hh, ← hl]
+    simp only [List.append_assoc]
+  exact List.append_left_cancel hc
+
+theorem longRaw_prefix (q : List (Fin 2)) {i j : ℕ} (hij : i ≤ j) :
+    longRaw q i <+: longRaw q j := by
+  obtain ⟨n, rfl⟩ := Nat.exists_eq_add_of_le hij
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    exact ih.trans (List.prefix_append _ _)
+
+def resolventRaw (q : List (Fin 2)) (k : ℕ) : List (Fin 2) :=
+  longBlock q (k-1) ++ List.replicate 3 1
+
+/-- The prescribed separator-power-separator factor occurs at the
+start of its kth block, as a literal list factor. -/
+theorem longRaw_resolvent_factor (q : List (Fin 2)) (k h : ℕ)
+    (hk : 0 < k) (hkh : k < h) :
+    ∃ v, longRaw q h = longRaw q (k-1) ++ resolventRaw q k ++ v := by
+  obtain ⟨t, ht⟩ := List.prefix_iff_exists_append_eq.mp
+    (longRaw_prefix q (show k+1 ≤ h by omega))
+  have hrec : longRaw q k = longRaw q (k-1) ++ longBlock q (k-1) := by
+    have he : k-1+1 = k := by omega
+    conv_lhs => rw [← he]
+  refine ⟨(List.replicate (k+1) q).flatten ++ t, ?_⟩
+  rw [← ht]
+  change (longRaw q k ++ longBlock q k) ++ t = _
+  rw [hrec, longBlock, resolventRaw]
+  simp only [List.append_assoc]
+
+theorem positiveWeight_separator :
+    positiveWeight (List.replicate 3 (1 : Fin 2)) = 3*10^80 := by
+  rw [positiveWeight, weightedLength, toWord_positiveWord]
+  norm_num [rawWeight, letterWeight]
+
+theorem positiveWeight_resolvent_end (q : List (Fin 2)) (k : ℕ)
+    (hk : 0 < k) :
+    positiveWeight (longRaw q (k-1) ++ resolventRaw q k) =
+      positiveWeight (longRaw q k) + 3*10^80 := by
+  have hrec : longRaw q k = longRaw q (k-1) ++ longBlock q (k-1) := by
+    have he : k-1+1 = k := by omega
+    conv_lhs => rw [← he]
+  rw [hrec, resolventRaw, ← List.append_assoc, positiveWeight_append,
+    positiveWeight_separator]
+
+/-- Integral version of the numerical comparison in property 1.9,
+with h = 10^20, epsilon = 1/120, beta = 10^-17. -/
+theorem guba19_threshold (q : List (Fin 2)) :
+    240*10^17 * (2*10^20 * positiveWeight q) <
+      positiveWeight (longRaw q (10^20)) := by
+  have he := weightedLength_longRaw_twice q (10^20)
+  change 2 * positiveWeight (longRaw q (10^20)) =
+    6*10^20*10^80 + 10^20*(10^20+1)*positiveWeight q at he
+  norm_num at he ⊢
+  omega
+
+/-- Property 1.9, in the positive raw-word model and with an explicit
+lower bound on Q's weight. The latter must still be discharged for the
+rank-indexed choice of Q in the original construction. -/
+theorem guba19_resolvent (q p z r : List (Fin 2))
+    (hq : 6*10^80 ≤ positiveWeight q)
+    (hword : longRaw q (10^20) = p ++ z ++ r)
+    (hlong : positiveWeight (longRaw q (10^20)) <
+      240*10^17 * positiveWeight z) :
+    ∃ k, 7 ≤ k ∧ k < 10^20 ∧
+      ∃ left right, z = left ++ resolventRaw q k ++ right := by
+  have hthr := guba19_threshold q
+  have hlarge : 2*10^20 * positiveWeight q < positiveWeight z := by
+    by_contra hn
+    have hm := Nat.mul_le_mul_left (240*10^17)
+      (show positiveWeight z ≤ 2*10^20 * positiveWeight q by omega)
+    omega
+  have hzero : positiveWeight (longRaw q 0) = 0 := positiveWeight_nil
+  have hstep (j : ℕ) : positiveWeight (longRaw q (j+1)) =
+      positiveWeight (longRaw q j) + 3*10^80 + (j+1)*positiveWeight q := by
+    rw [longRaw, positiveWeight_append]
+    have hb := weightedLength_longBlock q j
+    change positiveWeight (longBlock q j) = _ at hb
+    omega
+  have hearly : positiveWeight (longRaw q 7) + 3*10^80 ≤
+      2*10^20 * positiveWeight q := by
+    have he := weightedLength_longRaw_twice q 7
+    change 2*positiveWeight (longRaw q 7) =
+      6*7*10^80 + 7*(7+1)*positiveWeight q at he
+    norm_num at he hq ⊢
+    omega
+  have hright : positiveWeight (p ++ z) ≤ positiveWeight (longRaw q (10^20)) := by
+    rw [hword, positiveWeight_append]
+    omega
+  have hlong' : positiveWeight p + 2*10^20*positiveWeight q <
+      positiveWeight (p ++ z) := by
+    rw [positiveWeight_append]
+    omega
+  obtain ⟨k, hk, hkh, hstart, hend⟩ :=
+    markerInterval_of_large (fun n => positiveWeight (longRaw q n))
+      (positiveWeight q) (3*10^80) (10^20) (positiveWeight p)
+      (positiveWeight (p ++ z)) hzero hstep (by norm_num)
+      (by norm_num at hq ⊢; omega) hearly hright hlong'
+  obtain ⟨v, hv⟩ := longRaw_resolvent_factor q k (by omega) hkh
+  have heq : p ++ z ++ r = longRaw q (k-1) ++ resolventRaw q k ++ v :=
+    hword.symm.trans hv
+  have hend' : positiveWeight (longRaw q (k-1) ++ resolventRaw q k) ≤
+      positiveWeight (p ++ z) := by
+    rw [positiveWeight_resolvent_end q k (by omega)]
+    exact hend
+  exact ⟨k, hk, hkh, factor_of_weighted_interval p z r _ _ v heq hstart hend'⟩
+
 end QuandleResearch.Issue070
