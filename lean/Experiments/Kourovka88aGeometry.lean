@@ -14886,4 +14886,164 @@ theorem coefficient_pair_strict_height (d f r t : ℤ)
 #print axioms coefficient_pair_height_redistribution
 #print axioms coefficient_pair_strict_height
 
+
+/-- Both coordinates are additive, so a local surgery can be
+compared inside the entire expression without changing the type
+of the untouched prefix and suffix. -/
+theorem gubaTypeCoordinate_append {n : ℕ}
+    (s t : Peiffer.Sequence F (RankHeight n)) (k : ℕ) :
+    gubaTypeCoordinate (s++t) k = gubaTypeCoordinate s k + gubaTypeCoordinate t k := by
+  by_cases h : k%2 = 0
+  · simp only [gubaTypeCoordinate,h,ite_true,rankHeightSum_append]
+  · simp only [gubaTypeCoordinate,h,ite_false,rankCount_append]
+
+theorem gubaTypeCoordinate_zero_of_count_zero {n : ℕ}
+    (s : Peiffer.Sequence F (RankHeight n)) (k : ℕ)
+    (h : rankCount s (k/2) = 0) :
+    gubaTypeCoordinate s k = 0 := by
+  have hnil : s.filter (fun x => decide (x.1.2.1.val = k/2)) = [] :=
+    List.length_eq_zero_iff.mp h
+  have hh : rankHeightSum s (k/2) = 0 := by
+    simp only [rankHeightSum,hnil,List.map_nil,List.sum_nil]
+  unfold gubaTypeCoordinate
+  rw [hh,h]
+  split <;> rfl
+
+/-- The full-type replacement principle modulo lower ranks.
+At coordinate 2*j+1 this is a count reduction, at 2*j a
+height reduction. In either case all more significant coordinates
+must be preserved. The correction filling has both coordinates zero
+at ranks at least j. This is the common mechanism for both of
+Guba's surgeries, rather than an unjustified appeal to count-only
+minimality. -/
+theorem gubaTypeMinimal_block_no_reduction_mod_lower
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p b r t : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w (p++b++r))
+    (c : ℕ) (hc : c < 2*n)
+    (hmod : (Peiffer.evaluation (rankHeightRel pick X n) t)⁻¹ *
+      Peiffer.evaluation (rankHeightRel pick X n) b ∈
+        weightedHeightStage pick X (c/2))
+    (habove : ∀ k, c < k → k < 2*n →
+      gubaTypeCoordinate b k = gubaTypeCoordinate t k)
+    (hstrict : gubaTypeCoordinate t c < gubaTypeCoordinate b c) : False := by
+  have hj : c/2 ≤ n := by omega
+  obtain ⟨q,hq,hzero⟩ := exists_lowerRank_filling pick X hj _ hmod
+  have hqzero (k : ℕ) (hk : c ≤ k) : gubaTypeCoordinate q k = 0 :=
+    gubaTypeCoordinate_zero_of_count_zero q k (hzero _ (by omega))
+  have he : Peiffer.evaluation (rankHeightRel pick X n) b =
+      Peiffer.evaluation (rankHeightRel pick X n) (t++q) := by
+    rw [peiffer_evaluation_append,hq]
+    group
+  have ht : Peiffer.evaluation (rankHeightRel pick X n) (p++(t++q)++r) = w := by
+    rw [peiffer_evaluation_append,peiffer_evaluation_append,← he]
+    simpa only [peiffer_evaluation_append] using hm.1
+  have hh : ∀ k, c < k → k < 2*n →
+      gubaTypeCoordinate (p++b++r) k = gubaTypeCoordinate (p++(t++q)++r) k := by
+    intro k hck hkn
+    simp only [gubaTypeCoordinate_append,habove k hck hkn,hqzero k hck.le,add_zero]
+  have hle := hm.2 (p++(t++q)++r) ht c hc hh
+  simp only [gubaTypeCoordinate_append,hqzero c (le_refl c),add_zero] at hle
+  omega
+
+/-- Orientation normalization preserves absolute heights as well
+as the original rank counts. -/
+theorem rankHeightSum_positiveHeightOccurrence {n : ℕ}
+    (s : Peiffer.Sequence F (RankHeight n)) (j : ℕ) :
+    rankHeightSum (s.map (positiveHeightOccurrence n)) j = rankHeightSum s j := by
+  induction s with
+  | nil => rfl
+  | cons x xs ih =>
+    have hr : (positiveHeightOccurrence n x).1.2.1.val = x.1.2.1.val :=
+      congrArg Fin.val (positiveHeightOccurrence_rank n x)
+    have hh : (positiveHeightOccurrence n x).1.2.2.natAbs = x.1.2.2.natAbs := by
+      rcases x with ⟨⟨u,⟨i,k⟩⟩,b⟩
+      cases b <;> simp only [positiveHeightOccurrence,Int.natAbs_neg]
+    unfold rankHeightSum at ih ⊢
+    simp only [List.map_cons,List.filter_cons,hr]
+    split <;> simp only [List.map_cons,List.sum_cons,hh,ih]
+
+theorem gubaTypeCoordinate_positiveHeightOccurrence {n : ℕ}
+    (s : Peiffer.Sequence F (RankHeight n)) (k : ℕ) :
+    gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) k =
+      gubaTypeCoordinate s k := by
+  unfold gubaTypeCoordinate
+  rw [rankHeightSum_positiveHeightOccurrence,rankCount_positiveHeightOccurrence]
+
+/-- Choose the actual positive marked ribbon with the corrected
+full type. No count-only minimality is claimed. -/
+theorem exists_gubaTypeMinimal_ribbon_expression
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      GubaTypeMinimalExpression pick X n w s ∧
+      (∀ x ∈ s, x.2 = true) ∧
+      ∃ he : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w,
+        (boundaryRibbon (rankHeightRows pick X n) w s he).EulerEquality := by
+  obtain ⟨s,hm⟩ := exists_gubaTypeMinimalExpression pick X n w hw
+  let t := s.map (positiveHeightOccurrence n)
+  have ht : GubaTypeMinimalExpression pick X n w t := by
+    refine ⟨?_,?_⟩
+    · change Peiffer.evaluation (rankHeightRel pick X n)
+        (s.map (positiveHeightOccurrence n)) = w
+      rw [positiveHeightOccurrence_evaluation]
+      exact hm.1
+    · intro u hu j hj habove
+      change ∀ k, j < k → k < 2*n →
+        gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) k =
+          gubaTypeCoordinate u k at habove
+      change gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) j ≤
+        gubaTypeCoordinate u j
+      simp only [gubaTypeCoordinate_positiveHeightOccurrence] at habove ⊢
+      exact hm.2 u hu j hj habove
+  have hp : ∀ x ∈ t, x.2 = true := by
+    intro x hx
+    obtain ⟨y,_,rfl⟩ := List.mem_map.mp hx
+    exact positiveHeightOccurrence_sign n y
+  have he : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) t = w := by
+    simpa only [rankHeightRows_eval] using ht.1
+  exact ⟨t,ht,hp,he,boundaryRibbon_euler _ w t he⟩
+
+/-- The two-cell replacement for a coefficient pair is forbidden
+whenever its actual boundary identity is established modulo lower
+ranks. This is exactly the height-coordinate use of the full type.
+It allows zero new heights, which can subsequently be deleted;
+the contradiction already holds before deleting them. -/
+theorem gubaTypeMinimal_no_coefficient_pair_replacement
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (j : Fin n)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (a₁ a₂ b₁ b₂ : F) (d f u v : ℤ)
+    (hm : GubaTypeMinimalExpression pick X n w
+      (p++[((a₁,(j,d)),true),((a₂,(j,-f)),true)]++r))
+    (hmod : (Peiffer.evaluation (rankHeightRel pick X n)
+      [((b₁,(j,u)),true),((b₂,(j,v)),true)])⁻¹ *
+      Peiffer.evaluation (rankHeightRel pick X n)
+      [((a₁,(j,d)),true),((a₂,(j,-f)),true)] ∈
+        weightedHeightStage pick X j.val)
+    (hstrict : u.natAbs + v.natAbs < d.natAbs + f.natAbs) :
+    False := by
+  apply gubaTypeMinimal_block_no_reduction_mod_lower pick X n w p
+    [((a₁,(j,d)),true),((a₂,(j,-f)),true)] r
+    [((b₁,(j,u)),true),((b₂,(j,v)),true)] hm (2*j.val) (by omega)
+  · simpa only [show (2*j.val)/2 = j.val by omega] using hmod
+  · intro k hk hkn
+    have hdiv : j.val ≤ k/2 := by omega
+    by_cases h : k%2 = 0
+    · have hlt : j.val < k/2 := by omega
+      have hne : j.val ≠ k/2 := ne_of_lt hlt
+      simp [gubaTypeCoordinate,h,rankHeightSum,hne]
+    · simp [gubaTypeCoordinate,h,rankCount]
+  · rw [gubaTypeCoordinate_height,gubaTypeCoordinate_height]
+    simpa [rankHeightSum,Int.natAbs_neg] using hstrict
+
+#print axioms gubaTypeCoordinate_append
+#print axioms gubaTypeCoordinate_zero_of_count_zero
+#print axioms gubaTypeMinimal_block_no_reduction_mod_lower
+#print axioms rankHeightSum_positiveHeightOccurrence
+#print axioms gubaTypeCoordinate_positiveHeightOccurrence
+#print axioms exists_gubaTypeMinimal_ribbon_expression
+#print axioms gubaTypeMinimal_no_coefficient_pair_replacement
+
 end QuandleResearch.Issue070
