@@ -91,10 +91,10 @@ lemma no_up_center {sx sy sz ax ay az cy : ℝ} {j : ℤ}
   · exact no_up_LL hx hz hy hc hs ha
   · exact no_up_LH hx hz hy hc (Or.inl rfl) hs ha
   · exact no_up_LH hx hz hy hc (Or.inr rfl) hs ha
-  · exact no_up_LH hz hx hy hc (Or.inl rfl) (by linarith) (by linarith)
+  · exact no_up_LH (j := j) hz hx hy hc (Or.inl rfl) (by linarith) (by linarith)
   · exact no_up_HH hx hz hy hs
   · exact no_up_HH hx hz hy hs
-  · exact no_up_LH hz hx hy hc (Or.inr rfl) (by linarith) (by linarith)
+  · exact no_up_LH (j := j) hz hx hy hc (Or.inr rfl) (by linarith) (by linarith)
   · exact no_up_HH hx hz hy hs
   · exact no_up_HH hx hz hy hs
 
@@ -159,10 +159,9 @@ lemma block_hasLocal {s a : ℝ} (h : InBlock s a) : ∃ u, HasLocal s a u := by
   rcases h with h | h | h
   · exact ⟨a, Or.inl ⟨h, rfl⟩⟩
   · refine ⟨a - 1 / 4, Or.inr ⟨h, 0, by omega, by omega, ?_⟩⟩
-    norm_num
+    norm_num <;> ring
   · refine ⟨a - 3 / 4, Or.inr ⟨h, 1, by omega, by omega, ?_⟩⟩
-    norm_num
-    <;> ring
+    norm_num <;> ring
 
 lemma local_bounds {s a u : ℝ} (h : HasLocal s a u) :
     |u| < 1 / 4 ∧ |a| < 1 := by
