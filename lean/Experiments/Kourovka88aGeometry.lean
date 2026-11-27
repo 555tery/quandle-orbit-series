@@ -14143,4 +14143,204 @@ theorem ribbon_aligned_height_splice_cancel {D : Type} [Fintype D]
 #print axioms ribbon_aligned_height_splice
 #print axioms ribbon_aligned_height_splice_cancel
 
+
+/-- Rank counts do not depend on the height of an occurrence. This
+is the version of indexed_rankCount_eq needed after merging cells. -/
+theorem indexed_rankCount_eq_rank_only {n : ℕ}
+    (s : Peiffer.Sequence F (RankHeight n))
+    (l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+    (hl : ∀ x ∈ l, x.2.1.2.1 = s[x.1.val].1.2.1) (j : ℕ) :
+    rankCount (l.map Prod.snd) j =
+      rankCount ((l.map Prod.fst).map (fun i => s[i.val])) j := by
+  induction l with
+  | nil => rfl
+  | cons x xs ih =>
+    change rankCount ([x.2] ++ xs.map Prod.snd) j =
+      rankCount ([s[x.1.val]] ++ (xs.map Prod.fst).map (fun i => s[i.val])) j
+    simp only [rankCount_append,rankCount_singleton,hl x List.mem_cons_self,
+      ih (fun y hy => hl y (List.mem_cons_of_mem _ hy))]
+
+/-- Any connected spherical replacement with unchanged outer word,
+distinct original indices for its interior cycles, and one omitted
+index contradicts rank-minimality. The new cells need only preserve
+rank, not height or sign. This consumes actual spherical
+factorization, not an assumed equality of filling profiles. -/
+theorem ribbon_rankMinimal_no_indexed_replacement {D : Type} [Fintype D]
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s)
+    (R : RibbonMap D) (v : D → F) (z : D)
+    (hc : R.Connected) (hE : R.EulerEquality)
+    (he : ∀ d, v (R.edge d) = (v d)⁻¹)
+    (hroot : cycleProduct R.rotation v z = w⁻¹)
+    (idx : D → ℕ) (omitted : Fin s.length)
+    (hinj : ∀ d e, idx d = idx e → R.rotation.SameCycle d e)
+    (hfactor : ∀ d, ¬ R.rotation.SameCycle z d → ∀ g : F,
+      ∃ (i : Fin s.length) (y : Peiffer.Occurrence F (RankHeight n)),
+        idx d = i.val+1 ∧ i ≠ omitted ∧
+        y.1.2.1 = s[i.val].1.2.1 ∧
+        Peiffer.term (rankHeightRel pick X n) y =
+          g * cycleProduct R.rotation v d * g⁻¹) : False := by
+  classical
+  obtain ⟨f,hf,hsep,_,hprod⟩ :=
+    guba23_component_exact_vertex_product R v he hc hE z
+  let value : F × D → F := fun t => t.1 * cycleProduct R.rotation v t.2 * t.1⁻¹
+  have build (b : List (F × D))
+      (hb : ∀ t ∈ b, ¬ R.rotation.SameCycle z t.2)
+      (hp : b.Pairwise (fun t u => ¬ R.rotation.SameCycle t.2 u.2)) :
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)),
+        (l.map Prod.fst).Nodup ∧
+        (∀ t ∈ l, t.1 ≠ omitted ∧ t.2.1.2.1 = s[t.1.val].1.2.1 ∧
+          ∃ u ∈ b, idx u.2 = t.1.val+1) ∧
+        Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          (b.map value).prod := by
+    induction b with
+    | nil => exact ⟨[],by simp,by simp,rfl⟩
+    | cons u us ih =>
+      obtain ⟨i,y,hi,hio,hy,hval⟩ := hfactor u.2 (hb u List.mem_cons_self) u.1
+      obtain ⟨l,hl,hcover,hev⟩ := ih
+        (fun t ht => hb t (List.mem_cons_of_mem _ ht)) (List.pairwise_cons.mp hp).2
+      refine ⟨(i,y)::l,?_,?_,?_⟩
+      · simp only [List.map_cons,List.nodup_cons]
+        refine ⟨?_,hl⟩
+        intro hmem
+        obtain ⟨t,ht,hti⟩ := List.mem_map.mp hmem
+        obtain ⟨_,_,q,hq,hqi⟩ := hcover t ht
+        exact (List.pairwise_cons.mp hp).1 q hq
+          (hinj u.2 q.2 (by rw [hi,hqi,hti]))
+      · intro t ht
+        rcases List.mem_cons.mp ht with ht | ht
+        · subst t
+          exact ⟨hio,hy,u,List.mem_cons_self,hi⟩
+        · obtain ⟨hnot,hlabel,q,hq,hqi⟩ := hcover t ht
+          exact ⟨hnot,hlabel,q,List.mem_cons_of_mem _ hq,hqi⟩
+      · change Peiffer.term (rankHeightRel pick X n) y *
+          Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          value u * (us.map value).prod
+        rw [hev,hval]
+  obtain ⟨l,hl,hcover,hev⟩ := build f hf hsep
+  have hval : (f.map value).prod = w := by
+    rw [hroot] at hprod
+    change w⁻¹ * (f.map value).prod = 1 at hprod
+    calc
+      _ = w * (w⁻¹ * (f.map value).prod) := by group
+      _ = w := by rw [hprod,mul_one]
+  have hall := rankMinimal_no_omitted_indices pick X n w s (l.map Prod.snd)
+    hm (hev.trans hval) (l.map Prod.fst) hl
+      (indexed_rankCount_eq_rank_only s l (fun t ht => (hcover t ht).2.1))
+  obtain ⟨t,ht,hti⟩ := List.mem_map.mp (hall omitted)
+  exact (hcover t ht).1 hti
+
+/-- In the actual marked rank-minimal ribbon, an interior edge
+cannot be spliced if the resulting vertex is conjugate to a
+height relator of either retained original rank. The other cells
+are reassembled automatically with distinct occurrence indices;
+one original index is lost. This closes the profile argument for
+a direct edge (but not for lower-rank corridors). -/
+theorem guba23_rankMinimal_no_height_splice
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ c, ∀ hn : ¬ R.rotation.SameCycle c (R.edge c),
+      ¬ R.rotation.SameCycle z c →
+      ¬ R.rotation.SameCycle z (R.edge c) →
+      ∀ (i : Fin s.length) (k : ℤ) (g : F),
+        (idx c).val = i.val+1 →
+        cycleProduct (R.edgeSplice c).rotation (fun d => FreeGroup.mk [read d])
+          (R.rotation c) =
+          g * rankHeightRel pick X n (s[i.val].1.2.1,k) * g⁻¹ → False := by
+  classical
+  intro rows R z read idx c hn hzc hze i k g hi hmerge
+  let S := R.edgeSplice c
+  let e := R.edge c
+  let f := R.rotation c
+  let v : _ → F := fun d => FreeGroup.mk [read d]
+  have hc : R.Connected := guba23_rankMinimal_ribbon_connected pick X n w s hm hw hs
+  have hCS : S.Connected := guba22_edgeSplice_connected R hc c hn
+  have hES : S.EulerEquality :=
+    (R.edgeSplice_euler_iff c hn).mpr (boundaryRibbon_euler rows w s hs)
+  have he : ∀ d, v (S.edge d) = (v d)⁻¹ := by
+    intro d
+    change FreeGroup.mk [read (R.edge d)] = (FreeGroup.mk [read d])⁻¹
+    rw [relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d]
+    exact signedLetterValue_reverse _
+  have hv (Q : RibbonMap _) (d : _) :
+      cycleProduct Q.rotation v d = FreeGroup.mk ((Q.vertexBoundary d).map read) := by
+    change ((Q.vertexBoundary d).map v).prod = _
+    rw [rawWord_eval_prod,List.map_map]
+    rfl
+  have oldSame (d t : _) : R.rotation.SameCycle d t ↔ idx d = idx t :=
+    disc_sameCycle_iff _ _ _ _
+  have liftSame (d t : _) (h : R.rotation.SameCycle d t) : S.rotation.SameCycle d t :=
+    (R.edgeSplice_sameVertex_iff c hn d t).mpr (Or.inl h)
+  have hcf : R.rotation.SameCycle c f :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have hfe : S.rotation.SameCycle f e := by
+    apply cutAt_sameCycle_of_not_sameCycle
+    simpa only [f,e,Equiv.Perm.sameCycle_apply_left] using hn
+  have hfc : S.rotation.SameCycle f c := liftSame f c hcf.symm
+  have hfz : ¬ S.rotation.SameCycle f z := by
+    intro h
+    rcases (R.edgeSplice_sameVertex_iff c hn f z).mp h with h | h
+    · exact hzc (h.symm.trans hcf.symm)
+    · rcases h.2 with h | h
+      · exact hzc h
+      · exact hze h
+  have hroot : cycleProduct S.rotation v z = w⁻¹ := by
+    rw [guba23_splice_keep_vertex_product R v c z hn hfz,hv,
+      boundaryRibbon_read rows w s hs hw,← FreeGroup.inv_mk,FreeGroup.mk_toWord]
+  have heidx : idx e ≠ boundaryOccurrence s := by
+    intro h
+    exact hze ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
+  obtain ⟨omitted,_,ho,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
+  let rep : _ → _ := fun d => if S.rotation.SameCycle f d then c else d
+  have hrep (d : _) : S.rotation.SameCycle (rep d) d := by
+    by_cases h : S.rotation.SameCycle f d
+    · rw [rep,if_pos h]
+      exact hfc.symm.trans h
+    · rw [rep,if_neg h]
+      exact .refl _ _
+  apply ribbon_rankMinimal_no_indexed_replacement pick X n w s hm S v z hCS hES he hroot
+    (fun d => (idx (rep d)).val) omitted
+  · intro d t h
+    have hidx : idx (rep d) = idx (rep t) := Fin.ext h
+    exact (hrep d).symm.trans ((liftSame _ _ ((oldSame _ _).mpr hidx)).trans (hrep t))
+  · intro d hd u
+    by_cases h : S.rotation.SameCycle f d
+    · have hio : i ≠ omitted := by
+        intro hh
+        have hidx : idx c = idx e := Fin.ext (by rw [hi,ho,hh])
+        exact hn ((oldSame c e).mpr hidx)
+      obtain ⟨t,ht⟩ := guba22_cycleProduct_conjugator S.rotation v f d h
+      refine ⟨i,((u*t*g,(s[i.val].1.2.1,k)),true),?_,hio,rfl,?_⟩
+      · simp only [rep,if_pos h,hi]
+      · change (u*t*g) * rankHeightRel pick X n (s[i.val].1.2.1,k) *
+          (u*t*g)⁻¹ = u * cycleProduct S.rotation v d * u⁻¹
+        rw [ht,hmerge]
+        group
+    · have hidx : idx d ≠ boundaryOccurrence s := by
+        intro hh
+        exact hd (liftSame z d ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr hh))
+      obtain ⟨j,y,hj,hy,hval⟩ := guba23_vertex_factor_as_occurrence rows w s hs d u hidx
+      have hjo : j ≠ omitted := by
+        intro hh
+        have hidx' : idx e = idx d := Fin.ext (by rw [ho,hj,hh])
+        exact h (hfe.trans (liftSame e d ((oldSame e d).mpr hidx')))
+      refine ⟨j,y,?_,hjo,congrArg Prod.fst hy,?_⟩
+      · simp only [rep,if_neg h,hj]
+      · rw [guba23_splice_keep_vertex_product R v c d hn h,hv]
+        simpa only [rankHeightRows_eval] using hval
+
+#print axioms indexed_rankCount_eq_rank_only
+#print axioms ribbon_rankMinimal_no_indexed_replacement
+#print axioms guba23_rankMinimal_no_height_splice
+
 end QuandleResearch.Issue070
