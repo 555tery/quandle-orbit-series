@@ -105,4 +105,17 @@ example : answer ↔
 #print axioms weightedLength_longRaw_twice
 #print axioms weightedLength_longConjugator_twice
 
+#print axioms markerInterval_of_large
+#print axioms positiveWeight_append
+#print axioms positiveWeight_nil
+#print axioms positiveWeight_zero_imp_nil
+#print axioms prefix_of_positiveWeight_le
+#print axioms factor_of_weighted_interval
+#print axioms longRaw_prefix
+#print axioms longRaw_resolvent_factor
+#print axioms positiveWeight_separator
+#print axioms positiveWeight_resolvent_end
+#print axioms guba19_threshold
+#print axioms guba19_resolvent
+
 end QuandleResearch.Issue070
