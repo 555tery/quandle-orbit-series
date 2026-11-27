@@ -286,4 +286,102 @@ theorem boundaryComponent_sphere (rows : I → RawWord) (w : F)
 #print axioms boundaryOccurrence
 #print axioms boundaryDart
 
+
+/-! ## Exact row readings for the recursive construction
+
+Keep the active rank and the integer height visible in the geometric
+realization. Empty rows never give an interior dart. The signed row
+reading below is literal; it does not assert cyclic reduction.
+-/
+
+/-- At an active rank, the actual presentation row has precisely the
+two signed long sides of the recursively chosen word. -/
+theorem guba_rankHeightRows_active (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n)
+    (h : ∃ w : F, ¬ Good (gubaState pick i.1.val).1 w)
+    (hk : i.2 ≠ 0) :
+    rankHeightRows pick (gubaConjugatorChoice pick) n i =
+      (activeLongWord pick i.1.val h).map (fun x => (x,true)) ++
+      rawIntPow (pick (gubaState pick i.1.val).1 h).val.toWord i.2 ++
+      FreeGroup.invRev ((activeLongWord pick i.1.val h).map (fun x => (x,true))) ++
+      FreeGroup.invRev (rawIntPow a.toWord i.2) := by
+  classical
+  unfold rankHeightRows
+  rw [← gubaState_stage pick i.1.val]
+  rw [dif_pos h, ← activeLongWord_eval pick i.1.val h]
+  exact literalHeightWord_positive_sides _ _ _ hk
+
+/-- An inactive rank or zero height has no nonempty row. Thus every
+interior dart comes from an active rank at nonzero height. -/
+theorem guba_rankHeightRows_nonempty (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n)
+    (hne : rankHeightRows pick (gubaConjugatorChoice pick) n i ≠ []) :
+    (∃ w : F, ¬ Good (gubaState pick i.1.val).1 w) ∧ i.2 ≠ 0 := by
+  classical
+  have hrow := hne
+  unfold rankHeightRows at hrow
+  rw [← gubaState_stage pick i.1.val] at hrow
+  by_cases h : ∃ w : F, ¬ Good (gubaState pick i.1.val).1 w
+  · refine ⟨h, ?_⟩
+    intro hk
+    apply hrow
+    rw [dif_pos h, hk, literalHeightWord_zero]
+  · exact False.elim (hrow (dif_neg h))
+
+/-- Read any nonempty interior occurrence at its original zero corner.
+Unlike a statement about evaluation in the group, this preserves the
+full signed list, including its four distinguished blocks. -/
+theorem boundaryRibbon_interior_read (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (j : Fin (boundaryIdentity s).length) (i : I)
+    (hi : (boundaryIdentity s)[j].1.2 = some i)
+    (hp : 0 < (orientedWord
+      (markedRows rows w (boundaryIdentity s)[j].1.2)
+      (boundaryIdentity s)[j].2).length) :
+    ((boundaryRibbon rows w s hs).vertexBoundary
+      (discAt (markedRows rows w) (boundaryIdentity s) j ⟨0,hp⟩)).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) =
+      orientedWord (rows i) (boundaryIdentity s)[j].2 := by
+  have hr := vertex_read_at_zero (chosenSection (Fin 2)) (markedRows rows w)
+    (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) j hp
+  change _ = _ at hr
+  rw [hi] at hr
+  exact hr
+
+/-- Weight of a signed row is independent of the orientation of the
+occurrence. The inverse orientation uses Mathlib's exact inverse word. -/
+theorem orientedWord_rawWeight (v : RawWord) (sign : Bool) :
+    rawWeight (orientedWord v sign) = rawWeight v := by
+  cases sign <;> simp [orientedWord, rawWeight_invRev]
+
+/-- Each actual paired dart has the inverse signed letter. For a list of
+paired darts, reversing the order therefore reads exactly the inverse
+word. This imposes no claim that the lists form contiguous paths. -/
+theorem boundaryRibbon_inverse_read (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (ds : List (DiscDarts (markedRows rows w) (boundaryIdentity s))) :
+    ((ds.map (boundaryRibbon rows w s hs).edge).reverse).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) =
+      FreeGroup.invRev (ds.map
+        (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) := by
+  induction ds with
+  | nil => rfl
+  | cons d ds ih =>
+    simp only [List.map_cons, List.reverse_cons, List.map_append, ih,
+      FreeGroup.invRev_cons]
+    have he := relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
+    change discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+      ((boundaryRibbon rows w s hs).edge d) = _ at he
+    rw [he]
+    rfl
+
+#print axioms guba_rankHeightRows_active
+#print axioms guba_rankHeightRows_nonempty
+#print axioms boundaryRibbon_interior_read
+#print axioms orientedWord_rawWeight
+#print axioms boundaryRibbon_inverse_read
+
 end QuandleResearch.Issue070
