@@ -106,7 +106,8 @@ jobs:
                    "boundaryComponent_connected", "boundaryComponent_sphere",
                    "markedRows", "markOccurrence", "boundaryIdentity", "RankHeight", "rankHeightRel", "rankHeightRows", "boundaryOccurrence", "boundaryDart",
                    "guba_rankHeightRows_active", "guba_rankHeightRows_nonempty", "boundaryRibbon_interior_read", "orientedWord_rawWeight", "boundaryRibbon_inverse_read",
-                   "read_factor_lift", "boundaryRibbon_interior_factor", "boundaryRibbon_paired_positive_eq", "boundaryRibbon_direct_long_overlap"]
+                   "read_factor_lift", "boundaryRibbon_interior_factor", "boundaryRibbon_paired_positive_eq", "boundaryRibbon_direct_long_overlap",
+                   "guba_rankHeightRows_weight", "guba_rankHeightRows_large", "answer_of_guba_large_cell"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
