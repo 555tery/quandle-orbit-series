@@ -800,4 +800,92 @@ theorem minimal_rankHeight_nonzero_height (pick : WeightedSelector)
 #print axioms exists_positive_minimal_rankHeight_expression
 #print axioms minimal_rankHeight_nonzero_height
 
+
+/-! ## Move separated occurrences together before merging
+
+The intermediate block need not be empty. Moving a cell past it changes
+the based conjugator by its evaluated boundary word. This is an
+algebraic Peiffer exchange, preserving all intervening occurrences,
+rather than an assumption that the cells were consecutive in the
+original expression.
+-/
+
+/-- Shift an occurrence across an intervening product on its left. -/
+def shiftOccurrence (g : F) (x : Peiffer.Occurrence F I) :
+    Peiffer.Occurrence F I :=
+  ((g*x.1.1,x.1.2),x.2)
+
+theorem shiftOccurrence_term (rel : I → F) (g : F)
+    (x : Peiffer.Occurrence F I) :
+    Peiffer.term rel (shiftOccurrence g x) =
+      g * Peiffer.term rel x * g⁻¹ := by
+  rcases x with ⟨⟨u,i⟩,b⟩
+  cases b <;> simp only [shiftOccurrence, Peiffer.term, Bool.cond_true,
+    Bool.cond_false] <;> group
+
+/-- Moving a signed occurrence past a whole intervening block preserves
+the product and does not delete or duplicate any occurrence. -/
+theorem peiffer_move_occurrence (rel : I → F)
+    (m : Peiffer.Sequence F I) (y : Peiffer.Occurrence F I) :
+    Peiffer.evaluation rel (m ++ [y]) =
+      Peiffer.evaluation rel
+        ([shiftOccurrence (Peiffer.evaluation rel m) y] ++ m) := by
+  rw [peiffer_evaluation_append, peiffer_evaluation_append]
+  change Peiffer.evaluation rel m * Peiffer.term rel y =
+    Peiffer.term rel (shiftOccurrence (Peiffer.evaluation rel m) y) *
+      Peiffer.evaluation rel m
+  rw [shiftOccurrence_term]
+  group
+
+/-- Equal-valued expressions of equal length have the same minimality
+status, so Peiffer exchanges preserve minimum cardinality. -/
+theorem minimalExpression_of_equal_value_length (rel : I → F) (w : F)
+    (s t : Peiffer.Sequence F I)
+    (hs : MinimalExpression rel w s)
+    (he : Peiffer.evaluation rel s = Peiffer.evaluation rel t)
+    (hl : s.length = t.length) :
+    MinimalExpression rel w t := by
+  refine ⟨he.symm.trans hs.1, ?_⟩
+  intro v hv
+  rw [← hl]
+  exact hs.2 v hv
+
+/-- A separated pair may be moved into consecutive positions without
+changing minimality, using the exact product of the intervening block. -/
+theorem minimalExpression_move_pair (rel : I → F) (w : F)
+    (p m r : Peiffer.Sequence F I) (x y : Peiffer.Occurrence F I)
+    (hs : MinimalExpression rel w (p ++ [x] ++ m ++ [y] ++ r)) :
+    MinimalExpression rel w
+      (p ++ [x, shiftOccurrence (Peiffer.evaluation rel m) y] ++ m ++ r) := by
+  apply minimalExpression_of_equal_value_length rel w _ _ hs
+  · have he := peiffer_move_occurrence rel m y
+    have he' := congrArg (fun v : F =>
+      Peiffer.evaluation rel (p ++ [x]) * v * Peiffer.evaluation rel r) he
+    simpa only [peiffer_evaluation_append, List.append_assoc, mul_assoc] using he'
+  · simp only [List.length_append, List.length_cons, List.length_nil]
+    omega
+
+/-- Same-rank mergers are forbidden even when the two occurrences are
+separated by an arbitrary block, provided the based conjugator after
+moving across that block has the required a-power offset. -/
+theorem minimal_rankHeight_no_separated_merge_pair (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (j : Fin n) (k l : ℤ) (u v : F)
+    (p m r : Peiffer.Sequence F (RankHeight n))
+    (hs : MinimalExpression (rankHeightRel pick X n) w
+      (p ++ [((u,(j,k)),true)] ++ m ++ [((v,(j,l)),true)] ++ r))
+    (hbase : Peiffer.evaluation (rankHeightRel pick X n) m * v = u*a^k) :
+    False := by
+  have hm := minimalExpression_move_pair (rankHeightRel pick X n) w p m r
+    ((u,(j,k)),true) ((v,(j,l)),true) hs
+  apply minimal_rankHeight_no_merge_pair pick X n w j k l u p (m ++ r)
+  simpa only [shiftOccurrence, hbase, List.append_assoc] using hm
+
+#print axioms shiftOccurrence
+#print axioms shiftOccurrence_term
+#print axioms peiffer_move_occurrence
+#print axioms minimalExpression_of_equal_value_length
+#print axioms minimalExpression_move_pair
+#print axioms minimal_rankHeight_no_separated_merge_pair
+
 end QuandleResearch.Issue070
