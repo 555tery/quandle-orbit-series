@@ -13317,7 +13317,10 @@ theorem rawCyclic_move_head (x : Letter) (l : RawWord)
       have hb' : b ∈ (x::y::ys).head? := by simpa using hb
       exact hcyc a ha' b hb'
     · intro a ha b hb
-      have ha' : x = a := by simpa [List.getLast?_append] using ha
+      have hl : ((y::ys)++[x]).getLast? = some x :=
+        List.getLast?_eq_some_iff.mpr ⟨y::ys,rfl⟩
+      rw [hl] at ha
+      have ha' : x = a := by simpa using ha
       subst a
       apply hxy b
       simpa using hb
@@ -13408,6 +13411,7 @@ theorem boundaryRibbon_all_cyclic_readings (rows : I → RawWord) (w : F)
     (discAt (markedRows rows w) (boundaryIdentity s) idx
       ⟨0,Nat.zero_lt_of_lt k.isLt⟩)).map
       (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)))
+  unfold boundaryRibbon
   rw [vertex_read_at_zero (chosenSection (Fin 2)) (markedRows rows w)
     (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) idx
     (Nat.zero_lt_of_lt k.isLt)]
@@ -13442,6 +13446,9 @@ theorem guba_oneDart_no_monogons (n : ℕ)
     | succ v =>
       have hlt : v < s.length := by simpa [boundaryIdentity] using hv
       have hp := hpos s[v] (List.getElem_mem hlt)
+      have hidx : (boundaryIdentity s)[⟨v+1,hv⟩] = markOccurrence s[v] := by
+        simp [boundaryIdentity]
+      rw [hidx]
       change FreeGroup.IsCyclicallyReduced (orientedWord (rows s[v].1.2) s[v].2)
       rw [hp]
       change FreeGroup.IsCyclicallyReduced (rows s[v].1.2)
@@ -13578,7 +13585,8 @@ theorem ribbon_no_closed_bigon_belt {D : Type} (P : RibbonMap D)
       rw [Equiv.apply_symm_apply,hz]
     rw [hh'] at hh
     have he := congrArg P.edge hh
-    simpa only [P.edge_involutive] using he
+    change P.edge (P.edge (P.rotation (P.edge z))) = P.edge z at he
+    rwa [P.edge_involutive] at he
 
 /-- Every vertex of an actual one-letter ribbon with a
 non-singleton adjacent cell has a genuine end of a direct
@@ -13687,7 +13695,7 @@ theorem guba_marked_leaf_direct_runs_end
 
 /-! ## Counting direct-strip ends without graph surgery -/
 
-theorem face_two_step_sameCycle {D : Type} (P : RibbonMap D)
+theorem face_two_step_sameCycle {D : Type} [Finite D] (P : RibbonMap D)
     {a b : D} (h : P.face.SameCycle a b) :
     (P.face (P.face a) = a ↔ P.face (P.face b) = b) := by
   have forward (a b : D) (h : P.face.SameCycle a b)
@@ -13742,8 +13750,9 @@ theorem ribbon_nonbigon_dart_bound {D : Type} [Fintype D]
     let S := Finset.univ.filter (fun d => P.faceOf d = P.faceOf a)
     change 6 ≤ ∑ d ∈ S, weight d
     have hcard : S.card = (P.faceBoundary a).length := by
-      change incidenceDegree P.faceOf (P.faceOf a) = _
-      rw [P.face_incidenceDegree]
+      rw [← P.face_incidenceDegree]
+      unfold incidenceDegree S
+      exact (Fintype.card_subtype _).symm
     by_cases ha : P.face (P.face a) = a
     · have hdeg := ribbon_face_length_ge_two P a (h1 a)
       have he : (∑ d ∈ S, weight d) = 3 * S.card := by
@@ -13781,7 +13790,9 @@ theorem ribbon_nonbigon_dart_bound {D : Type} [Fintype D]
       _ = ∑ _d : D, (3 : ℕ) := by
         apply Finset.sum_congr rfl
         intro d _
-        by_cases h : P.face (P.face d) = d <;> simp [weight,ribbonEndIndicator,h]
+        by_cases h : P.face (P.face d) = d
+        · simp only [weight,ribbonEndIndicator,ite_eq_left h]
+        · simp only [weight,ribbonEndIndicator,ite_eq_right h]
       _ = _ := by simp [Nat.mul_comm]
   have hd := P.card_darts
   have hcc := P.card_components_of_connected hc z
@@ -14052,5 +14063,32 @@ theorem ribbon_direct_strip_two_walks {D : Type} [Fintype D]
 
 #print axioms ribbon_direct_strip_opposite_walk
 #print axioms ribbon_direct_strip_two_walks
+
+
+/-- Cut two positive height relators of the same rank at precisely
+corresponding coordinates of the opposite conjugator sides.
+The based product obtained by splicing is conjugate to the height
+sum relator. The prefix P includes the shared positive letter,
+and S is the suffix after it. Thus the inverse prefix on the
+second row includes the shared inverse letter.
+
+This identity is independent of the size and signs of the heights,
+and remains true after applying any quotient homomorphism.
+It does not by itself assert the existence of such a paired edge
+or the preservation of the remaining rank profile. -/
+theorem aligned_opposite_long_sides_merge (P S C : F) (k l : ℤ) :
+    let X := P*S
+    (S*C^k*X⁻¹*(a^k)⁻¹*P) *
+      (P⁻¹*(a^l)⁻¹*X*C^l*S⁻¹) =
+      (S*(C^l)⁻¹*X⁻¹) * heightRelator X C (k+l) *
+        (S*(C^l)⁻¹*X⁻¹)⁻¹ := by
+  dsimp only
+  rw [heightRelator,zpow_add C k l,zpow_add a k l]
+  have ha : Commute (a^k) (a^l) := (Commute.refl a).zpow_zpow k l
+  have hc : Commute (C^k) (C^l) := (Commute.refl C).zpow_zpow k l
+  rw [← ha.eq,← hc.eq]
+  group
+
+#print axioms aligned_opposite_long_sides_merge
 
 end QuandleResearch.Issue070
