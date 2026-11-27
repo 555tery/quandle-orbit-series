@@ -18133,7 +18133,9 @@ theorem rawNatPow_factor_rotated_prefix (w : RawWord) (m : ℕ)
       z <+: rawNatPow (t ++ l) M := by
   induction m generalizing p with
   | zero =>
-    have hz : z = [] := by simpa [rawNatPow] using h
+    have hh := congrArg List.length h
+    simp only [rawNatPow,List.length_nil,List.length_append] at hh
+    have hz : z = [] := List.length_eq_zero_iff.mp (by omega)
     subst z
     exact ⟨[],w,0,by simp,by simp [rawNatPow]⟩
   | succ m ih =>
@@ -18160,7 +18162,8 @@ theorem rawNatPow_factor_rotated_prefix (w : RawWord) (m : ℕ)
         induction j with
         | zero => simp [rawNatPow]
         | succ j ih' =>
-          simp only [rawNatPow]
+          change t ++ (rawNatPow (p++t) j ++ (p++t)) ++ p =
+            rawNatPow (t++p) (j+1) ++ (t++p)
           rw [← ih']
           simp only [List.append_assoc]
       refine ⟨p,t,m+1,ht.symm,?_⟩
@@ -18178,7 +18181,7 @@ theorem rawNatPow_factor_short_or_period (w : RawWord) (m : ℕ)
       ∃ l t : RawWord, w = l ++ t ∧ (t++l) <+: z ∧
         z.HasPeriod (t++l).length := by
   obtain ⟨p,r,hpr⟩ := hz
-  obtain ⟨l,t,M,hw,hpre⟩ := rawNatPow_factor_rotated_prefix w m p z r hpr
+  obtain ⟨l,t,M,hw,hpre⟩ := rawNatPow_factor_rotated_prefix w m p z r hpr.symm
   have hweight : rawWeight (t++l) = rawWeight w := by
     rw [hw,rawWeight_append,rawWeight_append,Nat.add_comm]
   cases M with
@@ -18238,5 +18241,77 @@ theorem distinct_rank_arbitrary_period_factor_weight
 #print axioms rawNatPow_factor_rotated_prefix
 #print axioms rawNatPow_factor_short_or_period
 #print axioms distinct_rank_arbitrary_period_factor_weight
+
+
+/-- The selected minimal bad weights are nondecreasing, independently
+of the chosen conjugators. Thus a cross-rank factor bound is controlled
+by the LATER selected period, not by either height. -/
+theorem selected_period_weight_mono (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i j : ℕ) (hij : i ≤ j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w) :
+    weightedLength (pick (weightedStages pick X i) hi).val ≤
+      weightedLength (pick (weightedStages pick X j) hj).val := by
+  apply (pick (weightedStages pick X i) hi).property.2
+  intro hg
+  exact (pick (weightedStages pick X j) hj).property.1
+    (good_mono (weightedStages_mono pick X hij) hg)
+
+/-- A periodic block of a cell cannot have a heavy literal overlap
+with an earlier active period, regardless of the heights, signs,
+or offsets. This excludes a genuine class of exterior and internal
+pairings, without treating higher-rank exteriors or equal ranks. -/
+theorem guba_earlier_period_factor_not_heavy
+    (pick : WeightedSelector) (i j : ℕ) (hij : i < j)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (si sj : Bool) (m n : ℕ) (k : ℤ) (z : RawWord)
+    (hz : z <:+: rawNatPow
+      (if si then (pick (gubaState pick i).1 hi).val
+        else (pick (gubaState pick i).1 hi).val⁻¹).toWord m)
+    (hz' : z <:+: rawNatPow
+      (if sj then (pick (gubaState pick j).1 hj).val
+        else (pick (gubaState pick j).1 hj).val⁻¹).toWord n) :
+    54 * rawWeight z <
+      2 * positiveWeight (activeLongWord pick j hj) +
+      k.natAbs * weightedLength (pick (gubaState pick j).1 hj).val + k.natAbs := by
+  let X := gubaConjugatorChoice pick
+  have hi' : ∃ w : F, ¬ Good (weightedStages pick X i) w := by
+    rwa [gubaState_stage pick i] at hi
+  have hj' : ∃ w : F, ¬ Good (weightedStages pick X j) w := by
+    rwa [gubaState_stage pick j] at hj
+  have hci : (pick (gubaState pick i).1 hi).val =
+      (pick (weightedStages pick X i) hi').val := by
+    generalize hN : (gubaState pick i).1 = N at hi ⊢
+    have he : N = weightedStages pick X i := hN.symm.trans (gubaState_stage pick i)
+    subst N
+    rfl
+  have hcj : (pick (gubaState pick j).1 hj).val =
+      (pick (weightedStages pick X j) hj').val := by
+    generalize hN : (gubaState pick j).1 = N at hj ⊢
+    have he : N = weightedStages pick X j := hN.symm.trans (gubaState_stage pick j)
+    subst N
+    rfl
+  rw [hci] at hz
+  rw [hcj] at hz'
+  have hb := distinct_rank_arbitrary_period_factor_weight pick X i j hij
+    hi' hj' si sj m n z hz hz'
+  have hmono := selected_period_weight_mono pick X i j (le_of_lt hij) hi' hj'
+  rw [max_eq_right hmono,← hcj] at hb
+  let C := (pick (gubaState pick j).1 hj).val
+  let L := positiveWeight (activeLongWord pick j hj)
+  change rawWeight z ≤ 2*weightedLength C at hb
+  change 54*rawWeight z < 2*L+k.natAbs*weightedLength C+k.natAbs
+  have hpre := chooseEvenPrefixIndex_spec C (gubaState pick j).2
+  have hpre' : 10^70 * weightedLength C < positiveWeight (activePrefix pick j hj) :=
+    (le_max_left _ _).trans_lt hpre
+  have hlong := weightedLength_longRaw_twice (activePrefix pick j hj) (10^20)
+  change 2*L = 6*(10^20 : ℕ)*10^80 +
+      10^20*(10^20+1)*positiveWeight (activePrefix pick j hj) at hlong
+  norm_num at hlong hpre'
+  omega
+
+#print axioms selected_period_weight_mono
+#print axioms guba_earlier_period_factor_not_heavy
 
 end QuandleResearch.Issue070
