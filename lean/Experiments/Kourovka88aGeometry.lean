@@ -12277,4 +12277,156 @@ theorem oneDart_defect_generated_by_other_cells {D : Type} [Fintype D]
 #print axioms oneDart_adjacent_cell_defect
 #print axioms oneDart_defect_generated_by_other_cells
 
+
+/-- The defect obtained by merging the single outer dart into its
+adjacent cell has a filling of strictly smaller rank type. Every
+remaining factor has a distinct original occurrence index; mere
+normal-closure membership would not be enough for this conclusion. -/
+theorem oneDart_rankMinimal_defect_smaller_type
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    P.Connected → P.vertexBoundary z = [z] →
+    ∃ l : List _, P.vertexBoundary (P.edge z) = P.edge z::l ∧
+      ∃ t : Peiffer.Sequence F (RankHeight n),
+        RankMinimalExpression pick X n (FreeGroup.mk (l.map read))⁻¹ t ∧
+        descendingCountLT n rankCount t s := by
+  classical
+  intro rows P z read hc hz
+  obtain ⟨hfix,hcycle,hn⟩ := oneDart_leaf P z hz
+  let S := P.edgeSplice z
+  let e := P.edge z
+  let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+  let v : _ → F := fun d => FreeGroup.mk [read d]
+  have hES : S.EulerEquality :=
+    (P.edgeSplice_euler_iff z hn).mpr (boundaryRibbon_euler rows w s hs)
+  have hCS : S.Connected := guba22_edgeSplice_connected P hc z hn
+  have he : ∀ d, v (S.edge d) = (v d)⁻¹ := by
+    intro d
+    change FreeGroup.mk [read (P.edge d)] = (FreeGroup.mk [read d])⁻¹
+    rw [relatorRibbon_edge_read (chosenSection (Fin 2))
+      (markedRows rows w) (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)]
+    exact signedLetterValue_reverse _
+  have hv (Q : RibbonMap _) (d : _) :
+      cycleProduct Q.rotation v d = FreeGroup.mk ((Q.vertexBoundary d).map read) := by
+    change ((Q.vertexBoundary d).map v).prod = _
+    rw [rawWord_eval_prod,List.map_map]
+    rfl
+  have outside (d : _) (hd : ¬ S.rotation.SameCycle z d) :
+      ¬ P.rotation.SameCycle z d ∧ ¬ P.rotation.SameCycle e d := by
+    constructor
+    · intro h
+      exact hd ((P.edgeSplice_sameVertex_iff z hn z d).mpr (Or.inl h))
+    · intro h
+      exact hd ((P.edgeSplice_sameVertex_iff z hn z d).mpr
+        (Or.inr ⟨Or.inl (.refl _ _),Or.inr h.symm⟩))
+  have keep (d : _) (hd : ¬ S.rotation.SameCycle z d) :
+      cycleProduct S.rotation v d = cycleProduct P.rotation v d := by
+    apply guba23_splice_keep_vertex_product P v z d hn
+    rw [hfix]
+    exact hd
+  have hidx (d : _) (hd : ¬ S.rotation.SameCycle z d) :
+      idx d ≠ boundaryOccurrence s := by
+    intro h
+    exact (outside d hd).1 ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr h)
+  have heidx : idx e ≠ boundaryOccurrence s := by
+    intro h
+    exact hn ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
+  obtain ⟨omit,y,homit,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
+  obtain ⟨f,hf,hsep,_,hprod⟩ :=
+    guba23_component_exact_vertex_product S v he hCS hES z
+  let value : F × _ → F := fun t => t.1 * cycleProduct S.rotation v t.2 * t.1⁻¹
+  have build (b : List (F × _))
+      (hb : ∀ t ∈ b, ¬ S.rotation.SameCycle z t.2)
+      (hp : b.Pairwise (fun t u => ¬ S.rotation.SameCycle t.2 u.2)) :
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)),
+        (l.map Prod.fst).Nodup ∧
+        (∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2 ∧
+          ∃ u ∈ b, (idx u.2).val = t.1.val+1) ∧
+        Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) (l.map Prod.snd) =
+          (b.map value).prod := by
+    induction b with
+    | nil => exact ⟨[],by simp,by simp,rfl⟩
+    | cons u us ih =>
+      obtain ⟨i,y,hi,hy,hval⟩ := guba23_vertex_factor_as_occurrence
+        rows w s hs u.2 u.1 (hidx u.2 (hb u List.mem_cons_self))
+      obtain ⟨l,hl,hcover,hev⟩ := ih
+        (fun t ht => hb t (List.mem_cons_of_mem _ ht)) (List.pairwise_cons.mp hp).2
+      refine ⟨(i,y)::l,?_,?_,?_⟩
+      · simp only [List.map_cons,List.nodup_cons]
+        refine ⟨?_,hl⟩
+        intro hmem
+        obtain ⟨t,ht,hti⟩ := List.mem_map.mp hmem
+        obtain ⟨_,q,hq,hqi⟩ := hcover t ht
+        have hs' : P.rotation.SameCycle u.2 q.2 := by
+          change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle u.2 q.2
+          rw [disc_sameCycle_iff]
+          apply Fin.ext
+          rw [hi,hqi,hti]
+        exact (List.pairwise_cons.mp hp).1 q hq
+          ((P.edgeSplice_sameVertex_iff z hn u.2 q.2).mpr (Or.inl hs'))
+      · intro t ht
+        rcases List.mem_cons.mp ht with ht | ht
+        · subst t
+          exact ⟨hy,u,List.mem_cons_self,hi⟩
+        · obtain ⟨hlabel,q,hq,hqi⟩ := hcover t ht
+          exact ⟨hlabel,q,List.mem_cons_of_mem _ hq,hqi⟩
+      · change Peiffer.term (fun i => FreeGroup.mk (rows i)) y *
+          Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) (l.map Prod.snd) =
+          value u * (us.map value).prod
+        rw [hev]
+        have hval' : Peiffer.term (fun i => FreeGroup.mk (rows i)) y = value u := by
+          change _ = u.1 * cycleProduct S.rotation v u.2 * u.1⁻¹
+          rw [keep u.2 (hb u List.mem_cons_self),hv]
+          exact hval
+        rw [hval']
+  obtain ⟨l,hl,hcover,hev⟩ := build f hf hsep
+  have hnot : omit ∉ l.map Prod.fst := by
+    intro hmem
+    obtain ⟨t,ht,hti⟩ := List.mem_map.mp hmem
+    obtain ⟨_,d,hd,hdi⟩ := hcover t ht
+    have hsame : P.rotation.SameCycle e d.2 := by
+      change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle e d.2
+      rw [disc_sameCycle_iff]
+      apply Fin.ext
+      rw [homit,hdi,hti]
+    exact (outside d.2 (hf d hd)).2 hsame
+  have hlt := rank_type_lt_of_omitted_index s (l.map Prod.snd)
+    (l.map Prod.fst) hl (indexed_rankCount_eq s l (fun t ht => (hcover t ht).1)) omit hnot
+  obtain ⟨tail,htail⟩ := cycleBoundary_cons P.rotation e
+  change P.vertexBoundary e = e::tail at htail
+  have hread : (S.vertexBoundary z).map read =
+      [read z,read e] ++ tail.map read := by
+    have h := edgeSplice_vertex_read P read z hn
+    rw [hfix,hz,htail] at h
+    exact h
+  have hcancel : FreeGroup.mk [read z,read e] = 1 := by
+    change FreeGroup.mk [read z,read (P.edge z)] = 1
+    rw [relatorRibbon_edge_read (chosenSection (Fin 2))
+      (markedRows rows w) (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)]
+    change FreeGroup.mk ([read z] ++ [reverseLetter (read z)]) = 1
+    rw [← FreeGroup.mul_mk,signedLetterValue_reverse,mul_inv_cancel]
+  have hval : cycleProduct S.rotation v z = FreeGroup.mk (tail.map read) := by
+    rw [hv,hread,← FreeGroup.mul_mk,hcancel,one_mul]
+  have hp : FreeGroup.mk (tail.map read) * (f.map value).prod = 1 := by
+    rw [← hval]
+    exact hprod
+  have heval : Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+      (FreeGroup.mk (tail.map read))⁻¹ := by
+    have hv' : (f.map value).prod = (FreeGroup.mk (tail.map read))⁻¹ := by
+      calc
+        _ = (FreeGroup.mk (tail.map read))⁻¹ *
+          (FreeGroup.mk (tail.map read) * (f.map value).prod) := by group
+        _ = _ := by rw [hp,mul_one]
+    simpa only [rows,rankHeightRows_eval] using hev.trans hv'
+  exact ⟨tail,htail,rankMinimal_exists_below_type pick X n _ s _ heval hlt⟩
+
+#print axioms oneDart_rankMinimal_defect_smaller_type
+
 end QuandleResearch.Issue070
