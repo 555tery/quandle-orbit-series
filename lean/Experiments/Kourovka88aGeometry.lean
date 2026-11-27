@@ -5198,7 +5198,7 @@ theorem exists_algebraic_internal_edge_removal {D K : Type} [Fintype D] [Group K
   have hboundary (d : R.ContractDart a) (hd : ¬ keep d.val) :
       (Q.vertexBoundary d).map Subtype.val = P.vertexBoundary d.val :=
     (contractEdge_peripheral_boundary R keep hI a ha hbR d hd).trans (hread d.val hd)
-  refine ⟨R.ContractDart a,inferInstance,Q,f,fun d => z d.val,?,
+  refine ⟨R.ContractDart a,inferInstance,Q,f,fun d => z d.val,?_,
     R.contractEdge_euler a hn hR,?_,?_,?_,hboundary,
     contractEdge_keep_sameVertex R keep hI a ha hbR hn,hzinv,hzone,?_⟩
   · have hh := R.contractEdge_card_darts a
@@ -5405,6 +5405,81 @@ theorem peripheral_conjugacy_weight {D E K : Type} [Finite D] [Finite E] [Group 
 #print axioms spherical_loop_normalize_protected_face
 #print axioms protected_face_singleton_value
 #print axioms peripheral_conjugacy_weight
+
+
+
+/-! ## Peripheral enumeration after algebraic compression
+
+The surviving peripheral darts form an exact finite copy of the
+original peripheral darts. Hence all original combinatorial weights
+can be counted without using the new spelling of group elements.
+-/
+
+/-- The surviving peripheral dart embedding is a bijection onto the
+original peripheral dart type. -/
+noncomputable def compressed_peripheral_equiv {D E : Type}
+    (f : E ↪ D) (keep : D → Prop)
+    (hsurv : ∀ d, ¬ keep d → ∃ e, f e = d) :
+    {e : E // ¬ keep (f e)} ≃ {d : D // ¬ keep d} :=
+  Equiv.ofBijective (fun e => ⟨f e.val,e.property⟩) (by
+    constructor
+    · intro a b h
+      apply Subtype.ext
+      exact f.injective (congrArg Subtype.val h)
+    · intro d
+      obtain ⟨e,he⟩ := hsurv d.val d.property
+      have hp : ¬ keep (f e) := by rw [he]; exact d.property
+      exact ⟨⟨e,hp⟩,Subtype.ext he⟩)
+
+/-- The number of peripheral incidences is exactly preserved. -/
+theorem compressed_peripheral_card {D E : Type}
+    [Fintype D] [Fintype E] (f : E ↪ D) (keep : D → Prop)
+    [DecidablePred keep] [DecidablePred (fun e => keep (f e))]
+    (hsurv : ∀ d, ¬ keep d → ∃ e, f e = d) :
+    Fintype.card {e : E // ¬ keep (f e)} =
+      Fintype.card {d : D // ¬ keep d} :=
+  Fintype.card_congr (compressed_peripheral_equiv f keep hsurv)
+
+/-- The exact sum of arbitrary original peripheral dart weights is
+preserved by the canonical bijection. This concerns original
+combinatorial weights, not lengths of newly conjugated labels. -/
+theorem compressed_peripheral_weight_sum {D E : Type}
+    [Fintype D] [Fintype E] (f : E ↪ D) (keep : D → Prop)
+    [DecidablePred keep] [DecidablePred (fun e => keep (f e))]
+    (hsurv : ∀ d, ¬ keep d → ∃ e, f e = d) (weight : D → ℕ) :
+    (∑ e : {e : E // ¬ keep (f e)}, weight (f e.val)) =
+      ∑ d : {d : D // ¬ keep d}, weight d.val := by
+  apply Fintype.sum_equiv (compressed_peripheral_equiv f keep hsurv)
+  intro e
+  rfl
+
+/-- Conjugacy certificates also preserve the distinction between
+trivial and nontrivial peripheral products. -/
+theorem compressed_peripheral_nontrivial_iff {D E K : Type}
+    [Finite D] [Finite E] [Group K]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E → D)
+    (v : D → K) (w : E → K) (keep : D → Prop)
+    (hc : ∀ d, ¬ keep (f d) → ∃ g : K,
+      cycleProduct Q.rotation w d = g * cycleProduct P.rotation v (f d) * g⁻¹)
+    (d : E) (hd : ¬ keep (f d)) :
+    cycleProduct Q.rotation w d ≠ 1 ↔ cycleProduct P.rotation v (f d) ≠ 1 := by
+  obtain ⟨g,hg⟩ := hc d hd
+  rw [hg]
+  constructor
+  · intro h hn
+    apply h
+    rw [hn,mul_one,mul_inv_cancel]
+  · intro h hn
+    apply h
+    calc
+      cycleProduct P.rotation v (f d) =
+        g⁻¹ * (g * cycleProduct P.rotation v (f d) * g⁻¹) * g := by group
+      _ = 1 := by rw [hn]; simp
+
+#print axioms compressed_peripheral_equiv
+#print axioms compressed_peripheral_card
+#print axioms compressed_peripheral_weight_sum
+#print axioms compressed_peripheral_nontrivial_iff
 
 
 end QuandleResearch.Issue070
