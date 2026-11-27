@@ -1,4 +1,4 @@
-import QuandleResearch.Proofs.Kourovka88a.Heights
+import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 
 /-! Exact statement audit and dependency report. These are audits of the
 conditional reductions, NOT an audit of a proof of the existential target. -/
@@ -40,5 +40,18 @@ example : answer ↔
 #print axioms heightRelator_one
 #print axioms heightRelator_mem_of_one
 #print axioms normalClosure_all_heights
+
+#print axioms exists_minBad
+#print axioms mem_badBall
+#print axioms badBall_subset
+#print axioms badBall_card_decreases
+#print axioms weighted_cover
+#print axioms weightedRelator_eq
+#print axioms weightedStages_normal
+#print axioms weightedStages_mono
+#print axioms weightedStages_progress
+#print axioms weightedStages_cover
+#print axioms answer_of_weightedStages
+#print axioms answer_of_weightedStages_short
 
 end QuandleResearch.Issue070
