@@ -8133,12 +8133,7 @@ theorem good_raw_rotation_iff (N : Subgroup F) (l r : RawWord) :
     Good N (FreeGroup.mk (r ++ l)) ↔ Good N (FreeGroup.mk (l ++ r)) := by
   have he : FreeGroup.mk l * FreeGroup.mk (r ++ l) *
       (FreeGroup.mk l)⁻¹ = FreeGroup.mk (l ++ r) := by
-    rw [← FreeGroup.mul_mk]
-    calc
-      FreeGroup.mk (l ++ (r ++ l)) * (FreeGroup.mk l)⁻¹ =
-          FreeGroup.mk (l ++ r) := by
-        rw [← List.append_assoc, ← FreeGroup.mul_mk]
-        group
+    simp only [← FreeGroup.mul_mk] <;> group
   simpa only [he] using
     (good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))).symm
 
@@ -8755,6 +8750,40 @@ theorem guba23_delete_cell_minimal_type
   · exact rank_type_lt_of_omitted_occurrence p r x (p ++ r) (List.Sublist.refl _)
 
 #print axioms guba23_delete_cell_minimal_type
+
+
+
+/-- After a cell is designated as the inner boundary, a competing
+filling may change its connecting path. Minimality of the original
+disc still forbids a smaller graded type of the remaining cells:
+reinsert the designated cell with its new base and compare discs.
+
+This is the algebraic annular minimality statement. It does not
+assert regularity or that every geometric annular filling admits
+the required based Peiffer expression with its exact cell counts. -/
+theorem guba23_delete_cell_variable_base_minimal
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ [x] ++ r))
+    (g : F) (t : Peiffer.Sequence F (RankHeight n))
+    (ht : Peiffer.evaluation (rankHeightRel pick X n)
+      ([shiftOccurrence g x] ++ t) = w) :
+    ¬ descendingCountLT n rankCount t (p ++ r) := by
+  rintro ⟨j,hj,hstrict,habove⟩
+  have hcounts : ∀ k, j < k → k < n →
+      rankCount (p ++ [x] ++ r) k =
+        rankCount ([shiftOccurrence g x] ++ t) k := by
+    intro k hjk hkn
+    have hk := habove k hjk hkn
+    simp only [rankCount_append,rankCount_singleton,shiftOccurrence] at hk ⊢
+    omega
+  have hle := hs.2 ([shiftOccurrence g x] ++ t) ht j hj hcounts
+  simp only [rankCount_append,rankCount_singleton,shiftOccurrence] at hle hstrict
+  omega
+
+#print axioms guba23_delete_cell_variable_base_minimal
 
 
 end QuandleResearch.Issue070
