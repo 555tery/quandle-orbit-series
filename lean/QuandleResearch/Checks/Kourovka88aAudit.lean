@@ -276,4 +276,9 @@ example : answer ↔
 #print axioms activePrefix
 #print axioms activeLongWord
 
+#print axioms quotient_paths_eq
+#print axioms minBad_factor_weight_min
+#print axioms minBad_factor_boundary_weight
+#print axioms activePeriod_factor_boundary_weight
+
 end QuandleResearch.Issue070
