@@ -4475,8 +4475,8 @@ theorem face_sameCycle_of_fixed_edge_endpoint {D : Type}
   rcases h with hd | he
   · have hf : P.face (P.edge d) = d := by
       apply P.rotation.injective
-      simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply,
-        P.edge_involutive] using hd.symm
+      rw [RibbonMap.face_apply, Equiv.apply_symm_apply]
+      exact (P.edge_involutive d).trans hd.symm
     have hh := next (P.edge d)
     rw [hf] at hh
     exact hh.symm
@@ -4502,8 +4502,8 @@ theorem face_sameCycle_of_fixed_edge_endpoints {D : Type}
   have hr (d : D) : P.face.SameCycle d (P.rotation d) := by
     have hf : P.face (P.edge (P.rotation d)) = d := by
       apply P.rotation.injective
-      simp only [RibbonMap.face_apply, Equiv.apply_symm_apply,
-        P.edge_involutive]
+      rw [RibbonMap.face_apply, Equiv.apply_symm_apply]
+      exact P.edge_involutive (P.rotation d)
     have hh := next (P.edge (P.rotation d))
     rw [hf] at hh
     exact ((he (P.rotation d)).trans hh).symm
@@ -4525,8 +4525,8 @@ theorem peripheral_face_two_steps {D : Type} (P : RibbonMap D)
     simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply] using h.symm
   rw [hfirst]
   apply P.rotation.injective
-  simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply,
-    P.edge_involutive] using hb.symm
+  rw [RibbonMap.face_apply, Equiv.apply_symm_apply]
+  exact (P.edge_involutive b).trans hb.symm
 
 /-- The one-face statement specialized to compressed coefficient
 regions, with no interior-interior edge remaining. -/
@@ -4582,18 +4582,15 @@ theorem spherical_loop_distinct_faces {D : Type} [Fintype D]
   have hnew : (P.vertexCut a b).SameComponent a b :=
     (P.vertexCut a b).component_edge a
   have hc := Fintype.card_congr (P.vertexCutComponentsEquiv a b hold hnew)
-  let := Fintype.ofFinite
-    (SmallPresentationStatements.PermutationCycles.Cycles
-      (SmallPresentationStatements.PermutationCycles.cutAt P.face
-        (P.rotation.symm a) (P.rotation.symm b)))
-  have hcast := Fintype.card_congr
-    (Equiv.cast (congrArg SmallPresentationStatements.PermutationCycles.Cycles
-      (P.vertexCut_face a b)))
-  have hf := hcast.trans
-    (SmallPresentationStatements.PermutationCycles.card_cutAt_of_sameCycle
-      P.face (P.rotation.symm a) (P.rotation.symm b)
-      (P.rotation.symm.injective.ne hne) hpred)
-  have hu := (P.vertexCut a b).euler_upper_bound
+  have hf : Fintype.card (P.vertexCut a b).Face = Fintype.card P.Face + 1 := by
+    let : Fintype (Cycles P.face) := inferInstanceAs (Fintype P.Face)
+    let := Fintype.ofFinite (Cycles (cutAt P.face (P.rotation.symm a) (P.rotation.symm b)))
+    have hcast := Fintype.card_congr (Equiv.cast (congrArg Cycles (P.vertexCut_face a b)))
+    exact hcast.trans (card_cutAt_of_sameCycle P.face (P.rotation.symm a)
+      (P.rotation.symm b) (P.rotation.symm.injective.ne hne) hpred)
+  have hu : Fintype.card (P.vertexCut a b).Vertex + Fintype.card (P.vertexCut a b).Face ≤
+      Fintype.card (P.vertexCut a b).Edge + 2 * Fintype.card (P.vertexCut a b).Component :=
+    (P.vertexCut a b).euler_upper_bound
   change Fintype.card P.Vertex + Fintype.card P.Face =
     Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
   omega
