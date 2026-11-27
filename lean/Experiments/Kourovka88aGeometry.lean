@@ -830,11 +830,10 @@ theorem peiffer_move_occurrence (rel : I → F)
     Peiffer.evaluation rel (m ++ [y]) =
       Peiffer.evaluation rel
         ([shiftOccurrence (Peiffer.evaluation rel m) y] ++ m) := by
-  rw [peiffer_evaluation_append, peiffer_evaluation_append]
-  change Peiffer.evaluation rel m * Peiffer.term rel y =
-    Peiffer.term rel (shiftOccurrence (Peiffer.evaluation rel m) y) *
-      Peiffer.evaluation rel m
-  rw [shiftOccurrence_term]
+  have hs (x : Peiffer.Occurrence F I) :
+      Peiffer.evaluation rel [x] = Peiffer.term rel x := by
+    simp [Peiffer.evaluation]
+  simp only [peiffer_evaluation_append, hs, shiftOccurrence_term]
   group
 
 /-- Equal-valued expressions of equal length have the same minimality
@@ -861,7 +860,9 @@ theorem minimalExpression_move_pair (rel : I → F) (w : F)
   · have he := peiffer_move_occurrence rel m y
     have he' := congrArg (fun v : F =>
       Peiffer.evaluation rel (p ++ [x]) * v * Peiffer.evaluation rel r) he
-    simpa only [peiffer_evaluation_append, List.append_assoc, mul_assoc] using he'
+    simpa only [Peiffer.evaluation, List.map_append, List.prod_append,
+      List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one,
+      mul_assoc] using he'
   · simp only [List.length_append, List.length_cons, List.length_nil]
     omega
 
