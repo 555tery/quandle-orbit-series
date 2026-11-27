@@ -18314,4 +18314,101 @@ theorem guba_earlier_period_factor_not_heavy
 #print axioms selected_period_weight_mono
 #print axioms guba_earlier_period_factor_not_heavy
 
+
+/-- An actual height relation in a normal subgroup transfers
+power collapse in either direction, without any assumption about
+torsion or unique roots. -/
+theorem heightRelator_power_mem_iff (N : Subgroup F) [N.Normal]
+    (X C : F) (k : ℤ) (h : heightRelator X C k ∈ N) :
+    C^k ∈ N ↔ a^k ∈ N := by
+  let q := QuotientGroup.mk' N
+  have he : q X * q (C^k) * (q X)⁻¹ * (q (a^k))⁻¹ = 1 := by
+    simpa only [heightRelator,map_mul,map_inv] using
+      (QuotientGroup.eq_one_iff N).mpr h
+  have hc : q X * q (C^k) * (q X)⁻¹ = q (a^k) := by
+    calc
+      _ = (q X * q (C^k) * (q X)⁻¹ * (q (a^k))⁻¹) * q (a^k) := by group
+      _ = _ := by rw [he,one_mul]
+  constructor
+  · intro hm
+    apply (QuotientGroup.eq_one_iff N).mp
+    rw [← hc,(QuotientGroup.eq_one_iff N).mpr hm,mul_one,mul_inv_cancel]
+  · intro hm
+    apply (QuotientGroup.eq_one_iff N).mp
+    have hq := (QuotientGroup.eq_one_iff N).mpr hm
+    calc
+      q (C^k) = (q X)⁻¹ * (q X * q (C^k) * (q X)⁻¹) * q X := by group
+      _ = 1 := by rw [hc,hq,mul_one,inv_mul_cancel]
+
+/-- Once the defining relation of a selected period is present,
+all its powers collapse exactly when the corresponding powers of
+a collapse. This is a membership equivalence, not a claim that
+the selected period is torsion-free before its own rank. -/
+theorem guba_selected_power_mem_iff (pick : WeightedSelector)
+    (n : ℕ) (i : Fin n)
+    (h : ∃ v : F, ¬ Good (gubaState pick i.val).1 v) (k : ℤ) :
+    (pick (gubaState pick i.val).1 h).val^k ∈
+        weightedHeightStage pick (gubaConjugatorChoice pick) n ↔
+      a^k ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n := by
+  let X := gubaConjugatorChoice pick
+  let N := weightedHeightStage pick X n
+  letI : N.Normal := by
+    dsimp only [N]
+    infer_instance
+  have hm : rankHeightRel pick X n (i,k) ∈ N := by
+    change rankHeightRel pick X n (i,k) ∈ weightedHeightStage pick X n
+    rw [← rankHeight_normalClosure]
+    exact Subgroup.subset_normalClosure ⟨(i,k),rfl⟩
+  rw [guba_rankHeightRel_active pick n i h k] at hm
+  exact heightRelator_power_mem_iff N _ _ k hm
+
+/-- At a first possible a-power failure, a boundary of the
+simultaneous power family that already collapses in the preceding
+stage must be a power of the LAST selected period. All earlier
+periods have already been related to a and are ruled out. -/
+theorem gubaPowerBoundary_lower_stage_last_period (pick : WeightedSelector)
+    (j : ℕ) (w : F) (hw : GubaPowerBoundary pick (j+1) w)
+    (hprev : ∀ k : ℤ, k ≠ 0 →
+      a^k ∉ weightedHeightStage pick (gubaConjugatorChoice pick) j)
+    (hm : w ∈ weightedHeightStage pick (gubaConjugatorChoice pick) j) :
+    ∃ (h : ∃ v : F, ¬ Good (gubaState pick j).1 v)
+      (k : ℤ), k ≠ 0 ∧ w = (pick (gubaState pick j).1 h).val^k := by
+  rcases hw with ⟨k,hk,rfl⟩ | ⟨i,h,k,hk,rfl⟩
+  · exact (hprev k hk hm).elim
+  · by_cases hlt : i.val < j
+    · have he := guba_selected_power_mem_iff pick j ⟨i.val,hlt⟩ h k
+      exact (hprev k hk (he.mp hm)).elim
+    · have hj : i.val = j := by omega
+      revert h hm
+      rw [hj]
+      intro h hm
+      exact ⟨h,k,hk,rfl⟩
+
+/-- No-top-cell case of the first failure: it is not a generic
+higher-rank exterior. It can only be a power of the newly selected
+period already torsion in the previous quotient. -/
+theorem gubaPowerCounterexample_no_top_last_period (pick : WeightedSelector)
+    (j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (he : Peiffer.evaluation
+      (rankHeightRel pick (gubaConjugatorChoice pick) (j+1)) s = w)
+    (hw : GubaPowerBoundary pick (j+1) w)
+    (hprev : ∀ k : ℤ, k ≠ 0 →
+      a^k ∉ weightedHeightStage pick (gubaConjugatorChoice pick) j)
+    (hzero : rankCount s j = 0) :
+    ∃ (h : ∃ v : F, ¬ Good (gubaState pick j).1 v)
+      (k : ℤ), k ≠ 0 ∧ w = (pick (gubaState pick j).1 h).val^k ∧
+      (pick (gubaState pick j).1 h).val^k ∈
+        weightedHeightStage pick (gubaConjugatorChoice pick) j := by
+  have hm := top_count_zero_mem_lower pick (gubaConjugatorChoice pick) j s hzero
+  rw [he] at hm
+  obtain ⟨h,k,hk,heq⟩ :=
+    gubaPowerBoundary_lower_stage_last_period pick j w hw hprev hm
+  exact ⟨h,k,hk,heq,heq ▸ hm⟩
+
+#print axioms heightRelator_power_mem_iff
+#print axioms guba_selected_power_mem_iff
+#print axioms gubaPowerBoundary_lower_stage_last_period
+#print axioms gubaPowerCounterexample_no_top_last_period
+
 end QuandleResearch.Issue070
