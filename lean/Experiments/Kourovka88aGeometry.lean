@@ -1,4 +1,5 @@
 import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
+import Mathlib.Data.Real.Basic
 import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
@@ -23,6 +24,8 @@ remain separate obligations.
 -/
 
 namespace QuandleResearch.Issue070
+
+open scoped BigOperators
 
 open SmallPresentationStatements.RelationCoordinates
 open SmallPresentationStatements.RelativeSmallCancellation.Geometry
@@ -2455,7 +2458,7 @@ theorem guba22_exists_component_representatives {D : Type}
   induction B using Finset.induction_on with
   | empty =>
     exact ⟨∅, by simp, by simp, by simp⟩
-  | @insert d B hd ih =>
+  | @insert d B _hd ih =>
     obtain ⟨R, hsub, hsep, hcov⟩ := ih
     by_cases hex : ∃ a ∈ R, P.SameComponent a d
     · refine ⟨R, ?_, hsep, ?_⟩
