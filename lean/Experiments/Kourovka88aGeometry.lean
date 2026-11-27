@@ -6098,4 +6098,148 @@ theorem vertex_run_is_walk {D : Type} [Fintype D]
 #print axioms vertex_run_is_walk
 
 
+
+/-! ## Simultaneous geometric realization of a vertex partition
+
+The partition of a cyclic reading into nonempty consecutive blocks
+can be realized by actual vertex cuts, not merely by a list of words.
+Other original vertices retain their full based readings.
+-/
+
+/-- A marked occurrence that does not appear in either prefix
+determines the cut in an ordered list uniquely. -/
+theorem marked_list_split_unique {D : Type} (b : D)
+    (p q p' q' : List D)
+    (hp : b ∉ p) (hp' : b ∉ p')
+    (h : p ++ b :: q = p' ++ b :: q') :
+    p = p' ∧ q = q' := by
+  induction p generalizing p' with
+  | nil =>
+    cases p' with
+    | nil => exact ⟨rfl,(List.cons.inj h).2⟩
+    | cons x xs =>
+      have hb : b = x := (List.cons.inj h).1
+      exact (hp' (List.mem_cons.mpr (Or.inl hb))).elim
+  | cons x xs ih =>
+    cases p' with
+    | nil =>
+      have hb : x = b := (List.cons.inj h).1
+      exact (hp (List.mem_cons.mpr (Or.inl hb.symm))).elim
+    | cons y ys =>
+      obtain ⟨hxy,ht⟩ := List.cons.inj h
+      obtain ⟨hs,hq⟩ := ih ys
+        (fun hm => hp (List.mem_cons_of_mem _ hm))
+        (fun hm => hp' (List.mem_cons_of_mem _ hm)) ht
+      exact ⟨by rw [hxy,hs],hq⟩
+
+/-- Two nonempty successive blocks of a complete based vertex
+reading are exactly the two vertex readings after a genuine cut
+at their starting darts. -/
+theorem vertexCut_exact_blocks {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b : D) (p q : List D)
+    (h : P.vertexBoundary a = (a :: p) ++ (b :: q)) :
+    a ≠ b ∧ P.rotation.SameCycle a b ∧
+      (P.vertexCut a b).vertexBoundary a = a :: p ∧
+      (P.vertexCut a b).vertexBoundary b = b :: q := by
+  have hnd := cycleBoundary_nodup P.rotation a
+  change (P.vertexBoundary a).Nodup at hnd
+  rw [h] at hnd
+  have hdis := (List.nodup_append.mp hnd).2.2
+  have hnot : b ∉ a :: p := by
+    intro hm
+    exact hdis b hm b (by simp) rfl
+  have hne : a ≠ b := by
+    intro he
+    exact hnot (List.mem_cons.mpr (Or.inl he.symm))
+  have hsame : P.rotation.SameCycle a b := by
+    apply (P.mem_vertexBoundary_iff a b).mp
+    rw [h]
+    exact List.mem_append.mpr (Or.inr (by simp))
+  let S := P.vertexCut a b
+  have hsplit : ¬ S.rotation.SameCycle a b :=
+    cutAt_not_sameCycle_of_sameCycle P.rotation a b hne hsame
+  have hnotS : b ∉ S.vertexBoundary a := fun hm =>
+    hsplit ((S.mem_vertexBoundary_iff a b).mp hm)
+  obtain ⟨t,ht⟩ := cycleBoundary_cons S.rotation b
+  change S.vertexBoundary b = b :: t at ht
+  have hpart := vertexCut_partition P a b hne hsame
+  change P.vertexBoundary a = S.vertexBoundary a ++ S.vertexBoundary b at hpart
+  rw [h,ht] at hpart
+  obtain ⟨hl,hr⟩ := marked_list_split_unique b (a :: p) q
+    (S.vertexBoundary a) t hnot hnotS hpart
+  exact ⟨hne,hsame,hl.symm,ht.trans (congrArg (List.cons b) hr.symm)⟩
+
+/-- A literal partition of one vertex into nonempty blocks can
+be realized simultaneously by a finite sequence of actual cuts.
+All original vertices outside the selected cycle remain unchanged.
+In particular, this construction preserves protected lower-rank
+vertices when the selected vertex is of higher rank. -/
+theorem vertex_partition_splitRefinement {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D) (runs : List (D × List D))
+    (h : P.vertexBoundary a = runs.flatMap (fun b => b.1 :: b.2)) :
+    ∃ tau : Equiv.Perm D, SplitRefinement P.rotation tau ∧
+      (∀ b ∈ runs, (P.withRotation tau).vertexBoundary b.1 = b.1 :: b.2) ∧
+      (∀ d, ¬ P.rotation.SameCycle a d →
+        (P.withRotation tau).vertexBoundary d = P.vertexBoundary d) := by
+  classical
+  induction runs generalizing P a with
+  | nil =>
+    exact ((cycleBoundary_ne_nil P.rotation a) h).elim
+  | cons b bs ih =>
+    obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation a
+    change P.vertexBoundary a = a :: l at hl
+    have hb : a = b.1 := by
+      rw [h,List.flatMap_cons,List.cons_append] at hl
+      exact (List.cons.inj hl).1.symm
+    subst a
+    cases bs with
+    | nil =>
+      refine ⟨P.rotation,.refl _,?_,?_⟩
+      · intro c hc
+        have he : c = b := by simpa using hc
+        subst c
+        simpa only [RibbonMap.withRotation_self,List.flatMap_cons,
+          List.flatMap_nil,List.append_nil] using h
+      · intro d _
+        rw [RibbonMap.withRotation_self]
+    | cons c cs =>
+      have hblocks : P.vertexBoundary b.1 =
+          (b.1 :: b.2) ++ (c.1 :: (c.2 ++ cs.flatMap (fun x => x.1 :: x.2))) := by
+        simpa only [List.flatMap_cons,List.cons_append] using h
+      obtain ⟨hne,hcycle,hbRead,hcRead⟩ := vertexCut_exact_blocks P b.1 c.1 b.2
+        (c.2 ++ cs.flatMap (fun x => x.1 :: x.2)) hblocks
+      let S := P.vertexCut b.1 c.1
+      have htail : S.vertexBoundary c.1 = (c::cs).flatMap (fun x => x.1 :: x.2) := by
+        simpa only [List.flatMap_cons,List.cons_append] using hcRead
+      obtain ⟨tau,href,hreads,hother⟩ := ih S c.1 htail
+      have hsep : ¬ S.rotation.SameCycle b.1 c.1 :=
+        cutAt_not_sameCycle_of_sameCycle P.rotation b.1 c.1 hne hcycle
+      have href' : SplitRefinement P.rotation tau :=
+        (SplitRefinement.single P.rotation b.1 c.1 hne hcycle).trans href
+      have hmap : P.withRotation tau = S.withRotation tau := by
+        apply RibbonMap.ext <;> rfl
+      refine ⟨tau,href',?_,?_⟩
+      · intro d hd
+        rw [hmap]
+        rcases List.mem_cons.mp hd with hd | hd
+        · subst d
+          exact (hother b.1 (fun he => hsep he.symm)).trans hbRead
+        · exact hreads d hd
+      · intro d hd
+        have hn1 : ¬ P.rotation.SameCycle d b.1 := fun he => hd he.symm
+        have hn2 : ¬ P.rotation.SameCycle d c.1 := fun he => hd (hcycle.trans he.symm)
+        have hread : S.vertexBoundary d = P.vertexBoundary d :=
+          vertexCut_other_vertex_read P b.1 c.1 d hn1 hn2
+        have hnS : ¬ S.rotation.SameCycle c.1 d := by
+          intro he
+          have hm := (S.mem_vertexBoundary_iff d c.1).mpr he.symm
+          rw [hread] at hm
+          exact hn2 ((P.mem_vertexBoundary_iff d c.1).mp hm)
+        rw [hmap,hother d hnS,hread]
+
+#print axioms marked_list_split_unique
+#print axioms vertexCut_exact_blocks
+#print axioms vertex_partition_splitRefinement
+
+
 end QuandleResearch.Issue070
