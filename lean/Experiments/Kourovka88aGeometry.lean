@@ -8862,16 +8862,18 @@ theorem guba23_designated_boundary_cycle
   classical
   intro s rows P z read
   let j : Fin (boundaryIdentity s).length := ⟨p.length+1,by
-    simp [s,boundaryIdentity]
-    omega⟩
+    simp [s,boundaryIdentity]⟩
+  have hx : s[p.length]? = some x := by
+    dsimp only [s]
+    rw [List.append_assoc, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]
+    rfl
   have hj : (boundaryIdentity s)[j] = markOccurrence x := by
-    change (s.map markOccurrence)[p.length] = markOccurrence x
-    rw [List.getElem_map]
-    have hx : s[p.length]'(by simp [s]; omega) = x := by
-      dsimp only [s]
-      rw [List.append_assoc, List.getElem_append_right (by omega : p.length ≤ p.length)]
-      simp
-    rw [hx]
+    have hopt : (boundaryIdentity s)[p.length+1]? = some (markOccurrence x) := by
+      change (s.map markOccurrence)[p.length]? = _
+      rw [List.getElem?_map,hx]
+      rfl
+    obtain ⟨hj',hh⟩ := List.getElem?_eq_some_iff.mp hopt
+    exact hh
   have hp : 0 < (orientedWord
       (markedRows rows w (boundaryIdentity s)[j].1.2)
       (boundaryIdentity s)[j].2).length := by
@@ -9078,6 +9080,80 @@ decreasing_by
   omega
 
 #print axioms guba23_component_exact_vertex_product
+
+
+
+/-- Apply exact spherical factorization to the *existing* component
+of the marked boundary. Every representative carries its original
+occurrence index; no two retained factors can use the same index.
+The product is the original boundary element, not just an element
+of a normal closure. -/
+theorem guba23_boundary_component_exact_factors (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let C := P.componentRibbon z
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∃ l : List (F × {d // P.SameComponent z d}),
+      (∀ t ∈ l, idx t.2.val ≠ boundaryOccurrence s) ∧
+      l.Pairwise (fun t u => idx t.2.val ≠ idx u.2.val) ∧
+      (∀ d : {d // P.SameComponent z d}, idx d.val ≠ boundaryOccurrence s →
+        ∃ t ∈ l, idx t.2.val = idx d.val) ∧
+      (l.map (fun t => t.1 * FreeGroup.mk ((P.vertexBoundary t.2.val).map read) *
+        t.1⁻¹)).prod = w := by
+  classical
+  intro P z C read idx
+  let a : {d // P.SameComponent z d} := ⟨z,Relation.EqvGen.refl z⟩
+  let v : {d // P.SameComponent z d} → F := fun d => FreeGroup.mk [read d.val]
+  have he : ∀ d, v (C.edge d) = (v d)⁻¹ := by
+    intro d
+    change FreeGroup.mk [read (P.edge d.val)] = (FreeGroup.mk [read d.val])⁻¹
+    rw [relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)]
+    exact signedLetterValue_reverse _
+  have hEC : C.EulerEquality := by
+    change Fintype.card C.Vertex + Fintype.card C.Face =
+      Fintype.card C.Edge + 2 * Fintype.card C.Component
+    rw [P.componentRibbon_card_components, mul_one]
+    exact P.componentRibbon_sphere (boundaryRibbon_euler rows w s hs) z
+  have same (d e : {d // P.SameComponent z d}) :
+      C.rotation.SameCycle d e ↔ idx d.val = idx e.val := by
+    rw [P.restrict_sameVertex_iff (P.SameComponent z)
+      (P.component_membership_edge z) (P.component_membership_rotation z)]
+    exact disc_sameCycle_iff _ _ _ _
+  have hidx : idx a.val = boundaryOccurrence s := boundaryDart_occurrence rows w s hw
+  have hv (d : {d // P.SameComponent z d}) :
+      cycleProduct C.rotation v d =
+        FreeGroup.mk ((P.vertexBoundary d.val).map read) := by
+    change ((C.vertexBoundary d).map v).prod = _
+    rw [← component_vertex_read P read z d, rawWord_eval_prod, List.map_map]
+    rfl
+  obtain ⟨l,hl,hsep,hcov,hprod⟩ := guba23_component_exact_vertex_product C v he
+    (P.componentRibbon_connected z) hEC a
+  refine ⟨l,?_,?_,?_,?_⟩
+  · intro t ht h
+    exact hl t ht ((same a t.2).mpr (hidx.trans h.symm))
+  · apply hsep.imp
+    intro t u htu h
+    exact htu ((same t.2 u.2).mpr h)
+  · intro d hd
+    obtain ⟨t,ht,h⟩ := hcov d (fun h => hd (((same a d).mp h).symm.trans hidx))
+    exact ⟨t,ht,(same t.2 d).mp h⟩
+  · have hroot : cycleProduct C.rotation v a = w⁻¹ := by
+      rw [hv, boundaryRibbon_read rows w s hs hw, ← FreeGroup.inv_mk,FreeGroup.mk_toWord]
+    simp only [hv] at hprod
+    have hroot' : FreeGroup.mk ((P.vertexBoundary a.val).map read) = w⁻¹ :=
+      (hv a).symm.trans hroot
+    rw [hroot'] at hprod
+    calc
+      _ = w * (w⁻¹ * (l.map (fun t => t.1 *
+        FreeGroup.mk ((P.vertexBoundary t.2.val).map read) * t.1⁻¹)).prod) := by group
+      _ = w := by rw [hprod,mul_one]
+
+#print axioms guba23_boundary_component_exact_factors
 
 
 end QuandleResearch.Issue070
