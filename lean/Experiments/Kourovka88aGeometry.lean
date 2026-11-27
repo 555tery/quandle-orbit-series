@@ -1,5 +1,7 @@
 import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 import Mathlib.Basic.Real.Basic
+import Mathlib.Data.List.Perm.Subperm
+import Mathlib.Data.List.FinRange
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
@@ -9154,6 +9156,67 @@ theorem guba23_boundary_component_exact_factors (rows : I → RawWord) (w : F)
       _ = w := by rw [hprod,mul_one]
 
 #print axioms guba23_boundary_component_exact_factors
+
+
+
+/-- Rank-minimality forbids a replacement using a proper subset of
+the original occurrence indices, even when every retained occurrence
+has a different conjugating base or sign. Indices, not row labels,
+are used so repeated copies of one rank-height relator are counted
+with their true multiplicities. -/
+theorem rankMinimal_no_omitted_indices
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (l : List (Fin s.length)) (hl : l.Nodup)
+    (hcounts : ∀ j, rankCount t j = rankCount (l.map (fun i => s[i.val])) j) :
+    ∀ i : Fin s.length, i ∈ l := by
+  classical
+  intro i
+  by_contra hi
+  have hsub : l <+~ List.finRange s.length :=
+    hl.subperm (fun x _ => List.mem_finRange x)
+  obtain ⟨u,hu,hlsub⟩ := List.subperm_iff.mp hsub
+  obtain ⟨r,hr⟩ := hlsub.exists_perm_append
+  have hp : List.finRange s.length ~ l ++ r := hu.symm.trans hr
+  have hir : i ∈ r := by
+    have hm := hp.mem_iff.mp (List.mem_finRange i)
+    exact (List.mem_append.mp hm).resolve_left hi
+  let get : Fin s.length → Peiffer.Occurrence F (RankHeight n) := fun k => s[k.val]
+  have hall : (List.finRange s.length).map get = s := by
+    rw [← List.ofFn_eq_map]
+    exact List.ofFn_getElem
+  have hperm : s ~ l.map get ++ r.map get := by
+    have h := hp.map get
+    rw [hall,List.map_append] at h
+    exact h
+  have hsplit (j : ℕ) : rankCount s j =
+      rankCount t j + rankCount (r.map get) j := by
+    have he := (hperm.filter (fun x => decide (x.1.2.1.val = j))).length_eq
+    change rankCount s j = rankCount (l.map get ++ r.map get) j at he
+    rw [rankCount_append] at he
+    rw [hcounts j]
+    exact he
+  have hpositive : 0 < rankCount (r.map get) (get i).1.2.1.val := by
+    unfold rankCount
+    apply List.length_pos_iff_exists_mem.mpr
+    refine ⟨get i,List.mem_filter.mpr ⟨List.mem_map.mpr ⟨i,hir,rfl⟩,?_⟩⟩
+    simp
+  have hlt : descendingCountLT n rankCount t s := by
+    apply descending_count_lt_of_pointwise
+    · intro j _
+      have h := hsplit j
+      omega
+    · refine ⟨(get i).1.2.1.val,(get i).1.2.1.isLt,?_⟩
+      have h := hsplit (get i).1.2.1.val
+      omega
+  obtain ⟨j,hj,hstrict,habove⟩ := hlt
+  exact (Nat.not_lt_of_ge (hs.2 t ht j hj
+    (fun k hjk hkn => (habove k hjk hkn).symm))) hstrict
+
+#print axioms rankMinimal_no_omitted_indices
 
 
 end QuandleResearch.Issue070
