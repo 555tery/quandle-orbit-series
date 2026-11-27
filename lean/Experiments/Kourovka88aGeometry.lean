@@ -13885,7 +13885,8 @@ theorem flattened_block_factor {D : Type} (blocks : List (List D × D))
       blocks.flatMap (fun b => b.1 ++ [b.2]) = p ++ (b.1 ++ [b.2]) ++ q := by
   obtain ⟨u,v,h⟩ := List.mem_iff_append.mp hb
   refine ⟨u.flatMap (fun b => b.1++[b.2]),v.flatMap (fun b => b.1++[b.2]),?_⟩
-  rw [h,List.flatMap_append,List.flatMap_cons,List.append_assoc]
+  rw [h,List.flatMap_append,List.flatMap_cons]
+  simp only [List.append_assoc]
 
 theorem list_weight_max {A : Type} (f : A → ℕ) (l : List A) (hne : l ≠ []) :
     ∃ b ∈ l, ∀ c ∈ l, f c ≤ f b := by
@@ -14002,5 +14003,54 @@ theorem ribbon_exists_long_interior_direct_strip {D : Type} [Fintype D]
 #print axioms list_sum_map_le_length_mul
 #print axioms ribbon_long_direct_strip
 #print axioms ribbon_exists_long_interior_direct_strip
+
+
+/-- Opposite-side walk of a direct strip. Include the final dart
+so the opposite reading contains every paired letter, rather
+than losing the endpoint when converting a walk to a word. -/
+theorem ribbon_direct_strip_opposite_walk {D : Type} (P : RibbonMap D)
+    {x y : D} {l : List D} (h : Walk P.rotation x y l)
+    (hbigon : ∀ d ∈ l, P.face (P.face d) = d) :
+    Walk P.rotation (P.edge y) (P.rotation (P.edge x))
+      (((l++[y]).map P.edge).reverse) := by
+  induction h with
+  | nil d =>
+    simp only [List.nil_append,List.map_cons,List.map_nil,List.reverse_singleton]
+    exact .cons _ _ _ (.nil _)
+  | cons d e l ht ih =>
+    have hnext := (ribbon_bigon_pairing P d).mp (hbigon d List.mem_cons_self)
+    have he : P.rotation (P.edge (P.rotation d)) = P.edge d := by
+      rw [hnext,Equiv.apply_symm_apply]
+    have htail := ih (fun c hc => hbigon c (List.mem_cons_of_mem _ hc))
+    rw [he] at htail
+    have hend : Walk P.rotation (P.edge d) (P.rotation (P.edge d)) [P.edge d] :=
+      .cons _ _ _ (.nil _)
+    simpa only [List.cons_append,List.map_cons,List.reverse_cons] using htail.append hend
+
+/-- Extract the precise two opposite walks from a literal
+direct-strip factor of an actual vertex cycle. -/
+theorem ribbon_direct_strip_two_walks {D : Type} [Fintype D]
+    (P : RibbonMap D) (d z : D) (p u q : List D)
+    (hpart : P.vertexBoundary d = p ++ (u++[z]) ++ q)
+    (hbigon : ∀ e ∈ u, P.face (P.face e) = e) :
+    ∃ x : D, Walk P.rotation x z u ∧
+      Walk P.rotation (P.edge z) (P.rotation (P.edge x))
+        (((u++[z]).map P.edge).reverse) := by
+  have hw : Walk P.rotation d d (P.vertexBoundary d) :=
+    cycleBoundary_walk _ _
+  rw [hpart,List.append_assoc] at hw
+  obtain ⟨x,_,ht⟩ := walk_split_departures P.rotation p
+    ((u++[z])++q) d d hw
+  rw [List.append_assoc] at ht
+  obtain ⟨y,hu,hz⟩ := walk_split_departures P.rotation u ([z]++q) x d ht
+  have he : y = z := by
+    change Walk P.rotation y d (z::q) at hz
+    cases hz
+    rfl
+  subst y
+  exact ⟨x,hu,ribbon_direct_strip_opposite_walk P hu hbigon⟩
+
+#print axioms ribbon_direct_strip_opposite_walk
+#print axioms ribbon_direct_strip_two_walks
 
 end QuandleResearch.Issue070
