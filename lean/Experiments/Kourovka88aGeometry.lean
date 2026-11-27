@@ -3266,4 +3266,73 @@ theorem guba22_reduced_ribbon_edge_bound_except_face {D : Type} [Fintype D]
 #print axioms guba22_reduced_ribbon_edge_bound
 #print axioms guba22_reduced_ribbon_edge_bound_except_face
 
+/-! ## A new relation has a high-rank cell in the marked component
+
+Disconnected closed components of a spherical realization are irrelevant
+for deciding whether the boundary word is already trivial at a lower
+rank. Apply the actual component boundary theorem before choosing a
+cell to excise. This does not assume a perimeter estimate or a
+contiguity system.
+-/
+
+/-- If the marked boundary is not killed by the earlier presentation,
+its own connected component contains an interior vertex of at least
+the indicated rank. In particular, for a word newly killed at rank
+(n-1), that vertex has rank exactly (n-1). -/
+theorem rankRibbon_boundary_component_has_high_cell (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) (hnew : w ∉ weightedHeightStage pick X j) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    ∃ (d : DiscDarts (markedRows rows w) (boundaryIdentity s)) (i : RankHeight n),
+      P.SameComponent z d ∧ ¬ P.rotation.SameCycle z d ∧
+      (boundaryIdentity s)[discOccurrence (markedRows rows w)
+        (boundaryIdentity s) d].1.2 = some i ∧ j ≤ i.1.val := by
+  classical
+  intro rows P z
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  have hinterior (k : Fin (boundaryIdentity s).length)
+      (hk : k ≠ boundaryOccurrence s) :
+      ∃ i : RankHeight n, (boundaryIdentity s)[k].1.2 = some i := by
+    obtain ⟨v,hv⟩ := k
+    cases v with
+    | zero => exact (hk (Fin.ext rfl)).elim
+    | succ m =>
+      have hm : m < s.length := by
+        simpa [boundaryIdentity] using hv
+      refine ⟨s[m].1.2, ?_⟩
+      simp [boundaryIdentity, markOccurrence]
+  by_contra h
+  have hb := component_boundary_mem_normal P read N
+    (relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs))
+    (boundaryRibbon_euler rows w s hs) z (by
+      intro d hc hd
+      have hk : discOccurrence (markedRows rows w) (boundaryIdentity s) d ≠
+          boundaryOccurrence s := by
+        intro he
+        exact hd ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr he)
+      obtain ⟨i,hi⟩ := hinterior _ hk
+      have hlt : i.1.val < j := by
+        by_contra! hge
+        exact h ⟨d,i,hc,hd,hi,hge⟩
+      exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt)
+  change FreeGroup.mk (((boundaryRibbon rows w s hs).vertexBoundary
+    (boundaryDart rows w s hw)).map
+    (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) ∈ N at hb
+  rw [boundaryRibbon_read rows w s hs hw, ← FreeGroup.inv_mk, FreeGroup.mk_toWord] at hb
+  exact hnew (by simpa only [inv_inv] using N.inv_mem hb)
+
+#print axioms rankRibbon_boundary_component_has_high_cell
+
+
 end QuandleResearch.Issue070
