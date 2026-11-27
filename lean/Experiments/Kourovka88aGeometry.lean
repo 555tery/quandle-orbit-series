@@ -889,4 +889,137 @@ theorem minimal_rankHeight_no_separated_merge_pair (pick : WeightedSelector)
 #print axioms minimalExpression_move_pair
 #print axioms minimal_rankHeight_no_separated_merge_pair
 
+
+/-! ## Rank-sensitive minimization
+
+A minimum total number of cells need not be minimal for graded
+cancellation. Minimize counts in descending rank order instead.
+This permits the removal of a high-rank cell at the cost of
+arbitrarily many lower-rank cells.
+-/
+
+/-- Finite lexicographic minimization, with the highest coordinate
+most significant. No bound on the individual counts is needed. -/
+theorem exists_descending_count_min {S : Type} (n : ℕ)
+    (P : S → Prop) (count : S → ℕ → ℕ) (hex : ∃ s, P s) :
+    ∃ s, P s ∧ ∀ t, P t → ∀ j < n,
+      (∀ k, j < k → k < n → count s k = count t k) →
+      count s j ≤ count t j := by
+  classical
+  induction n generalizing P with
+  | zero =>
+    obtain ⟨s, hs⟩ := hex
+    exact ⟨s, hs, fun _ _ _ hj _ => False.elim (Nat.not_lt_zero _ hj)⟩
+  | succ n ih =>
+    obtain ⟨u, hu⟩ := hex
+    have he : ∃ m : ℕ, ∃ s, P s ∧ count s n = m :=
+      ⟨count u n, u, hu, rfl⟩
+    let d := Nat.find he
+    obtain ⟨v,hv,hd⟩ := Nat.find_spec he
+    have he' : ∃ s, P s ∧ count s n = d := ⟨v,hv,hd⟩
+    obtain ⟨s,hs,hmin⟩ := ih (fun s => P s ∧ count s n = d) he'
+    refine ⟨s, hs.1, ?_⟩
+    intro t ht j hj habove
+    by_cases hjn : j = n
+    · subst j
+      rw [hs.2]
+      exact Nat.find_min' he ⟨t,ht,rfl⟩
+    · have hjlt : j < n := by omega
+      have htop := habove n hjlt (Nat.lt_succ_self n)
+      have ht' : P t ∧ count t n = d := ⟨ht, htop.symm.trans hs.2⟩
+      exact hmin t ht' j hjlt
+        (fun k hjk hkn => habove k hjk (Nat.lt_succ_of_lt hkn))
+
+/-- Count occurrences of a given rank, ignoring signs, heights and bases. -/
+def rankCount {n : ℕ} (s : Peiffer.Sequence F (RankHeight n))
+    (j : ℕ) : ℕ :=
+  (s.filter (fun x => decide (x.1.2.1.val = j))).length
+
+theorem rankCount_append {n : ℕ} (s t : Peiffer.Sequence F (RankHeight n))
+    (j : ℕ) :
+    rankCount (s ++ t) j = rankCount s j + rankCount t j := by
+  simp only [rankCount, List.filter_append, List.length_append]
+
+/-- The expression has lexicographically minimal descending rank
+counts among all expressions of the same boundary element. -/
+def RankMinimalExpression (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n)) : Prop :=
+  Peiffer.evaluation (rankHeightRel pick X n) s = w ∧
+  ∀ t : Peiffer.Sequence F (RankHeight n),
+    Peiffer.evaluation (rankHeightRel pick X n) t = w →
+    ∀ j < n, (∀ k, j < k → k < n → rankCount s k = rankCount t k) →
+      rankCount s j ≤ rankCount t j
+
+theorem exists_rankMinimalExpression (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      RankMinimalExpression pick X n w s := by
+  obtain ⟨s,hs⟩ := exists_minimal_rankHeight_expression pick X n w hw
+  exact exists_descending_count_min n
+    (fun t : Peiffer.Sequence F (RankHeight n) =>
+      Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    rankCount ⟨s,hs.1⟩
+
+/-- A graded reduction may introduce arbitrarily many lower-rank
+occurrences, but it must not change higher-rank counts. -/
+theorem rankMinimal_block_no_reduction (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (p b r t : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ b ++ r))
+    (he : Peiffer.evaluation (rankHeightRel pick X n) b =
+      Peiffer.evaluation (rankHeightRel pick X n) t)
+    (j : ℕ) (hj : j < n)
+    (habove : ∀ k, j < k → k < n → rankCount b k = rankCount t k)
+    (hstrict : rankCount t j < rankCount b j) : False := by
+  have ht : Peiffer.evaluation (rankHeightRel pick X n) (p ++ t ++ r) = w := by
+    rw [peiffer_evaluation_append, peiffer_evaluation_append, ← he]
+    simpa only [peiffer_evaluation_append] using hs.1
+  have hcounts : ∀ k, j < k → k < n →
+      rankCount (p ++ b ++ r) k = rankCount (p ++ t ++ r) k := by
+    intro k hjk hkn
+    simp only [rankCount_append, habove k hjk hkn]
+  have hle := hs.2 (p ++ t ++ r) ht j hj hcounts
+  simp only [rankCount_append] at hle
+  omega
+
+/-- Replacing all negatively oriented occurrences by signed heights
+preserves the entire rank profile, not just the total count. -/
+theorem rankCount_positiveHeightOccurrence {n : ℕ}
+    (s : Peiffer.Sequence F (RankHeight n)) (j : ℕ) :
+    rankCount (s.map (positiveHeightOccurrence n)) j = rankCount s j := by
+  induction s with
+  | nil => rfl
+  | cons x xs ih =>
+    have he : (positiveHeightOccurrence n x).1.2.1.val = x.1.2.1.val :=
+      congrArg Fin.val (positiveHeightOccurrence_rank n x)
+    unfold rankCount at ih ⊢
+    simp only [List.map_cons, List.filter_cons, he]
+    split <;> simp [ih]
+
+theorem exists_positive_rankMinimalExpression (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      RankMinimalExpression pick X n w s ∧ ∀ x ∈ s, x.2 = true := by
+  obtain ⟨s, hs⟩ := exists_rankMinimalExpression pick X n w hw
+  refine ⟨s.map (positiveHeightOccurrence n), ⟨?_, ?_⟩, ?_⟩
+  · rw [positiveHeightOccurrence_evaluation]
+    exact hs.1
+  · intro t ht j hj habove
+    simp only [rankCount_positiveHeightOccurrence] at habove ⊢
+    exact hs.2 t ht j hj habove
+  · intro x hx
+    obtain ⟨y,_,rfl⟩ := List.mem_map.mp hx
+    exact positiveHeightOccurrence_sign n y
+
+#print axioms exists_descending_count_min
+#print axioms rankCount
+#print axioms rankCount_append
+#print axioms RankMinimalExpression
+#print axioms exists_rankMinimalExpression
+#print axioms rankMinimal_block_no_reduction
+#print axioms rankCount_positiveHeightOccurrence
+#print axioms exists_positive_rankMinimalExpression
+
 end QuandleResearch.Issue070
