@@ -14345,4 +14345,170 @@ theorem guba23_rankMinimal_no_height_splice
 #print axioms ribbon_rankMinimal_no_indexed_replacement
 #print axioms guba23_rankMinimal_no_height_splice
 
+
+/-- A walk with known departure product determines the exact new
+based reading, not just its conjugacy class. -/
+theorem walk_cycleProduct_exact {D K : Type} [Finite D] [Group K]
+    (sigma : Equiv.Perm D) (v : D → K)
+    {x y : D} {l : List D} (h : Walk sigma x y l) (A B : K)
+    (ha : cycleProduct sigma v x = A) (hb : (l.map v).prod = B) :
+    cycleProduct sigma v y = B⁻¹ * A * B := by
+  have he := walk_cycleProduct_transport sigma v h
+  rw [ha,hb] at he
+  calc
+    _ = B⁻¹ * (B * cycleProduct sigma v y) := by group
+    _ = B⁻¹ * (A * B) := by rw [← he]
+    _ = _ := by group
+
+/-- The two explicit splice readings follow from walks to the
+opposite corners of height rows, using the full positive prefix
+on the first row and the reverse suffix on the second row. -/
+theorem ribbon_height_splice_of_walks {D : Type} [Fintype D]
+    (R : RibbonMap D) (v : D → F) (c x y : D)
+    (l r : List D) (P S C : F) (k m : ℤ)
+    (hn : ¬ R.rotation.SameCycle c (R.edge c))
+    (hl : Walk R.rotation x (R.rotation c) l)
+    (hr : Walk R.rotation y (R.edge c) r)
+    (hleft : cycleProduct R.rotation v x = heightRelator (P*S) C k)
+    (hright : cycleProduct R.rotation v y = heightRelator (P*S) C m)
+    (hp : (l.map v).prod = P)
+    (hs : (r.map v).prod = (P*S)*C^m*S⁻¹) :
+    ∃ g : F, cycleProduct (R.edgeSplice c).rotation v (R.rotation c) =
+      g * heightRelator (P*S) C (k+m) * g⁻¹ := by
+  have hL := walk_cycleProduct_exact R.rotation v hl _ _ hleft hp
+  have hR := walk_cycleProduct_exact R.rotation v hr _ _ hright hs
+  apply ribbon_aligned_height_splice R v c (R.rotation c) hn (.refl _ _) P S C k m
+  · rw [hL,heightRelator]
+    group
+  · rw [hR,heightRelator]
+    group
+
+/-- Identify an active rank-height row with the group relator
+using its actual positive conjugator. The formula is also valid
+at height zero, unlike a nonempty literal-row statement. -/
+theorem guba_rankHeightRel_active (pick : WeightedSelector)
+    (n : ℕ) (j : Fin n) (h : ∃ w : F, ¬ Good (gubaState pick j.val).1 w)
+    (k : ℤ) :
+    rankHeightRel pick (gubaConjugatorChoice pick) n (j,k) =
+      heightRelator (positiveWord (activeLongWord pick j.val h))
+        (pick (gubaState pick j.val).1 h).val k := by
+  classical
+  unfold rankHeightRel weightedRankHeightRelator
+  rw [← gubaState_stage pick j.val]
+  simp only [dite_eq_left h,activeLongWord_eval]
+
+/-- A heavy common literal factor of active positive long sides
+forces equal rank, equal prefix, and equal suffix. This strengthens
+the overlap estimate from equality of positions to equality of
+the full prefix/suffix cut words. -/
+theorem activeLongWord_heavy_factor_cut_eq (pick : WeightedSelector)
+    (i j : ℕ)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (p z r u v : List (Fin 2))
+    (hfirst : activeLongWord pick i hi = p ++ z ++ r)
+    (hsecond : activeLongWord pick j hj = u ++ z ++ v)
+    (hheavy : min (positiveWeight (activeLongWord pick i hi))
+      (positiveWeight (activeLongWord pick j hj)) <
+        240*10^17*positiveWeight z) :
+    i = j ∧ p = u ∧ r = v := by
+  have hsame : i = j ∧ p.length = u.length := by
+    by_cases hij : i = j
+    · by_cases hlen : p.length = u.length
+      · exact ⟨hij,hlen⟩
+      · have hsmall := activeLongWord_overlap_bound_both pick i j hi hj
+          p z r u v hfirst hsecond (Or.inr hlen)
+        omega
+    · have hsmall := activeLongWord_overlap_bound_both pick i j hi hj
+        p z r u v hfirst hsecond (Or.inl hij)
+      omega
+  obtain ⟨hij,hlen⟩ := hsame
+  subst j
+  have he : p ++ z ++ r = u ++ z ++ v := hfirst.symm.trans hsecond
+  have hplen : (p++z).length = (u++z).length := by simp only [List.length_append,hlen]
+  have hpz := List.append_inj_left he hplen
+  exact ⟨rfl,List.append_inj_left hpz hlen,List.append_inj_right he hplen⟩
+
+/-- No sufficiently heavy directly paired long-side factor can
+occur with the specified actual prefix walks in a rank-minimal
+marked ribbon. Alignment is now a conclusion of the literal
+overlap bound, not a separate premise. The remaining geometric
+input is extracting these prefix walks from a sufficiently long
+strip in the four-block rows, including the treatment of seams. -/
+theorem guba23_no_heavy_direct_long_side_walks
+    (pick : WeightedSelector)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick (gubaConjugatorChoice pick) n w s)
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let val := fun d => FreeGroup.mk [read d]
+    ∀ (c x y : _) (L M ds dt : List _)
+      (i j : Fin n) (k m : ℤ) (index : Fin s.length)
+      (hi : ∃ a : F, ¬ Good (gubaState pick i.val).1 a)
+      (hj : ∃ a : F, ¬ Good (gubaState pick j.val).1 a)
+      (p z r u t v : List (Fin 2)),
+      ¬ R.rotation.SameCycle c (R.edge c) →
+      ¬ R.rotation.SameCycle root c →
+      ¬ R.rotation.SameCycle root (R.edge c) →
+      (idx c).val = index.val+1 → s[index.val].1.2.1 = i →
+      activeLongWord pick i.val hi = p ++ z ++ r →
+      activeLongWord pick j.val hj = u ++ t ++ v →
+      dt = (ds.map R.edge).reverse →
+      ds.map read = z.map (fun a => (a,true)) →
+      dt.map read = FreeGroup.invRev (t.map (fun a => (a,true))) →
+      min (positiveWeight (activeLongWord pick i.val hi))
+        (positiveWeight (activeLongWord pick j.val hj)) <
+          240*10^17*positiveWeight z →
+      Walk R.rotation x (R.rotation c) L →
+      Walk R.rotation y (R.edge c) M →
+      cycleProduct R.rotation val x = rankHeightRel pick X n (i,k) →
+      cycleProduct R.rotation val y = rankHeightRel pick X n (j,m) →
+      (L.map val).prod = positiveWord (p++z) →
+      (M.map val).prod = positiveWord (activeLongWord pick j.val hj) *
+        ((pick (gubaState pick j.val).1 hj).val)^m * (positiveWord v)⁻¹ →
+      False := by
+  classical
+  intro X rows R root read idx val c x y L M ds dt i j k m index hi hj p z r u t v
+    hn hrc hre hidx hlabel hfirst hsecond hpair hz ht hheavy hL hM hx hy hp hq
+  have hzt : z = t :=
+    boundaryRibbon_paired_positive_eq rows w s hs ds dt z t hpair hz ht
+  subst t
+  obtain ⟨hij,hpu,hrv⟩ := activeLongWord_heavy_factor_cut_eq pick i.val j.val hi hj
+    p z r u v hfirst hsecond hheavy
+  have hij' : i = j := Fin.ext hij
+  subst j
+  subst u
+  subst v
+  let P := positiveWord (p++z)
+  let S := positiveWord r
+  let C := (pick (gubaState pick i.val).1 hi).val
+  have hX : positiveWord (activeLongWord pick i.val hi) = P*S := by
+    rw [hfirst,positiveWord_append]
+  have hrel (b : ℤ) : rankHeightRel pick X n (i,b) = heightRelator (P*S) C b := by
+    rw [guba_rankHeightRel_active pick n i hi b,hX]
+  rw [hrel] at hx hy
+  have hq' : (M.map val).prod = (P*S)*C^m*S⁻¹ := by
+    change (M.map val).prod = positiveWord (activeLongWord pick i.val hi) *
+      C^m*S⁻¹ at hq
+    rwa [hX] at hq
+  obtain ⟨g,hg⟩ := ribbon_height_splice_of_walks R val c x y L M P S C k m
+    hn hL hM hx hy hp hq'
+  rw [← hrel] at hg
+  apply guba23_rankMinimal_no_height_splice pick X n w s hm hw hs
+    c hn hrc hre index (k+m) g hidx
+  simpa only [hlabel] using hg
+
+#print axioms walk_cycleProduct_exact
+#print axioms ribbon_height_splice_of_walks
+#print axioms guba_rankHeightRel_active
+#print axioms activeLongWord_heavy_factor_cut_eq
+#print axioms guba23_no_heavy_direct_long_side_walks
+
 end QuandleResearch.Issue070
