@@ -19335,4 +19335,51 @@ theorem ribbon_one_end_whole_opposite_prefix {D : Type} [Fintype D]
 #print axioms ribbon_one_end_single_neighbour
 #print axioms ribbon_one_end_whole_opposite_prefix
 
+
+/-- For a label-preserving one-end region, the entire paired
+peripheral interval is a lower relation. No bound on a
+conjugator is needed. This lemma applies directly when the
+compressed labels are still the literal original labels. -/
+theorem ribbon_one_end_opposite_prefix_mem {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F)
+    (a : D) (hcount : ribbonVertexEndCount P (P.vertexOf a) = 1)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hrel : ∀ d, P.rotation.SameCycle a d →
+      FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N) :
+    ∃ (e : D) (u r : List D),
+      P.rotation.SameCycle a e ∧
+      P.vertexBoundary (P.rotation e) = u++[e] ∧
+      P.vertexBoundary (P.edge e) = (((u++[e]).map P.edge).reverse)++r ∧
+      FreeGroup.mk ((((u++[e]).map P.edge).reverse).map read) ∈ N := by
+  obtain ⟨e,u,r,he,hu,hr⟩ := ribbon_one_end_whole_opposite_prefix P a hcount
+  have hin := hrel (P.rotation e) (Equiv.Perm.sameCycle_apply_right.mpr he)
+  rw [hu] at hin
+  have hinv : (((u++[e]).map P.edge).reverse).map read =
+      FreeGroup.invRev ((u++[e]).map read) := by
+    rw [List.map_reverse,List.map_map,FreeGroup.invRev,List.map_map]
+    apply congrArg List.reverse
+    apply List.map_congr_left
+    intro d _
+    exact hedge d
+  refine ⟨e,u,r,he,hu,hr,?_⟩
+  rw [hinv,← FreeGroup.inv_mk]
+  exact N.inv_mem hin
+
+/-- A label-preserving one-end region cannot consume a positive
+factor of a cyclic rotation of a minimal bad period in its
+preceding quotient. The proof only needs the corresponding
+peripheral interval to be contained within ONE period.
+For arbitrary gauge-changing compressions the literal membership
+premise of this statement must still be proved. -/
+theorem minBad_cyclicFactor_not_lower_relation {N : Subgroup F} [N.Normal]
+    {c : F} (hc : MinBad N c) (l r p z q : RawWord)
+    (hword : c.toWord = l++r) (hfactor : r++l = p++z++q)
+    (hz : 0 < rawWeight z) :
+    FreeGroup.mk z ∉ N := by
+  exact minBad_positive_factor_not_mem (minBad_rotation hc l r hword).1
+    p z q hfactor hz
+
+#print axioms ribbon_one_end_opposite_prefix_mem
+#print axioms minBad_cyclicFactor_not_lower_relation
+
 end QuandleResearch.Issue070
