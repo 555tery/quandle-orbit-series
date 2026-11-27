@@ -11184,4 +11184,120 @@ theorem short_quotient_equality_lifts (N : Subgroup F) [N.Normal] (B : ℕ)
 #print axioms topRank_minimal_no_transported_merge
 #print axioms short_quotient_equality_lifts
 
+
+/-- The shortest nontrivial word killed at the new stage, provided
+it survives the preceding stage, has no shorter representative
+in the preceding quotient. This is stronger than free reduction. -/
+theorem shortest_new_kernel_quotient_geodesic
+    (N M : Subgroup F) [N.Normal] (hNM : N ≤ M)
+    (w : F) (hm : w ∈ M) (hnew : w ∉ N)
+    (hmin : ∀ z : F, z ∈ M → z ≠ 1 → weightedLength w ≤ weightedLength z)
+    (z : F) (he : QuotientGroup.mk' N w = QuotientGroup.mk' N z) :
+    weightedLength w ≤ weightedLength z := by
+  let q := QuotientGroup.mk' N
+  have hdiff : w⁻¹ * z ∈ N := by
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (w⁻¹ * z) = 1
+    rw [map_mul,map_inv,he,inv_mul_cancel]
+  have hz : z ∈ M := by
+    have h := M.mul_mem hm (hNM hdiff)
+    have hval : w * (w⁻¹*z) = z := by group
+    rwa [hval] at h
+  have hne : z ≠ 1 := by
+    intro h
+    apply hnew
+    have hq : q w = 1 := by simpa only [h,map_one] using he
+    exact (QuotientGroup.eq_one_iff _).mp hq
+  exact hmin z hz hne
+
+/-- Every literal interval in the shortest new kernel word is
+geodesic in the previous quotient. In particular a contiguity
+quadrilateral through earlier ranks cannot replace that interval
+by a strictly shorter word. -/
+theorem shortest_new_kernel_factor_geodesic
+    (N M : Subgroup F) [N.Normal] (hNM : N ≤ M)
+    (w : F) (hm : w ∈ M) (hnew : w ∉ N)
+    (hmin : ∀ z : F, z ∈ M → z ≠ 1 → weightedLength w ≤ weightedLength z)
+    (p u r v : RawWord) (hword : w.toWord = p ++ u ++ r)
+    (he : QuotientGroup.mk' N (FreeGroup.mk u) =
+      QuotientGroup.mk' N (FreeGroup.mk v)) :
+    rawWeight u ≤ rawWeight v := by
+  have hreplace : QuotientGroup.mk' N w =
+      QuotientGroup.mk' N (FreeGroup.mk (p ++ v ++ r)) := by
+    calc
+      _ = QuotientGroup.mk' N (FreeGroup.mk (p ++ u ++ r)) := by
+        rw [← hword,FreeGroup.mk_toWord]
+      _ = _ := by simp only [← FreeGroup.mul_mk,map_mul,he]
+  have hlow := shortest_new_kernel_quotient_geodesic N M hNM w hm hnew hmin
+    (FreeGroup.mk (p ++ v ++ r)) hreplace
+  have hu := weightedLength_mk_le (p ++ v ++ r)
+  have hweight : weightedLength w = rawWeight p + rawWeight u + rawWeight r := by
+    unfold weightedLength
+    rw [hword,rawWeight_append,rawWeight_append]
+  rw [rawWeight_append,rawWeight_append] at hu
+  omega
+
+/-- The first failure is an isometrically embedded weighted cycle:
+a connector between the endpoints of two complementary arcs
+cannot have weight smaller than both arcs. This does not need a
+planar diagram or any small-cancellation estimate. -/
+theorem shortest_kernel_complementary_arc_bound
+    (M : Subgroup F) [M.Normal]
+    (w : F) (hw : w ≠ 1) (hm : w ∈ M)
+    (hmin : ∀ z : F, z ∈ M → z ≠ 1 → weightedLength w ≤ weightedLength z)
+    (u v : RawWord) (hword : u ++ v = w.toWord)
+    (g : F) (he : QuotientGroup.mk' M (FreeGroup.mk u) = QuotientGroup.mk' M g) :
+    min (rawWeight u) (rawWeight v) ≤ weightedLength g := by
+  let q := QuotientGroup.mk' M
+  let U := FreeGroup.mk u
+  let V := FreeGroup.mk v
+  have hprod : U * V = w := by
+    change FreeGroup.mk u * FreeGroup.mk v = w
+    rw [FreeGroup.mul_mk,hword,FreeGroup.mk_toWord]
+  have hq : q (U * V) = 1 := by
+    rw [hprod]
+    exact (QuotientGroup.eq_one_iff _).mpr hm
+  have h1 : U * g⁻¹ ∈ M := by
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (U * g⁻¹) = 1
+    change q U = q g at he
+    rw [map_mul,map_inv,he,mul_inv_cancel]
+  have h2 : g * V ∈ M := by
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (g * V) = 1
+    rw [map_mul] at hq ⊢
+    change q U = q g at he
+    rwa [he] at hq
+  have hi : weightedLength g⁻¹ = weightedLength g := by
+    simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+  have hU := weightedLength_mk_le u
+  have hV := weightedLength_mk_le v
+  change weightedLength U ≤ rawWeight u at hU
+  change weightedLength V ≤ rawWeight v at hV
+  have hL := weightedLength_mul_le U g⁻¹
+  have hR := weightedLength_mul_le g V
+  rw [hi] at hL
+  have hW : weightedLength w = rawWeight u + rawWeight v := by
+    unfold weightedLength
+    rw [← hword,rawWeight_append]
+  by_contra! h
+  have hgu : weightedLength g < rawWeight u := lt_of_lt_of_le h (min_le_left _ _)
+  have hgv : weightedLength g < rawWeight v := lt_of_lt_of_le h (min_le_right _ _)
+  have e1 : U * g⁻¹ = 1 := by
+    by_contra hn
+    have := hmin _ h1 hn
+    omega
+  have e2 : g * V = 1 := by
+    by_contra hn
+    have := hmin _ h2 hn
+    omega
+  apply hw
+  calc
+    w = (U * g⁻¹) * (g * V) := by rw [← hprod]; group
+    _ = 1 := by rw [e1,e2,mul_one]
+
+#print axioms shortest_new_kernel_quotient_geodesic
+#print axioms shortest_new_kernel_factor_geodesic
+#print axioms shortest_kernel_complementary_arc_bound
+
 end QuandleResearch.Issue070
