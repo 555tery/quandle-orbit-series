@@ -2,6 +2,7 @@ module
 
 public import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 public import SmallPresentation.SmallCancellationDipoleIdentityRibbon
+public import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -9,11 +10,12 @@ public import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 This file is built by the isolated geometry workflow, not by the default
 QuandleResearch target. The external library supplies actual finite row
 ribbons, with literal occurrence indices and inverse-labelled edge pairing.
-No small-cancellation, planarity, or rank-survival conclusion is assumed here.
+No small-cancellation or rank-survival conclusion is assumed here.
 
 The first bridge is independent of the spellings chosen for the relators.
-The specialization below uses reduced spellings only as an integration
-test; Guba's later diagram estimates must use audited literal height rows.
+The specialization below keeps the four literal blocks of each height
+relation. Cyclic reduction and admissibility of the selected periods
+remain separate obligations.
 -/
 
 @[expose] public section
@@ -86,8 +88,8 @@ theorem boundaryIdentity_only_marked (s : Peiffer.Sequence F I) :
   simp [markOccurrence]
 
 /-- Construct a finite inverse-labelled ribbon using the upstream constructor.
-This is a realization of the marked identity, not yet a connected planar
-reduced diagram or a geometric survival theorem. -/
+This is a realization of the marked identity; its components are planar
+by the upstream theorem. It is not yet a connected reduced diagram. -/
 noncomputable def boundaryRibbon (rows : I → RawWord) (w : F)
     (s : Peiffer.Sequence F I)
     (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w) :=
@@ -115,17 +117,27 @@ theorem rankHeight_normalClosure (pick : WeightedSelector)
   · rintro ⟨i, hi, k, rfl⟩
     exact ⟨(⟨i,hi⟩,k), rfl⟩
 
-/-- First integration test: use the canonical reduced spellings in the
-existing algebraic stage. This does not assert they are the literal
-cyclic height rows of Guba's original diagram system. -/
+/-- Use the selected period and conjugator, keeping the literal height
+blocks. Inactive ranks contribute the empty word. -/
 noncomputable def rankHeightRows (pick : WeightedSelector) (X : ConjugatorChoice)
-    (n : ℕ) (i : RankHeight n) : RawWord :=
-  (rankHeightRel pick X n i).toWord
+    (n : ℕ) (i : RankHeight n) : RawWord := by
+  classical
+  let N := weightedStages pick X i.1.val
+  exact if h : ∃ w : F, ¬ Good N w then
+    let c := (pick N h).val
+    literalHeightWord (X i.1.val N c) c i.2
+  else []
 
 theorem rankHeightRows_eval (pick : WeightedSelector)
     (X : ConjugatorChoice) (n : ℕ) (i : RankHeight n) :
-    FreeGroup.mk (rankHeightRows pick X n i) = rankHeightRel pick X n i :=
-  FreeGroup.mk_toWord _
+    FreeGroup.mk (rankHeightRows pick X n i) = rankHeightRel pick X n i := by
+  classical
+  by_cases h : ∃ w : F, ¬ Good (weightedStages pick X i.1.val) w
+  · simp only [rankHeightRows, rankHeightRel, weightedRankHeightRelator,
+      dite_eq_left h, literalHeightWord_eval]
+  · simp only [rankHeightRows, rankHeightRel, weightedRankHeightRelator,
+      dite_eq_right h]
+    rfl
 
 theorem exists_rankHeight_identity (pick : WeightedSelector)
     (X : ConjugatorChoice) (n : ℕ) (w : F)
@@ -154,5 +166,26 @@ noncomputable def rankHeightRibbon (pick : WeightedSelector)
 #print axioms rankHeightRows_eval
 #print axioms exists_rankHeight_identity
 #print axioms rankHeightRibbon
+
+
+/-- Every component of the actual marked ribbon has the spherical Euler
+property. This is a direct use of the upstream realization theorem,
+not a postulated planarity condition. -/
+theorem boundaryRibbon_euler (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w) :
+    (boundaryRibbon rows w s hs).EulerEquality := by
+  exact relatorRibbon_euler (chosenSection (Fin 2)) (markedRows rows w)
+    (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)
+
+theorem rankHeightRibbon_euler (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    (rankHeightRibbon pick X n w hw).EulerEquality := by
+  unfold rankHeightRibbon
+  apply boundaryRibbon_euler
+
+#print axioms boundaryRibbon_euler
+#print axioms rankHeightRibbon_euler
 
 end QuandleResearch.Issue070
