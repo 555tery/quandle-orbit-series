@@ -1,5 +1,6 @@
 import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 import Mathlib.Basic.Real.Basic
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
@@ -3645,6 +3646,97 @@ theorem rankRibbon_outlet_weight_partition (pick : WeightedSelector)
 
 #print axioms signed_letter_survives_of_commWord
 #print axioms rankRibbon_outlet_weight_partition
+
+
+/-! ## Normalized edge weights used in Guba's Lemmas 10--19
+
+The weighted length of a row is not the weight used in Lemma 19:
+an incidence on a perimeter P receives its length divided by the
+cube root of P. The following identities are on literal dart lists.
+The transfer lemma isolates the metric step of Lemmas 10 and 17,
+without postulating the existence of a preferred contiguity system.
+-/
+
+noncomputable def guba19Weight (perimeter : ℝ) (u : RawWord) : ℝ :=
+  (rawWeight u : ℝ) / perimeter ^ (1/3 : ℝ)
+
+theorem guba19Weight_append (p : ℝ) (u v : RawWord) :
+    guba19Weight p (u ++ v) = guba19Weight p u + guba19Weight p v := by
+  simp only [guba19Weight, rawWeight_append, Nat.cast_add, add_div]
+
+theorem guba19Weight_map_sum {D : Type} (read : D → Letter)
+    (p : ℝ) (ds : List D) :
+    guba19Weight p (ds.map read) =
+      (ds.map (fun d => guba19Weight p [read d])).sum := by
+  induction ds with
+  | nil => simp [guba19Weight, rawWeight]
+  | cons d ds ih =>
+    change guba19Weight p ([read d] ++ ds.map read) =
+      guba19Weight p [read d] +
+        (ds.map (fun e => guba19Weight p [read e])).sum
+    rw [guba19Weight_append, ih]
+
+/-- The sum over the complete perimeter is P^(2/3), with the same
+normalization as in Guba's weight accounting. -/
+theorem guba19Weight_total (u : RawWord) :
+    guba19Weight (rawWeight u : ℝ) u = (rawWeight u : ℝ) ^ (2/3 : ℝ) := by
+  by_cases h : rawWeight u = 0
+  · simp [guba19Weight, h, Real.zero_rpow (by norm_num : (2/3 : ℝ) ≠ 0)]
+  · have hp : 0 < (rawWeight u : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero h
+    calc
+      _ = (rawWeight u : ℝ) ^ (1 : ℝ) /
+          (rawWeight u : ℝ) ^ (1/3 : ℝ) := by rw [Real.rpow_one]
+      _ = (rawWeight u : ℝ) ^ (1 - 1/3 : ℝ) :=
+        (Real.rpow_sub hp 1 (1/3)).symm
+      _ = _ := by congr 1; norm_num
+
+/-- Exact normalized weight identity for an actual vertex of a ribbon. -/
+theorem guba19_vertex_weight {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (d : D) :
+    let ds := P.vertexBoundary d
+    let p : ℝ := rawWeight (ds.map read)
+    (ds.map (fun e => guba19Weight p [read e])).sum = p ^ (2/3 : ℝ) := by
+  intro ds p
+  rw [← guba19Weight_map_sum read p ds]
+  exact guba19Weight_total (ds.map read)
+
+/-- Transfer of normalized weights between two literal arc readings.
+If P <= c^3 Q and the target length is at most twice the source
+length, its normalized weight is at most 2c times the source
+weight. Taking c = sqrt omega gives the metric step of Lemma 17.
+The perimeter separation and length comparison are separate
+geometric obligations, not assertions proved here. -/
+theorem guba19_normalized_transfer (P Q c : ℝ) (u v : RawWord)
+    (hp : 0 < P) (hq : 0 < Q) (hc : 0 < c)
+    (hscale : P ≤ c^3 * Q) (hlen : rawWeight v ≤ 2 * rawWeight u) :
+    guba19Weight Q v ≤ 2 * c * guba19Weight P u := by
+  have hcub : (c^3) ^ (1/3 : ℝ) = c := by
+    rw [← Real.rpow_natCast_mul hc.le 3 (1/3 : ℝ)]
+    norm_num
+  have hroot := Real.rpow_le_rpow hp.le hscale (by norm_num : 0 ≤ (1/3 : ℝ))
+  rw [Real.mul_rpow (by positivity : 0 ≤ c^3) hq.le, hcub] at hroot
+  have hp' := Real.rpow_pos_of_pos hp (1/3 : ℝ)
+  have hq' := Real.rpow_pos_of_pos hq (1/3 : ℝ)
+  have hl : (rawWeight v : ℝ) ≤ 2 * (rawWeight u : ℝ) := by exact_mod_cast hlen
+  unfold guba19Weight
+  calc
+    (rawWeight v : ℝ) / Q ^ (1/3 : ℝ) ≤
+        (2 * (rawWeight u : ℝ)) / Q ^ (1/3 : ℝ) :=
+      div_le_div_of_nonneg_right hl hq'.le
+    _ ≤ (2 * c * (rawWeight u : ℝ)) / P ^ (1/3 : ℝ) := by
+      apply (div_le_div_iff₀ hq' hp').mpr
+      calc
+        _ ≤ (2 * (rawWeight u : ℝ)) * (c * Q ^ (1/3 : ℝ)) :=
+          mul_le_mul_of_nonneg_left hroot (by positivity)
+        _ = _ := by ring
+    _ = _ := by ring
+
+#print axioms guba19Weight
+#print axioms guba19Weight_append
+#print axioms guba19Weight_map_sum
+#print axioms guba19Weight_total
+#print axioms guba19_vertex_weight
+#print axioms guba19_normalized_transfer
 
 
 end QuandleResearch.Issue070
