@@ -11538,8 +11538,10 @@ theorem initialWeightedPeriod_relation (pick : WeightedSelector)
   apply weightedStages_mono pick X hn
   have hex : ∃ w : F, ¬ Good (⊥ : Subgroup F) w := ⟨b,heavy_not_good_bot⟩
   change u*C*u⁻¹*a⁻¹ ∈ adjoin ⊥ (weightedRelator pick X 0 ⊥)
-  rw [weightedRelator_eq pick X 0 ⊥ hex]
-  simpa only [heightRelator_one] using (relator_mem_adjoin (⊥ : Subgroup F) (heightRelator u C 1))
+  have hC : C = (pick ⊥ hex).val := rfl
+  have hu : u = X 0 ⊥ C := rfl
+  rw [weightedRelator_eq pick X 0 ⊥ hex,heightRelator_one,hu,hC]
+  exact relator_mem_adjoin _ _
 
 /-- For a quotient which already contains the first defining relation,
 survival of the commutator is EXACTLY survival of a single fixed
@@ -11759,7 +11761,6 @@ theorem first_positive_relator_survival (xs : List (Fin 2)) :
   have halign : q X * q b = q a * q X := by
     ext x
     simp only [Equiv.Perm.mul_apply]
-    change q X (q b x) = q a (q X x)
     rw [hX,affineFreeMap_b,affineFreeMap_a,hX]
     ring
   have hrel : q (X*b*X⁻¹*a⁻¹) = 1 := by
@@ -12195,5 +12196,85 @@ theorem answer_of_guba_one_dart_step
 #print axioms guba_twoPeriod_relations
 #print axioms answer_of_guba_one_letter_survival
 #print axioms answer_of_guba_one_dart_step
+
+
+/-- A one-dart vertex is a genuine leaf: its unique edge leaves
+the vertex, and no other dart lies in the marked vertex cycle. -/
+theorem oneDart_leaf {D : Type} [Fintype D] (P : RibbonMap D)
+    (z : D) (hz : P.vertexBoundary z = [z]) :
+    P.rotation z = z ∧
+      (∀ d, P.rotation.SameCycle z d ↔ d = z) ∧
+      ¬ P.rotation.SameCycle z (P.edge z) := by
+  have hcyc (d : D) : P.rotation.SameCycle z d ↔ d = z := by
+    rw [← P.mem_vertexBoundary_iff,hz,List.mem_singleton]
+  have hfix : P.rotation z = z :=
+    (hcyc _).mp (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))
+  refine ⟨hfix,hcyc,?_⟩
+  intro h
+  exact P.edge_ne z ((hcyc _).mp h)
+
+/-- Removing the leaf edge transfers the boundary to the unique
+adjacent cell, with its initial letter deleted. The resulting
+defect word lies in any normal subgroup containing the readings
+of every other cell. This is an actual ribbon surgery, not an
+assumed contiguity estimate. -/
+theorem oneDart_adjacent_cell_defect {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter)
+    (N : Subgroup F) [N.Normal] (z : D)
+    (hz : P.vertexBoundary z = [z])
+    (hE : P.EulerEquality)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, P.SameComponent z d →
+      ¬ P.rotation.SameCycle z d →
+      ¬ P.rotation.SameCycle (P.edge z) d →
+      FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N) :
+    ∃ l : List D, P.vertexBoundary (P.edge z) = P.edge z::l ∧
+      FreeGroup.mk (l.map read) ∈ N ∧
+      rawWeight ((P.vertexBoundary (P.edge z)).map read) =
+        letterWeight (read (P.edge z)) + rawWeight (l.map read) := by
+  obtain ⟨hfix,_,hn⟩ := oneDart_leaf P z hz
+  obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation (P.edge z)
+  change P.vertexBoundary (P.edge z) = P.edge z::l at hl
+  have hm := edgeSplice_boundary_mem_normal P read N z hn hE hedge hint
+  rw [hfix,hz,hl] at hm
+  change FreeGroup.mk ([read z,read (P.edge z)] ++ l.map read) ∈ N at hm
+  have hcancel : FreeGroup.mk [read z,read (P.edge z)] = 1 := by
+    rw [hedge]
+    change FreeGroup.mk ([read z] ++ [reverseLetter (read z)]) = 1
+    rw [← FreeGroup.mul_mk,signedLetterValue_reverse,mul_inv_cancel]
+  rw [← FreeGroup.mul_mk,hcancel,one_mul] at hm
+  refine ⟨l,hl,hm,?_⟩
+  rw [hl,List.map_cons,rawWeight]
+
+/-- In particular the defective cyclic cell word belongs to the
+normal closure of the readings of all remaining interior cells.
+This removes one whole cell from the normal generation problem
+and specifies the new boundary literally. -/
+theorem oneDart_defect_generated_by_other_cells {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (z : D)
+    (hz : P.vertexBoundary z = [z])
+    (hE : P.EulerEquality)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d)) :
+    ∃ l : List D, P.vertexBoundary (P.edge z) = P.edge z::l ∧
+      FreeGroup.mk (l.map read) ∈ Subgroup.normalClosure
+        {w : F | ∃ d, P.SameComponent z d ∧
+          ¬ P.rotation.SameCycle z d ∧
+          ¬ P.rotation.SameCycle (P.edge z) d ∧
+          w = FreeGroup.mk ((P.vertexBoundary d).map read)} := by
+  let N := Subgroup.normalClosure
+    {w : F | ∃ d, P.SameComponent z d ∧
+      ¬ P.rotation.SameCycle z d ∧
+      ¬ P.rotation.SameCycle (P.edge z) d ∧
+      w = FreeGroup.mk ((P.vertexBoundary d).map read)}
+  let : N.Normal := by
+    unfold N
+    infer_instance
+  obtain ⟨l,hl,hm,_⟩ := oneDart_adjacent_cell_defect P read N z hz hE hedge
+    (fun d hc h1 h2 => Subgroup.subset_normalClosure ⟨d,hc,h1,h2,rfl⟩)
+  exact ⟨l,hl,hm⟩
+
+#print axioms oneDart_leaf
+#print axioms oneDart_adjacent_cell_defect
+#print axioms oneDart_defect_generated_by_other_cells
 
 end QuandleResearch.Issue070
