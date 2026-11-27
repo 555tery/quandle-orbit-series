@@ -8264,4 +8264,77 @@ theorem distinct_rank_power_relation_not_mem (pick : WeightedSelector)
 #print axioms distinct_rank_power_relation_not_mem
 
 
+
+/-! ## Coherent power relations in the graded quotient
+
+A single conjugacy between nontrivial powers need not identify
+the roots in an arbitrary group. Two relations with the same
+conjugator and coprime exponents on the later period do suffice.
+This gives an algebraic obstruction without assuming unique roots
+or torsion-freeness of any stage of the presentation.
+-/
+
+/-- Good words are closed under all integer powers, including
+negative powers. -/
+theorem good_integer_power (N : Subgroup F) [N.Normal] {w : F}
+    (hw : Good N w) (m : ℤ) : Good N (w ^ m) := by
+  obtain ⟨k,hk⟩ := (good_iff_quotient N w).mp hw
+  obtain ⟨g,hg⟩ := isConj_iff.mp hk
+  apply (good_iff_quotient N (w ^ m)).mpr
+  refine ⟨k*m, isConj_iff.mpr ⟨g,?_⟩⟩
+  rw [map_zpow, zpow_mul, ← conj_zpow, hg]
+
+/-- The common conjugator is essential. The explicit Bezout
+identity avoids imposing any root-uniqueness hypothesis. -/
+theorem coherent_power_conjugacy_bezout {G : Type*} [Group G]
+    (c d g : G) (k l m n s t : ℤ)
+    (hbez : k*s+l*t = 1)
+    (h1 : g*d^k*g⁻¹ = c^m)
+    (h2 : g*d^l*g⁻¹ = c^n) :
+    g*d*g⁻¹ = c^(m*s+n*t) := by
+  have h1' : (g*d*g⁻¹)^k = c^m := by
+    rw [conj_zpow,h1]
+  have h2' : (g*d*g⁻¹)^l = c^n := by
+    rw [conj_zpow,h2]
+  calc
+    g*d*g⁻¹ = (g*d*g⁻¹)^(k*s+l*t) := by rw [hbez,zpow_one]
+    _ = ((g*d*g⁻¹)^k)^s * ((g*d*g⁻¹)^l)^t := by
+      simp only [zpow_add,zpow_mul]
+    _ = c^(m*s+n*t) := by
+      rw [h1',h2']
+      simp only [zpow_add,zpow_mul]
+
+/-- If a good period and a minimal bad period have two coherent
+power relations in the quotient, their exponents on the bad side
+cannot admit a Bezout identity. The input is normal-subgroup
+membership of the two actual boundary products. -/
+theorem minBad_coherent_power_relations_impossible
+    {N : Subgroup F} [N.Normal] {c d : F}
+    (hc : Good N c) (hd : MinBad N d)
+    (g : F) (k l m n s t : ℤ) (hbez : k*s+l*t = 1)
+    (h1 : g*d^k*g⁻¹*(c^m)⁻¹ ∈ N)
+    (h2 : g*d^l*g⁻¹*(c^n)⁻¹ ∈ N) : False := by
+  let q := QuotientGroup.mk' N
+  have relation (p r : ℤ) (h : g*d^p*g⁻¹*(c^r)⁻¹ ∈ N) :
+      q g * (q d)^p * (q g)⁻¹ = (q c)^r := by
+    have he : q (g*d^p*g⁻¹*(c^r)⁻¹) = 1 :=
+      (QuotientGroup.eq_one_iff _).mpr h
+    simp only [map_mul,map_inv,map_zpow] at he
+    calc
+      _ = (q g * (q d)^p * (q g)⁻¹ * ((q c)^r)⁻¹) * (q c)^r := by group
+      _ = _ := by rw [he,one_mul]
+  have he := coherent_power_conjugacy_bezout (q c) (q d) (q g)
+    k l m n s t hbez (relation k m h1) (relation l n h2)
+  have hconj : IsConj (q d) (q (c^(m*s+n*t))) := by
+    apply isConj_iff.mpr
+    refine ⟨q g,?_⟩
+    rw [map_zpow]
+    exact he
+  exact hd.1 (good_of_quotient_conj hconj (good_integer_power N hc _))
+
+#print axioms good_integer_power
+#print axioms coherent_power_conjugacy_bezout
+#print axioms minBad_coherent_power_relations_impossible
+
+
 end QuandleResearch.Issue070
