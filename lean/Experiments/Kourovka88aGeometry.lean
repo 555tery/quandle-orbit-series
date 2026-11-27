@@ -4911,4 +4911,108 @@ theorem internal_loop_twisted_product {K : Type} [Group K] (x u v : K)
 #print axioms internal_loop_twisted_product
 
 
+
+/-! ## Face potentials: nonabelian change of coefficient coordinates
+
+A face potential acts on the inverse-labelled edges of the dual
+ribbon. Products around vertices telescope, so every vertex product
+is conjugated, not merely mapped to an unrelated word. Distinct
+incident faces allow the label of a loop to be made trivial.
+Peripheral singleton labels retain their conjugacy classes, but
+need not retain their original values.
+-/
+
+/-- The change of coordinates telescopes along every finite walk,
+not just along a complete vertex cycle. -/
+theorem walk_potential_product {D K : Type} [Group K]
+    (sigma : Equiv.Perm D) (v p : D → K)
+    {d e : D} {l : List D} (h : Walk sigma d e l) :
+    (l.map (fun t => p t * v t * (p (sigma t))⁻¹)).prod =
+      p d * (l.map v).prod * (p e)⁻¹ := by
+  induction h with
+  | nil d => simp
+  | cons d e l ht ih =>
+    simp only [List.map_cons,List.prod_cons]
+    rw [ih]
+    group
+
+/-- A potential constant on face cycles induces a change of edge
+labels with inverse pairing and conjugated vertex products. -/
+theorem face_potential_change {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v g : D → K)
+    (hg : ∀ d e, P.face.SameCycle d e → g d = g e)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹) :
+    let w := fun d => g (P.edge d) * v d * (g d)⁻¹
+    (∀ d, w (P.edge d) = (w d)⁻¹) ∧
+      (∀ d, cycleProduct P.rotation w d =
+        g (P.edge d) * cycleProduct P.rotation v d * (g (P.edge d))⁻¹) := by
+  dsimp only
+  constructor
+  · intro d
+    rw [P.edge_involutive, he]
+    group
+  · intro d
+    have hstep (t : D) : g (P.edge (P.rotation t)) = g t := by
+      apply hg
+      have hf : P.face (P.edge (P.rotation t)) = t := by
+        change P.rotation.symm (P.edge (P.edge (P.rotation t))) = t
+        rw [P.edge_involutive, Equiv.symm_apply_apply]
+      have hs : P.face.SameCycle (P.edge (P.rotation t))
+          (P.face (P.edge (P.rotation t))) :=
+        Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+      rwa [hf] at hs
+    have hw := walk_potential_product P.rotation v (fun t => g (P.edge t))
+      (cycleBoundary_walk P.rotation d)
+    change ((cycleBoundary P.rotation d).map
+      (fun t => g (P.edge t) * v t * (g (P.edge (P.rotation t)))⁻¹)).prod =
+      g (P.edge d) * ((cycleBoundary P.rotation d).map v).prod *
+        (g (P.edge d))⁻¹ at hw
+    simpa only [hstep,cycleProduct] using hw
+
+/-- A spherical loop can be normalized to label one on both of its
+incidences by changing only group coordinates. Every vertex product
+is conjugated and every edge remains inverse-labelled. -/
+theorem spherical_loop_normalize_label {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hE : P.EulerEquality) (a : D)
+    (hloop : P.rotation.SameCycle a (P.edge a)) :
+    ∃ w g : D → K, w a = 1 ∧ w (P.edge a) = 1 ∧
+      (∀ d, w (P.edge d) = (w d)⁻¹) ∧
+      (∀ d, cycleProduct P.rotation w d =
+        g (P.edge d) * cycleProduct P.rotation v d * (g (P.edge d))⁻¹) := by
+  classical
+  have hn := spherical_loop_distinct_faces P hE a hloop
+  let g : D → K := fun d => if P.face.SameCycle a d then v a else 1
+  let w : D → K := fun d => g (P.edge d) * v d * (g d)⁻¹
+  have hg (d e : D) (h : P.face.SameCycle d e) : g d = g e := by
+    have hi : P.face.SameCycle a d ↔ P.face.SameCycle a e :=
+      ⟨fun hd => hd.trans h,fun he' => he'.trans h.symm⟩
+    simp only [g,hi]
+  have hp := face_potential_change P v g hg he
+  have hga : g a = v a := if_pos (.refl _ _)
+  have hgb : g (P.edge a) = 1 := if_neg hn
+  have hwa : w a = 1 := by
+    change g (P.edge a) * v a * (g a)⁻¹ = 1
+    rw [hga,hgb,one_mul,mul_inv_cancel]
+  refine ⟨w,g,hwa,?_,hp.1,hp.2⟩
+  rw [show w (P.edge a) = (w a)⁻¹ from hp.1 a,hwa,inv_one]
+
+/-- Conjugating all vertex products preserves all prescribed
+identity relations, independently of the choice of protected vertices. -/
+theorem conjugated_vertex_relations {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v w g : D → K) (keep : D → Prop)
+    (h : ∀ d, cycleProduct P.rotation w d =
+      g d * cycleProduct P.rotation v d * (g d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1) :
+    ∀ d, keep d → cycleProduct P.rotation w d = 1 := by
+  intro d hd
+  rw [h,hint d hd,mul_one,mul_inv_cancel]
+
+#print axioms walk_potential_product
+#print axioms face_potential_change
+#print axioms spherical_loop_normalize_label
+#print axioms conjugated_vertex_relations
+
+
 end QuandleResearch.Issue070
