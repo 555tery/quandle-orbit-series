@@ -686,4 +686,66 @@ theorem activePeriod_factor_boundary_weight (pick : WeightedSelector)
   rw [weightedHeightStage_eq] at hboundary
   exact weightedStages_mono pick (gubaConjugatorChoice pick) hji hboundary
 
+
+/-- In a four-sided lower-rank boundary, the two connector words
+contribute their exact weights to the replacement path. The orientation
+convention is v t u^{-1} s^{-1}. -/
+theorem quotient_quadrilateral_eq {N : Subgroup F} [N.Normal]
+    (v t u s : RawWord)
+    (h : FreeGroup.mk ((v ++ t) ++ FreeGroup.invRev (s ++ u)) ∈ N) :
+    QuotientGroup.mk' N (FreeGroup.mk v) =
+      QuotientGroup.mk' N (FreeGroup.mk (s ++ u ++ FreeGroup.invRev t)) := by
+  have he := quotient_paths_eq (v ++ t) (s ++ u) h
+  simp only [← FreeGroup.mul_mk, map_mul] at he
+  calc
+    _ = (QuotientGroup.mk' N (FreeGroup.mk v) *
+          QuotientGroup.mk' N (FreeGroup.mk t)) *
+          (QuotientGroup.mk' N (FreeGroup.mk t))⁻¹ := by group
+    _ = (QuotientGroup.mk' N (FreeGroup.mk s) *
+          QuotientGroup.mk' N (FreeGroup.mk u)) *
+          (QuotientGroup.mk' N (FreeGroup.mk t))⁻¹ := by rw [he]
+    _ = _ := by simp only [← FreeGroup.mul_mk, ← FreeGroup.inv_mk, map_mul, map_inv]
+
+/-- Length comparison for a period factor on one side of a lower-rank
+quadrilateral. The two connectors are charged, not discarded. -/
+theorem minBad_factor_quadrilateral_weight {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) (p v r u s t : RawWord)
+    (hword : c.toWord = p ++ v ++ r)
+    (hboundary : FreeGroup.mk ((v ++ t) ++ FreeGroup.invRev (s ++ u)) ∈ N) :
+    rawWeight v ≤ rawWeight u + rawWeight s + rawWeight t := by
+  have h := minBad_factor_weight_min hc p v r (s ++ u ++ FreeGroup.invRev t)
+    hword (quotient_quadrilateral_eq v t u s hboundary)
+  rw [rawWeight_append, rawWeight_append, rawWeight_invRev] at h
+  omega
+
+/-- Rotation of a literal minimal bad period preserves minimality.
+The weight equality is obtained from minimality and the raw-word
+upper bound, without assuming any extra reduction lemma. -/
+theorem minBad_rotation {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (l r : RawWord) (hword : c.toWord = l ++ r) :
+    MinBad N (FreeGroup.mk (r ++ l)) ∧
+      weightedLength (FreeGroup.mk (r ++ l)) = rawWeight (r ++ l) := by
+  have hgroup : FreeGroup.mk l * FreeGroup.mk (r ++ l) *
+      (FreeGroup.mk l)⁻¹ = c := by
+    rw [← FreeGroup.mul_mk]
+    have he : FreeGroup.mk (l ++ r) = c := by rw [← hword, FreeGroup.mk_toWord]
+    calc
+      FreeGroup.mk (l ++ (r ++ l)) * (FreeGroup.mk l)⁻¹ =
+        FreeGroup.mk (l ++ r) := by
+          rw [← List.append_assoc, ← FreeGroup.mul_mk]
+          group
+      _ = c := he
+  have hbad : ¬ Good N (FreeGroup.mk (r ++ l)) := by
+    intro h
+    apply hc.1
+    rw [← hgroup]
+    exact (good_conjugate_iff N _ _).mpr h
+  have hle := weightedLength_mk_le (r ++ l)
+  have hweight : weightedLength c = rawWeight (r ++ l) := by
+    unfold weightedLength
+    rw [hword, rawWeight_append, rawWeight_append, Nat.add_comm]
+  have hmin := hc.2 _ hbad
+  have heq : weightedLength (FreeGroup.mk (r ++ l)) = weightedLength c := by omega
+  exact ⟨⟨hbad, fun w hw => heq.le.trans (hc.2 w hw)⟩, heq.trans hweight⟩
+
 end QuandleResearch.Issue070
