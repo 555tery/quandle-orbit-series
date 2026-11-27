@@ -1,9 +1,7 @@
-module
-
-public import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
-public import SmallPresentation.SmallCancellationDipoleIdentityRibbon
-public import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
-public import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
+import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
+import SmallPresentation.SmallCancellationDipoleIdentityRibbon
+import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
+import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -18,8 +16,6 @@ The specialization below keeps the four literal blocks of each height
 relation. Cyclic reduction and admissibility of the selected periods
 remain separate obligations.
 -/
-
-@[expose] public section
 
 namespace QuandleResearch.Issue070
 
