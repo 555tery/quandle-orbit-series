@@ -18085,4 +18085,42 @@ theorem exists_gubaPowerCounterexample_ribbon
 #print axioms gubaPowerBoundary_cyclic_exterior
 #print axioms exists_gubaPowerCounterexample_ribbon
 
+
+/-- A non-pure-a factor of the literal exterior of a coefficient-power
+counterexample cannot come from a power of a. It is a literal factor
+of the inverse of a nonzero power of an actual selected period.
+No relative smoothness or period-survival assumption is used. -/
+theorem gubaPowerBoundary_nonpure_exterior_period
+    (pick : WeightedSelector) (n : ℕ) (w : F)
+    (hw : GubaPowerBoundary pick n w) (z : RawWord)
+    (hz : z <:+: FreeGroup.invRev w.toWord)
+    (hnonpure : ¬ (∀ x ∈ z, x.1 = 0)) :
+    ∃ (i : Fin n)
+      (h : ∃ v : F, ¬ Good (gubaState pick i.val).1 v)
+      (k : ℤ), k ≠ 0 ∧
+      w = (pick (gubaState pick i.val).1 h).val^k ∧
+      z <:+: FreeGroup.invRev
+        (rawIntPow (pick (gubaState pick i.val).1 h).val.toWord k) := by
+  have hword (g : F) (hg : FreeGroup.IsCyclicallyReduced g.toWord) (k : ℤ) :
+      (g^k).toWord = rawIntPow g.toWord k := by
+    have hr := rawCyclic_intPow hg k
+    have he : FreeGroup.mk (rawIntPow g.toWord k) = g^k := by
+      rw [rawIntPow_eval,FreeGroup.mk_toWord]
+    rw [← he,FreeGroup.toWord_mk,hr.isReduced.reduce_eq]
+  rcases hw with ⟨k,hk,rfl⟩ | ⟨i,h,k,hk,rfl⟩
+  · exfalso
+    have ha : FreeGroup.IsCyclicallyReduced a.toWord := by
+      have he : a.toWord = [(0,true)] := by decide
+      rw [he]
+      exact FreeGroup.IsCyclicallyReduced.singleton
+    rw [hword a ha k] at hz
+    apply hnonpure
+    intro x hx
+    exact light_block_pure_a k x (hz.sublist.subset hx)
+  · have hc := minBad_cyclicallyReduced (pick (gubaState pick i.val).1 h).property
+    rw [hword _ hc k] at hz
+    exact ⟨i,h,k,hk,rfl,hz⟩
+
+#print axioms gubaPowerBoundary_nonpure_exterior_period
+
 end QuandleResearch.Issue070
