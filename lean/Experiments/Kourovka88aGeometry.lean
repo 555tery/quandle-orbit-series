@@ -5482,4 +5482,119 @@ theorem compressed_peripheral_nontrivial_iff {D E K : Type}
 #print axioms compressed_peripheral_nontrivial_iff
 
 
+
+/-! ## Exact enumeration of the outlets of a loop-free star
+
+The central cycle determines a genuine ordered list of peripheral
+outlets. It enumerates each outlet exactly once and the inverse
+coefficient product is one. This is a local region equation, not
+yet a family of contiguity bands between original relator cells.
+-/
+
+/-- The ordered edge mates of the central cycle are precisely the
+peripheral darts of its component, without repetitions. -/
+theorem loopless_star_outlet_list {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hno : ∀ d, keep d → ¬ keep (P.edge d))
+    (a : D) (ha : keep a) :
+    ((P.vertexBoundary a).map P.edge).Nodup ∧
+      (∀ b, b ∈ (P.vertexBoundary a).map P.edge ↔
+        P.SameComponent a b ∧ ¬ keep b) := by
+  constructor
+  · exact (cycleBoundary_nodup P.rotation a).map P.edge.injective
+  · intro b
+    constructor
+    · intro hm
+      obtain ⟨d,hd,hdb⟩ := List.mem_map.mp hm
+      have hc := (P.mem_vertexBoundary_iff a d).mp hd
+      have hkd := (hkeep a d hc).mp ha
+      refine ⟨?_,?_⟩
+      · rw [← hdb]
+        exact Relation.EqvGen.trans _ _ _ (P.component_of_vertexCycle hc)
+          (P.component_edge d)
+      · rw [← hdb]
+        exact hno d hkd
+    · rintro ⟨hc,hb⟩
+      have hterminal : ∀ d, keep d → keep (P.edge d) →
+          P.rotation.SameCycle d (P.edge d) :=
+        fun d hd he => (hno d hd he).elim
+      have h := (compressed_region_star P keep hkeep hleaf hterminal a ha b hc).2 hb
+      exact List.mem_map.mpr ⟨P.edge b,(P.mem_vertexBoundary_iff a _).mpr h,
+        P.edge_involutive b⟩
+
+/-- The ordered outlet list carries a genuine nonabelian equation
+using inverse labels. No order-independent product is asserted. -/
+theorem loopless_star_outlet_product {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hno : ∀ d, keep d → ¬ keep (P.edge d))
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (a : D) (ha : keep a) :
+    ∃ l : List D, l.Nodup ∧
+      (∀ b, b ∈ l ↔ P.SameComponent a b ∧ ¬ keep b) ∧
+      (l.map (fun b => (v b)⁻¹)).prod = 1 := by
+  have hl := loopless_star_outlet_list P keep hkeep hleaf hno a ha
+  refine ⟨(P.vertexBoundary a).map P.edge,hl.1,hl.2,?_⟩
+  rw [List.map_map]
+  change ((P.vertexBoundary a).map (fun d => (v (P.edge d))⁻¹)).prod = 1
+  simpa only [he,inv_inv,cycleProduct] using hint a ha
+
+/-- At a peripheral singleton, the based product is its actual label. -/
+theorem peripheral_singleton_product {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (d : D) (hd : P.rotation d = d) :
+    cycleProduct P.rotation v d = v d := by
+  change ((P.vertexBoundary d).map v).prod = v d
+  rw [fixed_vertex_read_singleton P d hd]
+  simp
+
+/-- For an algebraically compressed star, every outlet contributes
+an individually conjugated original value. Its ordered inverse
+product is a relation in the coefficient group. -/
+theorem loopless_star_original_outlet_equation {D E K : Type}
+    [Fintype D] [Fintype E] [Group K]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E ↪ D)
+    (v : D → K) (w : E → K) (keep : D → Prop)
+    (hkeep : ∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e)))
+    (hleaf : ∀ d, ¬ keep (f d) → Q.rotation d = d)
+    (hno : ∀ d, keep (f d) → ¬ keep (f (Q.edge d)))
+    (he : ∀ d, w (Q.edge d) = (w d)⁻¹)
+    (hint : ∀ d, keep (f d) → cycleProduct Q.rotation w d = 1)
+    (hc : ∀ d, ¬ keep (f d) → ∃ g : K,
+      cycleProduct Q.rotation w d = g * cycleProduct P.rotation v (f d) * g⁻¹)
+    (a : E) (ha : keep (f a)) :
+    ∃ (l : List E) (g : E → K), l.Nodup ∧
+      (∀ b, b ∈ l ↔ Q.SameComponent a b ∧ ¬ keep (f b)) ∧
+      (l.map (fun b => (g b * cycleProduct P.rotation v (f b) * (g b)⁻¹)⁻¹)).prod = 1 := by
+  classical
+  obtain ⟨l,hnd,hm,hprod⟩ := loopless_star_outlet_product Q w
+    (fun d => keep (f d)) hkeep hleaf hno he hint a ha
+  have hc' : ∀ b, ∃ g : K, ¬ keep (f b) →
+      w b = g * cycleProduct P.rotation v (f b) * g⁻¹ := by
+    intro b
+    by_cases hb : keep (f b)
+    · exact ⟨1,fun hn => (hn hb).elim⟩
+    · obtain ⟨g,hg⟩ := hc b hb
+      refine ⟨g,fun _ => ?_⟩
+      rw [peripheral_singleton_product Q w b (hleaf b hb)] at hg
+      exact hg
+  choose g hg using hc'
+  refine ⟨l,g,hnd,hm,?_⟩
+  have hl : l.map (fun b => (g b * cycleProduct P.rotation v (f b) * (g b)⁻¹)⁻¹) =
+      l.map (fun b => (w b)⁻¹) := by
+    apply List.map_congr_left
+    intro b hb
+    rw [← hg b ((hm b).mp hb).2]
+  rw [hl]
+  exact hprod
+
+#print axioms loopless_star_outlet_list
+#print axioms loopless_star_outlet_product
+#print axioms peripheral_singleton_product
+#print axioms loopless_star_original_outlet_equation
+
+
 end QuandleResearch.Issue070
