@@ -1748,6 +1748,26 @@ theorem erdos142_explicit_finite_sets :
     exact h N hN
 
 
+/-- Cairn Commons submission target: the universal asymptotic bound,
+expressed using only Mathlib objects and the explicit 3-AP condition. -/
+theorem erdos142_cairn_target :
+    ∀ C : ℝ, 2 * Real.sqrt (Real.log (250 / 73)) < C →
+      ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N →
+        ∃ A : Finset ℕ, A ⊆ Finset.Icc 1 N ∧
+          (∀ x ∈ A, ∀ y ∈ A, ∀ z ∈ A, x + z = y + y → x = z) ∧
+          (N : ℝ) * Real.exp (-C * Real.sqrt (Real.log (N : ℝ))) ≤ (A.card : ℝ) := by
+  intro C hC
+  obtain ⟨N₀, h⟩ := roth_eventual_of_constant C hC
+  refine ⟨N₀, ?_⟩
+  intro N hN
+  obtain ⟨A, hA, hcard, hfree⟩ := addRothNumber_spec (Finset.Icc 1 N)
+  refine ⟨A, hA, ?_, ?_⟩
+  · intro x hx y hy z hz hAP
+    exact threeAPFree_iff_eq_right.mp hfree hx hy hz hAP
+  · rw [hcard, ← rothNumberNat_eq_interval]
+    exact h N hN
+
+
 end
 
 end QuandleResearch.Erdos142
