@@ -3412,4 +3412,135 @@ theorem guba_boundary_component_large_row (pick : WeightedSelector)
 #print axioms guba_boundary_component_large_row
 
 
+/-! ## An actual coefficient region crossing the marked boundary
+
+Splitting every non-coefficient vertex into singletons gives actual
+lower-rank regions. If there is another non-coefficient vertex in the
+marked component, at least one such region meets both the marked
+vertex and a different non-coefficient vertex. This supplies an
+incidence of the desired contiguity system, but neither the number
+of outlets of that region nor its metric coverage is controlled here.
+-/
+
+/-- Some coefficient region must cross the marked vertex: otherwise
+the union of regions meeting that vertex would be closed under both
+permutations of the original ribbon. No planarity is needed for this
+connectivity assertion. -/
+theorem coefficient_region_crosses_vertex {D : Type} (P : RibbonMap D)
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (z b : D) (hc : P.SameComponent z b)
+    (hb : ¬ keep b) (hzb : ¬ P.rotation.SameCycle z b)
+    (hz : ∀ a, P.rotation.SameCycle z a → ¬ keep a) :
+    ∃ a d, P.rotation.SameCycle z a ∧ ¬ keep a ∧ ¬ keep d ∧
+      ¬ P.rotation.SameCycle z d ∧
+      (P.coefficientRegions keep hkeep).SameComponent a d := by
+  classical
+  let S := P.coefficientRegions keep hkeep
+  let reach : D → Prop := fun d =>
+    ∃ a, P.rotation.SameCycle z a ∧ S.SameComponent a d
+  by_contra hn
+  have hper {d : D} (hd : ¬ keep d) :
+      reach d ↔ P.rotation.SameCycle z d := by
+    constructor
+    · rintro ⟨a,ha,had⟩
+      by_contra h
+      exact hn ⟨a,d,ha,hz a ha,hd,h,had⟩
+    · intro h
+      exact ⟨d,h,Relation.EqvGen.refl d⟩
+  have hmove {d e : D} (h : S.SameComponent d e) :
+      reach e ↔ reach d := by
+    constructor
+    · rintro ⟨a,ha,hae⟩
+      exact ⟨a,ha,Relation.EqvGen.trans _ _ _ hae
+        (Relation.EqvGen.symm _ _ h)⟩
+    · rintro ⟨a,ha,had⟩
+      exact ⟨a,ha,Relation.EqvGen.trans _ _ _ had h⟩
+  have hedge (d : D) : reach (P.edge d) ↔ reach d := by
+    exact hmove (S.component_edge d)
+  have hrot (d : D) : reach (P.rotation d) ↔ reach d := by
+    by_cases hd : keep d
+    · have he : S.rotation d = P.rotation d := by
+        rw [show S = P.coefficientRegions keep hkeep from rfl,
+          RibbonMap.coefficientRegions_rotation, if_pos hd]
+      rw [← he]
+      exact hmove (S.component_rotation d)
+    · rw [hper (fun h => hd ((hkeep d).mp h)), hper hd]
+      exact Equiv.Perm.sameCycle_apply_right
+  have hreach : reach b := (P.invariant_on_component reach hedge hrot hc).mp
+    ⟨z,.refl _ _,Relation.EqvGen.refl z⟩
+  exact hzb ((hper hb).mp hreach)
+
+/-- For a word first killed at the last available rank, a genuine
+lower-rank region connects a dart of the outer boundary to a dart
+of a last-rank relator vertex. -/
+theorem rankRibbon_outer_region_has_top_outlet (pick : WeightedSelector)
+    (X : ConjugatorChoice) (j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X (j+1) i)) s = w)
+    (hw : w ≠ 1) (hnew : w ∉ weightedHeightStage pick X j) :
+    let rows := rankHeightRows pick X (j+1)
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let keep := lowerRankDart pick X (j+1) j w s
+    ∃ hkeep : ∀ d, keep (P.rotation d) ↔ keep d,
+      ∃ (a d : DiscDarts (markedRows rows w) (boundaryIdentity s))
+        (i : RankHeight (j+1)),
+        P.rotation.SameCycle z a ∧ ¬ P.rotation.SameCycle z d ∧
+        (P.coefficientRegions keep hkeep).SameComponent a d ∧
+        (boundaryIdentity s)[discOccurrence (markedRows rows w)
+          (boundaryIdentity s) d].1.2 = some i ∧ i.1.val = j := by
+  classical
+  intro rows P z keep
+  have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
+    intro d
+    exact lowerRankDart_sameCycle pick X (j+1) j w s hs (P.rotation d) d
+      (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  have hz : ¬ keep z := by
+    rintro ⟨i,hi,_⟩
+    change (boundaryIdentity s)[discOccurrence (markedRows rows w)
+      (boundaryIdentity s) (boundaryDart rows w s hw)].1.2 = some i at hi
+    rw [boundaryDart_occurrence] at hi
+    simp [boundaryOccurrence,boundaryIdentity] at hi
+  obtain ⟨b,i,hc,hn,hi,hj⟩ := rankRibbon_boundary_component_has_high_cell
+    pick X (j+1) j w s hs hw hnew
+  have hb : ¬ keep b := by
+    rintro ⟨i',hi',hlt⟩
+    have he : i = i' := Option.some.inj (hi.symm.trans hi')
+    rw [← he] at hlt
+    omega
+  obtain ⟨a,d,ha,_,hd,hnd,hreg⟩ :=
+    coefficient_region_crosses_vertex P keep hkeep z b hc hb hn
+      (fun a ha => fun h => hz ((lowerRankDart_sameCycle pick X
+        (j+1) j w s hs z a ha).mpr h))
+  have hk : discOccurrence (markedRows rows w) (boundaryIdentity s) d ≠
+      boundaryOccurrence s := by
+    intro he
+    exact hnd ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr he)
+  have hlabel : ∃ i : RankHeight (j+1),
+      (boundaryIdentity s)[discOccurrence (markedRows rows w)
+        (boundaryIdentity s) d].1.2 = some i := by
+    let k := discOccurrence (markedRows rows w) (boundaryIdentity s) d
+    have hk' : k ≠ boundaryOccurrence s := hk
+    change ∃ i, (boundaryIdentity s)[k].1.2 = some i
+    obtain ⟨v,hv⟩ := k
+    cases v with
+    | zero => exact (hk' (Fin.ext rfl)).elim
+    | succ m =>
+      have hm : m < s.length := by simpa [boundaryIdentity] using hv
+      refine ⟨s[m].1.2,?_⟩
+      simp [boundaryIdentity,markOccurrence]
+  obtain ⟨i',hi'⟩ := hlabel
+  have hge : j ≤ i'.1.val := by
+    by_contra! hlt
+    exact hd ⟨i',hi',hlt⟩
+  have heq : i'.1.val = j := by
+    have hlt := i'.1.isLt
+    omega
+  exact ⟨hkeep,a,d,i',ha,hnd,hreg,hi',heq⟩
+
+#print axioms coefficient_region_crosses_vertex
+#print axioms rankRibbon_outer_region_has_top_outlet
+
+
 end QuandleResearch.Issue070
