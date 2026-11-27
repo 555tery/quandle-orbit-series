@@ -3353,7 +3353,7 @@ theorem guba_boundary_component_large_row (pick : WeightedSelector)
     let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
     let P := boundaryRibbon rows w s hs
     let z := boundaryDart rows w s hw
-    let _C := P.componentRibbon z
+    let C := P.componentRibbon z
     let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
     ∃ (d : {e : DiscDarts (markedRows rows w) (boundaryIdentity s) // P.SameComponent z e})
       (i : RankHeight n),
@@ -9096,7 +9096,7 @@ theorem guba23_boundary_component_exact_factors (rows : I → RawWord) (w : F)
     (hw : w ≠ 1) :
     let P := boundaryRibbon rows w s hs
     let z := boundaryDart rows w s hw
-    let C := P.componentRibbon z
+    let _C := P.componentRibbon z
     let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
     let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
     ∃ l : List (F × {d // P.SameComponent z d}),
