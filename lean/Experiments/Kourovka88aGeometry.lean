@@ -10902,4 +10902,176 @@ theorem shortest_kernel_outer_block_has_other_outlet {D : Type} [Fintype D]
 #print axioms shortest_kernel_outer_factor_survives
 #print axioms shortest_kernel_outer_block_has_other_outlet
 
+
+/-- At the top rank, equality modulo the entire preceding stage
+is enough to test minimality. No replacement geometry is needed
+once an algebraic quotient identity has been obtained. -/
+theorem rankMinimal_top_count_of_modular_filling
+    (pick : WeightedSelector) (X : ConjugatorChoice) (j : ℕ)
+    (w : F) (s t : Peiffer.Sequence F (RankHeight (j+1)))
+    (hm : RankMinimalExpression pick X (j+1) w s)
+    (he : (Peiffer.evaluation (rankHeightRel pick X (j+1)) t)⁻¹ * w ∈
+      weightedHeightStage pick X j) :
+    rankCount s j ≤ rankCount t j := by
+  by_contra! hlt
+  have hm' : RankMinimalExpression pick X (j+1) w ([] ++ s ++ []) := by
+    simpa using hm
+  apply rankMinimal_block_no_reduction_mod_lower pick X (j+1) w [] s [] t
+    hm' j (Nat.lt_succ_self j)
+  · rw [hm.1]
+    exact he
+  · intro k hk hkn
+    omega
+  · exact hlt
+
+/-- A finite list of top-rank conjugating bases and heights is a
+genuine filling with exactly that many top-rank occurrences. -/
+def topRankFilling (j : ℕ) (l : List (F × ℤ)) :
+    Peiffer.Sequence F (RankHeight (j+1)) :=
+  l.map (fun x => ((x.1,(⟨j,Nat.lt_succ_self j⟩,x.2)),true))
+
+theorem topRankFilling_count (j : ℕ) (l : List (F × ℤ)) :
+    rankCount (topRankFilling j l) j = l.length := by
+  induction l with
+  | nil => rfl
+  | cons x xs ih =>
+    change rankCount ([((x.1,(⟨j,Nat.lt_succ_self j⟩,x.2)),true)] ++
+      topRankFilling j xs) j = xs.length + 1
+    rw [rankCount_append,rankCount_singleton,ih]
+    simp [Nat.add_comm]
+
+theorem topRankFilling_evaluation (pick : WeightedSelector)
+    (X : ConjugatorChoice) (j : ℕ) (l : List (F × ℤ)) :
+    Peiffer.evaluation (rankHeightRel pick X (j+1)) (topRankFilling j l) =
+      (l.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod := by
+  induction l with
+  | nil => rfl
+  | cons x xs ih =>
+    change (x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹) *
+      Peiffer.evaluation (rankHeightRel pick X (j+1)) (topRankFilling j xs) = _
+    rw [ih]
+    rfl
+
+/-- Any proposed expression in conjugates of the top-rank height
+relators in the preceding quotient has at least the original top
+count. The bases may be arbitrary representatives in the free group. -/
+theorem rankMinimal_top_quotient_lower_bound
+    (pick : WeightedSelector) (X : ConjugatorChoice) (j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hm : RankMinimalExpression pick X (j+1) w s)
+    (l : List (F × ℤ))
+    (he : ((l.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod)⁻¹ *
+      w ∈ weightedHeightStage pick X j) :
+    rankCount s j ≤ l.length := by
+  rw [← topRankFilling_count j l]
+  apply rankMinimal_top_count_of_modular_filling pick X j w s
+    (topRankFilling j l) hm
+  rw [topRankFilling_evaluation]
+  exact he
+
+/-- Remove all earlier-rank occurrences from a positive expression
+in the preceding quotient, without altering the order or heights
+of the surviving top-rank occurrences. -/
+theorem topRank_project_filling (pick : WeightedSelector)
+    (X : ConjugatorChoice) (j : ℕ)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hpos : ∀ x ∈ s, x.2 = true) :
+    let N := weightedStages pick X j
+    letI : N.Normal := weightedStages_normal pick X j
+    let q := QuotientGroup.mk' N
+    ∃ l : List (F × ℤ), l.length = rankCount s j ∧
+      q (Peiffer.evaluation (rankHeightRel pick X (j+1)) s) =
+        q ((l.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod) := by
+  classical
+  let N := weightedStages pick X j
+  letI : N.Normal := weightedStages_normal pick X j
+  let q := QuotientGroup.mk' N
+  change ∃ l : List (F × ℤ), l.length = rankCount s j ∧
+    q (Peiffer.evaluation (rankHeightRel pick X (j+1)) s) =
+      q ((l.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod)
+  induction s with
+  | nil => exact ⟨[],rfl,rfl⟩
+  | cons x xs ih =>
+    obtain ⟨l,hl,he⟩ := ih (fun y hy => hpos y (List.mem_cons_of_mem _ hy))
+    have hx := hpos x (List.mem_cons_self)
+    rcases x with ⟨⟨u,⟨i,k⟩⟩,sg⟩
+    change sg = true at hx
+    subst sg
+    have hcount : rankCount (((u,(i,k)),true) :: xs) j =
+        (if i.val = j then 1 else 0) + rankCount xs j := by
+      change rankCount ([((u,(i,k)),true)] ++ xs) j = _
+      rw [rankCount_append,rankCount_singleton]
+    have hterm : Peiffer.term (rankHeightRel pick X (j+1)) ((u,(i,k)),true) =
+        u * weightedRankHeightRelator pick X i.val k * u⁻¹ := rfl
+    have hsplit : Peiffer.evaluation (rankHeightRel pick X (j+1)) (((u,(i,k)),true)::xs) =
+        (u * weightedRankHeightRelator pick X i.val k * u⁻¹) *
+          Peiffer.evaluation (rankHeightRel pick X (j+1)) xs := by
+      change Peiffer.term (rankHeightRel pick X (j+1)) ((u,(i,k)),true) * _ = _
+      rw [hterm]
+    by_cases hi : i.val = j
+    · refine ⟨(u,k)::l,?_,?_⟩
+      · rw [hcount,if_pos hi,List.length_cons,hl]
+        omega
+      · rw [hsplit,hi,map_mul,he]
+        simp only [List.map_cons,List.prod_cons,map_mul]
+    · refine ⟨l,?_,?_⟩
+      · rw [hcount,if_neg hi,zero_add]
+        exact hl
+      · have hij : i.val < j := by omega
+        have hm : weightedRankHeightRelator pick X i.val k ∈ N := by
+          change _ ∈ weightedStages pick X j
+          rw [← weightedHeightStage_eq]
+          exact Subgroup.subset_normalClosure ⟨i.val,hij,k,rfl⟩
+        have hq : q (u * weightedRankHeightRelator pick X i.val k * u⁻¹) = 1 :=
+          (QuotientGroup.eq_one_iff N).mpr
+            ((inferInstance : N.Normal).conj_mem _ hm _)
+        rw [hsplit,map_mul,hq,one_mul,he]
+
+/-- The first-stage obstruction is equivalent to a shortest
+nonempty product in the quotient by the preceding stages.
+This records both existence of the projected expression and its
+global minimality against every proposed replacement. -/
+theorem rankMinimal_top_quotient_exact
+    (pick : WeightedSelector) (X : ConjugatorChoice) (j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hm : RankMinimalExpression pick X (j+1) w s)
+    (hpos : ∀ x ∈ s, x.2 = true)
+    (hnew : w ∉ weightedHeightStage pick X j) :
+    let N := weightedStages pick X j
+    letI : N.Normal := weightedStages_normal pick X j
+    let q := QuotientGroup.mk' N
+    ∃ l : List (F × ℤ), l ≠ [] ∧ l.length = rankCount s j ∧
+      q w = q ((l.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod) ∧
+      ∀ t : List (F × ℤ),
+        q w = q ((t.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod) →
+        l.length ≤ t.length := by
+  let N := weightedStages pick X j
+  letI : N.Normal := weightedStages_normal pick X j
+  let q := QuotientGroup.mk' N
+  obtain ⟨l,hl,he⟩ := topRank_project_filling pick X j s hpos
+  change q (Peiffer.evaluation (rankHeightRel pick X (j+1)) s) = _ at he
+  rw [hm.1] at he
+  refine ⟨l,?_,hl,he,?_⟩
+  · intro hn
+    apply hnew
+    rw [weightedHeightStage_eq]
+    change w ∈ N
+    apply (QuotientGroup.eq_one_iff N).mp
+    rw [hn] at he
+    simpa using he
+  · intro t ht
+    rw [hl]
+    apply rankMinimal_top_quotient_lower_bound pick X j w s hm t
+    rw [weightedHeightStage_eq]
+    apply (QuotientGroup.eq_one_iff N).mp
+    change q (((t.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod)⁻¹ * w) = 1
+    rw [map_mul,map_inv,ht,inv_mul_cancel]
+
+#print axioms rankMinimal_top_count_of_modular_filling
+#print axioms topRankFilling_count
+#print axioms topRankFilling_evaluation
+#print axioms rankMinimal_top_quotient_lower_bound
+#print axioms topRank_project_filling
+#print axioms rankMinimal_top_quotient_exact
+
 end QuandleResearch.Issue070
