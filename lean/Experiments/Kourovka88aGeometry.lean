@@ -3928,4 +3928,87 @@ theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
 #print axioms rankRibbon_protected_two_arc_conjugacy
 
 
+/-! ## Global normalized perimeter accounting
+
+Use the actual vertex quotient and its literal rotation cycles.
+This is a change of summation index, not a small-cancellation
+estimate. In particular no incidence is duplicated or omitted.
+-/
+
+/-- The vertex perimeter is independent of the corner chosen to
+read its rotation cycle. -/
+theorem ribbon_perimeter_sameCycle {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a b : D)
+    (hab : P.rotation.SameCycle a b) :
+    rawWeight ((P.vertexBoundary a).map read) =
+      rawWeight ((P.vertexBoundary b).map read) := by
+  classical
+  have eval (ds : List D) :
+      rawWeight (ds.map read) = (ds.map (fun d => letterWeight (read d))).sum := by
+    induction ds with
+    | nil => rfl
+    | cons d ds ih =>
+      change letterWeight (read d) + rawWeight (ds.map read) =
+        letterWeight (read d) + (ds.map (fun d => letterWeight (read d))).sum
+      rw [ih]
+  have hsets : (P.vertexBoundary a).toFinset = (P.vertexBoundary b).toFinset := by
+    ext d
+    simp only [List.mem_toFinset, P.mem_vertexBoundary_iff]
+    exact ⟨fun h => hab.symm.trans h, fun h => hab.trans h⟩
+  rw [eval, eval, ← List.sum_toFinset _ (P.vertexBoundary_nodup a),
+    ← List.sum_toFinset _ (P.vertexBoundary_nodup b), hsets]
+
+/-- The perimeter function descends to the actual quotient of darts
+by the vertex rotation cycles. -/
+noncomputable def ribbonVertexPerimeter {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) : P.Vertex → ℕ :=
+  Quotient.lift (fun d => rawWeight ((P.vertexBoundary d).map read))
+    (fun a b h => ribbon_perimeter_sameCycle P read a b h)
+
+theorem ribbonVertexPerimeter_at {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (d : D) :
+    ribbonVertexPerimeter P read (P.vertexOf d) =
+      rawWeight ((P.vertexBoundary d).map read) := rfl
+
+/-- Summing P^(2/3) over every actual vertex counts precisely the
+normalized weights of all darts. This includes the marked boundary
+vertex if the ribbon has one; it does not yet distinguish internal
+from external contiguity edges. -/
+theorem guba19_total_vertex_dart_weight {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) :
+    (∑ v : P.Vertex, (ribbonVertexPerimeter P read v : ℝ) ^ (2/3 : ℝ)) =
+      ∑ d : D, guba19Weight (ribbonVertexPerimeter P read (P.vertexOf d) : ℝ) [read d] := by
+  classical
+  let weight : D → ℝ := fun d =>
+    guba19Weight (ribbonVertexPerimeter P read (P.vertexOf d) : ℝ) [read d]
+  change _ = ∑ d : D, weight d
+  rw [← Finset.sum_fiberwise Finset.univ P.vertexOf weight]
+  apply Finset.sum_congr rfl
+  intro v _
+  obtain ⟨a,rfl⟩ := Quotient.exists_rep v
+  have hset : Finset.univ.filter (fun d => P.vertexOf d = P.vertexOf a) =
+      (P.vertexBoundary a).toFinset := by
+    ext d
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, List.mem_toFinset,
+      P.mem_vertexBoundary_iff]
+    exact ⟨fun h => (Quotient.exact h).symm, fun h => Quotient.sound h.symm⟩
+  rw [hset, ribbonVertexPerimeter_at]
+  calc
+    _ = ((P.vertexBoundary a).map (fun d =>
+        guba19Weight (rawWeight ((P.vertexBoundary a).map read) : ℝ) [read d])).sum :=
+      (guba19_vertex_weight P read a).symm
+    _ = ∑ d ∈ (P.vertexBoundary a).toFinset, weight d := by
+      rw [← List.sum_toFinset _ (P.vertexBoundary_nodup a)]
+      apply Finset.sum_congr rfl
+      intro d hd
+      have hcyc := (P.mem_vertexBoundary_iff a d).mp (List.mem_toFinset.mp hd)
+      have heq : P.vertexOf d = P.vertexOf a := Quotient.sound hcyc.symm
+      simp only [weight, heq, ribbonVertexPerimeter_at]
+
+#print axioms ribbon_perimeter_sameCycle
+#print axioms ribbonVertexPerimeter
+#print axioms ribbonVertexPerimeter_at
+#print axioms guba19_total_vertex_dart_weight
+
+
 end QuandleResearch.Issue070
