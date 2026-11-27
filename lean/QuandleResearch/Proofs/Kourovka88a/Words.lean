@@ -987,4 +987,234 @@ theorem gubaEvenPrefix_period_bound (m d : ℕ) (hd : 0 < d)
   · exact hd
   · exact hperiod
 
+
+/-! ## Literal separator positions
+
+A marker is exactly three consecutive occurrences of the long generator.
+The following lemmas use the actual list positions, not group equality.
+A zero letter at either end of a seam prevents a marker crossing it.
+-/
+
+def TripleBAt (w : List (Fin 2)) (i : ℕ) : Prop :=
+  w[i]? = some 1 ∧ w[i+1]? = some 1 ∧ w[i+2]? = some 1
+
+theorem tripleBAt_fits {w : List (Fin 2)} {i : ℕ}
+    (h : TripleBAt w i) : i+3 ≤ w.length := by
+  obtain ⟨hh, _⟩ := List.getElem?_eq_some_iff.mp h.2.2
+  omega
+
+theorem tripleBAt_letter {w : List (Fin 2)} {i j : ℕ}
+    (h : TripleBAt w i) (hlo : i ≤ j) (hhi : j ≤ i+2) :
+    w[j]? = some 1 := by
+  have hj : j = i ∨ j = i+1 ∨ j = i+2 := by omega
+  rcases hj with rfl | rfl | rfl
+  · exact h.1
+  · exact h.2.1
+  · exact h.2.2
+
+theorem tripleBAt_append_left (u v : List (Fin 2)) (i : ℕ)
+    (hfit : i+3 ≤ u.length) :
+    TripleBAt (u++v) i ↔ TripleBAt u i := by
+  unfold TripleBAt
+  rw [List.getElem?_append_left (by omega),
+      List.getElem?_append_left (by omega),
+      List.getElem?_append_left (by omega)]
+
+theorem tripleBAt_append_right (u v : List (Fin 2)) (i : ℕ)
+    (hi : u.length ≤ i) :
+    TripleBAt (u++v) i ↔ TripleBAt v (i-u.length) := by
+  unfold TripleBAt
+  rw [List.getElem?_append_right hi,
+      List.getElem?_append_right (by omega),
+      List.getElem?_append_right (by omega)]
+  rw [show i+1-u.length = i-u.length+1 by omega,
+      show i+2-u.length = i-u.length+2 by omega]
+
+/-- No occurrence of bbb can cross a seam protected by a zero letter. -/
+theorem tripleBAt_no_cross (u v : List (Fin 2)) (i : ℕ)
+    (hi : i < u.length) (hc : u.length ≤ i+2)
+    (hguard : u[u.length-1]? = some 0 ∨ v[0]? = some 0) :
+    ¬ TripleBAt (u++v) i := by
+  intro ht
+  rcases hguard with hu | hv
+  · have h := tripleBAt_letter ht (show i ≤ u.length-1 by omega)
+      (show u.length-1 ≤ i+2 by omega)
+    rw [List.getElem?_append_left (by omega), hu] at h
+    simp at h
+  · have h := tripleBAt_letter ht (show i ≤ u.length by omega) hc
+    rw [List.getElem?_append_right (by omega), Nat.sub_self, hv] at h
+    simp at h
+
+/-- Exhaustive location of a marker in a concatenation with protected seam. -/
+theorem tripleBAt_guarded_append (u v : List (Fin 2)) (i : ℕ)
+    (hguard : u[u.length-1]? = some 0 ∨ v[0]? = some 0) :
+    TripleBAt (u++v) i ↔
+      (i+3 ≤ u.length ∧ TripleBAt u i) ∨
+      (u.length ≤ i ∧ TripleBAt v (i-u.length)) := by
+  constructor
+  · intro ht
+    by_cases hi : u.length ≤ i
+    · exact Or.inr ⟨hi, (tripleBAt_append_right u v i hi).mp ht⟩
+    · by_cases hf : i+3 ≤ u.length
+      · exact Or.inl ⟨hf, (tripleBAt_append_left u v i hf).mp ht⟩
+      · exact False.elim (tripleBAt_no_cross u v i (by omega) (by omega) hguard ht)
+  · rintro (⟨hf,ht⟩ | ⟨hi,ht⟩)
+    · exact (tripleBAt_append_left u v i hf).mpr ht
+    · exact (tripleBAt_append_right u v i hi).mpr ht
+
+/-- Cube-freeness rules out bbb at every position of a Thue–Morse prefix. -/
+theorem thuePrefix_no_tripleB (n i : ℕ) :
+    ¬ TripleBAt (thuePrefix n) i := by
+  intro ht
+  have hf := tripleBAt_fits ht
+  rw [thuePrefix_length] at hf
+  apply thuePrefix_cubeFree n i 1 (by omega) (by omega)
+  intro j hj
+  have h1 := tripleBAt_letter ht (show i ≤ i+j by omega)
+    (show i+j ≤ i+2 by omega)
+  have h2 := tripleBAt_letter ht (show i ≤ i+j+1 by omega)
+    (show i+j+1 ≤ i+2 by omega)
+  rw [List.getElem?_pos (by rw [thuePrefix_length]; omega)] at h1 h2
+  exact (Option.some.inj h1).trans (Option.some.inj h2).symm
+
+theorem gubaPrefix_no_tripleB (m i : ℕ) :
+    ¬ TripleBAt (gubaPrefix m) i :=
+  thuePrefix_no_tripleB (prefixEnd m+1) i
+
+theorem gubaPrefix_head_zero (m : ℕ) :
+    (gubaPrefix m)[0]? = some 0 := by
+  rw [List.getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
+  exact congrArg some (gubaPrefix_first m)
+
+theorem gubaPrefix_last_zero (m : ℕ) :
+    (gubaPrefix m)[(gubaPrefix m).length-1]? = some 0 := by
+  have he : (gubaPrefix m).length-1 = prefixEnd m := by
+    rw [gubaPrefix, thuePrefix_length]
+    omega
+  rw [he, List.getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
+  exact congrArg some (gubaPrefix_last m)
+
+/-- Repeated copies of a word with a protected last letter introduce
+no new bbb occurrences, even across the joins of copies. -/
+theorem repeat_no_tripleB (q : List (Fin 2))
+    (hq : ∀ i, ¬ TripleBAt q i)
+    (hlast : q[q.length-1]? = some 0) (n i : ℕ) :
+    ¬ TripleBAt (List.replicate n q).flatten i := by
+  induction n generalizing i with
+  | zero =>
+    intro ht
+    have hf := tripleBAt_fits ht
+    simp at hf
+  | succ n ih =>
+    rw [List.replicate_succ, List.flatten_cons]
+    intro ht
+    rcases (tripleBAt_guarded_append q (List.replicate n q).flatten i
+      (Or.inl hlast)).mp ht with h | h
+    · exact hq i h.2
+    · exact ih (i-q.length) h.2
+
+theorem repeat_head_zero (q : List (Fin 2)) (hq : q[0]? = some 0)
+    (n : ℕ) :
+    (List.replicate (n+1) q).flatten[0]? = some 0 := by
+  have hlen : 0 < q.length := (List.getElem?_eq_some_iff.mp hq).choose
+  rw [List.replicate_succ, List.flatten_cons, List.getElem?_append_left hlen]
+  exact hq
+
+theorem repeat_last_zero (q : List (Fin 2))
+    (hq : q[q.length-1]? = some 0) (n : ℕ) :
+    (List.replicate (n+1) q).flatten[
+      (List.replicate (n+1) q).flatten.length-1]? = some 0 := by
+  obtain ⟨hlen, _⟩ := List.getElem?_eq_some_iff.mp hq
+  have hpos : 0 < q.length := by omega
+  rw [List.replicate_succ', List.flatten_concat]
+  rw [List.length_append, List.getElem?_append_right (by omega)]
+  rw [show (List.replicate n q).flatten.length+q.length-1-
+    (List.replicate n q).flatten.length = q.length-1 by omega]
+  exact hq
+
+/-- The literal separator bbb has exactly one marker position. -/
+theorem separator_tripleB_iff (i : ℕ) :
+    TripleBAt (List.replicate 3 (1 : Fin 2)) i ↔ i = 0 := by
+  constructor
+  · intro h
+    have hf := tripleBAt_fits h
+    simp at hf
+    omega
+  · rintro rfl
+    decide
+
+/-- Inside each long block bbb Q^(j+1), the only bbb starts at zero. -/
+theorem longBlock_tripleB_iff (q : List (Fin 2))
+    (hq : ∀ i, ¬ TripleBAt q i) (hhead : q[0]? = some 0)
+    (hlast : q[q.length-1]? = some 0) (j i : ℕ) :
+    TripleBAt (longBlock q j) i ↔ i = 0 := by
+  unfold longBlock
+  rw [tripleBAt_guarded_append _ _ i (Or.inr (repeat_head_zero q hhead j))]
+  constructor
+  · rintro (⟨_,h⟩ | ⟨_,h⟩)
+    · exact (separator_tripleB_iff i).mp h
+    · exact False.elim (repeat_no_tripleB q hq hlast (j+1) _ h)
+  · rintro rfl
+    exact Or.inl ⟨by decide, (separator_tripleB_iff 0).mpr rfl⟩
+
+theorem longBlock_last_zero (q : List (Fin 2))
+    (hlast : q[q.length-1]? = some 0) (j : ℕ) :
+    (longBlock q j)[(longBlock q j).length-1]? = some 0 := by
+  have h := repeat_last_zero q hlast j
+  obtain ⟨hp, _⟩ := List.getElem?_eq_some_iff.mp h
+  unfold longBlock
+  rw [List.length_append, List.getElem?_append_right (by omega)]
+  rw [show (List.replicate 3 (1 : Fin 2)).length +
+    (List.replicate (j+1) q).flatten.length-1-
+    (List.replicate 3 (1 : Fin 2)).length =
+    (List.replicate (j+1) q).flatten.length-1 by omega]
+  exact h
+
+theorem longRaw_last_zero (q : List (Fin 2))
+    (hlast : q[q.length-1]? = some 0) (h : ℕ) :
+    (longRaw q (h+1))[(longRaw q (h+1)).length-1]? = some 0 := by
+  have hb := longBlock_last_zero q hlast h
+  obtain ⟨hp, _⟩ := List.getElem?_eq_some_iff.mp hb
+  rw [longRaw, List.length_append, List.getElem?_append_right (by omega)]
+  rw [show (longRaw q h).length + (longBlock q h).length-1-
+    (longRaw q h).length = (longBlock q h).length-1 by omega]
+  exact hb
+
+/-- The markers in the full conjugator are exactly the starts of its
+indexed blocks. This does not yet establish cross-rank resolvent uniqueness. -/
+theorem longRaw_tripleB_iff (q : List (Fin 2))
+    (hq : ∀ i, ¬ TripleBAt q i) (hhead : q[0]? = some 0)
+    (hlast : q[q.length-1]? = some 0) (h i : ℕ) :
+    TripleBAt (longRaw q h) i ↔ ∃ j < h, i = (longRaw q j).length := by
+  induction h generalizing i with
+  | zero => simp [longRaw, TripleBAt]
+  | succ h ih =>
+    cases h with
+    | zero =>
+      simpa only [longRaw, List.nil_append, List.length_nil, Nat.lt_one_iff,
+        exists_eq_left] using longBlock_tripleB_iff q hq hhead hlast 0 i
+    | succ h =>
+      rw [longRaw, tripleBAt_guarded_append _ _ i
+        (Or.inl (longRaw_last_zero q hlast h))]
+      constructor
+      · rintro (⟨_,ht⟩ | ⟨hi,ht⟩)
+        · obtain ⟨j,hj,he⟩ := (ih i).mp ht
+          exact ⟨j, by omega, he⟩
+        · have he := (longBlock_tripleB_iff q hq hhead hlast (h+1) _).mp ht
+          exact ⟨h+1, by omega, by omega⟩
+      · rintro ⟨j,hj,he⟩
+        by_cases hlastIndex : j = h+1
+        · subst j
+          exact Or.inr ⟨by omega, (longBlock_tripleB_iff q hq hhead hlast _ _).mpr (by omega)⟩
+        · have hj' : j < h+1 := by omega
+          have ht := (ih i).mpr ⟨j,hj',he⟩
+          exact Or.inl ⟨tripleBAt_fits ht, ht⟩
+
+theorem gubaEvenPrefix_longRaw_tripleB_iff (m h i : ℕ) :
+    TripleBAt (longRaw (gubaEvenPrefix m) h) i ↔
+      ∃ j < h, i = (longRaw (gubaEvenPrefix m) j).length :=
+  longRaw_tripleB_iff (gubaEvenPrefix m)
+    (gubaPrefix_no_tripleB (2*m+1)) (gubaPrefix_head_zero (2*m+1))
+    (gubaPrefix_last_zero (2*m+1)) h i
+
 end QuandleResearch.Issue070
