@@ -98,7 +98,7 @@ noncomputable def boundaryRibbon (rows : I → RawWord) (w : F)
 The marked boundary uses none, not a fabricated rank. -/
 abbrev RankHeight (n : ℕ) := Fin n × ℤ
 
-def rankHeightRel (pick : WeightedSelector) (X : ConjugatorChoice)
+noncomputable def rankHeightRel (pick : WeightedSelector) (X : ConjugatorChoice)
     (n : ℕ) (i : RankHeight n) : F :=
   weightedRankHeightRelator pick X i.1.val i.2
 
@@ -118,7 +118,7 @@ theorem rankHeight_normalClosure (pick : WeightedSelector)
 /-- First integration test: use the canonical reduced spellings in the
 existing algebraic stage. This does not assert they are the literal
 cyclic height rows of Guba's original diagram system. -/
-def rankHeightRows (pick : WeightedSelector) (X : ConjugatorChoice)
+noncomputable def rankHeightRows (pick : WeightedSelector) (X : ConjugatorChoice)
     (n : ℕ) (i : RankHeight n) : RawWord :=
   (rankHeightRel pick X n i).toWord
 
