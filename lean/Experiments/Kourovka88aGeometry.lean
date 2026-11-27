@@ -18642,4 +18642,130 @@ theorem guba_signed_long_period_factor_not_heavy (pick : WeightedSelector)
 #print axioms rawNatPow_invRev
 #print axioms guba_signed_long_period_factor_not_heavy
 
+
+/-- Monotonicity of selected period weights in the actual Guba state,
+without transporting a dependent selector through an equality of subgroups. -/
+theorem guba_selected_period_weight_mono (pick : WeightedSelector)
+    (i j : ℕ) (hij : i ≤ j)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w) :
+    weightedLength (pick (gubaState pick i).1 hi).val ≤
+      weightedLength (pick (gubaState pick j).1 hj).val := by
+  have hNM : (gubaState pick i).1 ≤ (gubaState pick j).1 := by
+    rw [gubaState_stage pick i,gubaState_stage pick j]
+    exact weightedStages_mono pick (gubaConjugatorChoice pick) hij
+  apply (pick (gubaState pick i).1 hi).property.2
+  intro hg
+  exact (pick (gubaState pick j).1 hj).property.1 (good_mono hNM hg)
+
+/-- The stored prefix weights are monotone, and the long-word weight
+is a fixed affine function of the prefix weight. -/
+theorem guba_activeLongWord_weight_mono (pick : WeightedSelector)
+    (i j : ℕ) (hij : i ≤ j)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w) :
+    positiveWeight (activeLongWord pick i hi) ≤
+      positiveWeight (activeLongWord pick j hj) := by
+  have hp : positiveWeight (activePrefix pick i hi) ≤
+      positiveWeight (activePrefix pick j hj) := by
+    rw [activePrefix_weight,activePrefix_weight]
+    exact gubaState_weight_mono pick (Nat.succ_le_succ hij)
+  have h1 := weightedLength_longRaw_twice (activePrefix pick i hi) (10^20)
+  have h2 := weightedLength_longRaw_twice (activePrefix pick j hj) (10^20)
+  change 2*positiveWeight (activeLongWord pick i hi) =
+    6*(10^20 : ℕ)*10^80 +
+      10^20*(10^20+1)*positiveWeight (activePrefix pick i hi) at h1
+  change 2*positiveWeight (activeLongWord pick j hj) =
+    6*(10^20 : ℕ)*10^80 +
+      10^20*(10^20+1)*positiveWeight (activePrefix pick j hj) at h2
+  norm_num at h1 h2
+  omega
+
+/-- The shifted-self-overlap bound in either orientation. -/
+theorem activeLongWord_signed_period_factor_bound (pick : WeightedSelector)
+    (i : ℕ) (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v z : RawWord) (m : ℕ) (sg : Bool)
+    (hz : z <:+: (if sg then (activeLongWord pick i hi).map (fun x => (x,true))
+      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true)))))
+    (hpow : z <:+: rawNatPow v m) :
+    240*10^17*(rawWeight z-rawWeight v) ≤
+      positiveWeight (activeLongWord pick i hi) := by
+  cases sg with
+  | true =>
+    exact activeLongWord_arbitrary_period_factor_bound pick i hi v z m hz hpow
+  | false =>
+    change z <:+: FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true))) at hz
+    have hlong := invRev_infix_of_infix hz
+    rw [FreeGroup.invRev_invRev] at hlong
+    have hperiod := invRev_infix_of_infix hpow
+    rw [rawNatPow_invRev] at hperiod
+    have hb := activeLongWord_arbitrary_period_factor_bound pick i hi
+      (FreeGroup.invRev v) (FreeGroup.invRev z) m hlong hperiod
+    simpa only [rawWeight_invRev] using hb
+
+/-- A mixed literal overlap is light relative to ANY active rank
+that dominates the long-word rank and the weight of the repeated
+base. The reference perimeter is allowed to be that of the periodic
+cell, rather than the long-side cell. -/
+theorem guba_mixed_factor_not_heavy_at_dominating_rank (pick : WeightedSelector)
+    (i j : ℕ) (hij : i ≤ j)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (v z : RawWord) (m : ℕ) (k : ℤ) (sg : Bool)
+    (hv : rawWeight v ≤ weightedLength (pick (gubaState pick j).1 hj).val)
+    (hz : z <:+: (if sg then (activeLongWord pick i hi).map (fun x => (x,true))
+      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true)))))
+    (hpow : z <:+: rawNatPow v m) :
+    54*rawWeight z <
+      2*positiveWeight (activeLongWord pick j hj) +
+        k.natAbs*weightedLength (pick (gubaState pick j).1 hj).val + k.natAbs := by
+  let C := (pick (gubaState pick j).1 hj).val
+  let L := positiveWeight (activeLongWord pick j hj)
+  have hb := (activeLongWord_signed_period_factor_bound pick i hi v z m sg hz hpow).trans
+    (guba_activeLongWord_weight_mono pick i j hij hi hj)
+  change 240*10^17*(rawWeight z-rawWeight v) ≤ L at hb
+  change rawWeight v ≤ weightedLength C at hv
+  change 54*rawWeight z < 2*L+k.natAbs*weightedLength C+k.natAbs
+  have hpre := chooseEvenPrefixIndex_spec C (gubaState pick j).2
+  have hpre' : 10^70*weightedLength C < positiveWeight (activePrefix pick j hj) :=
+    (le_max_left _ _).trans_lt hpre
+  have hlong := weightedLength_longRaw_twice (activePrefix pick j hj) (10^20)
+  change 2*L = 6*(10^20 : ℕ)*10^80 +
+      10^20*(10^20+1)*positiveWeight (activePrefix pick j hj) at hlong
+  norm_num at hb hlong hpre'
+  omega
+
+/-- Either rank order is allowed: the heavier-rank cell cannot
+have a heavy mixed overlap. The assumption on the repeated base
+is just its signed weight, so this also allows a cyclic rotation. -/
+theorem guba_mixed_factor_light_at_larger_rank (pick : WeightedSelector)
+    (i j : ℕ)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (v z : RawWord) (m : ℕ) (ki kj : ℤ) (sg : Bool)
+    (hv : rawWeight v ≤ weightedLength (pick (gubaState pick j).1 hj).val)
+    (hz : z <:+: (if sg then (activeLongWord pick i hi).map (fun x => (x,true))
+      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true)))))
+    (hpow : z <:+: rawNatPow v m) :
+    (i ≤ j → 54*rawWeight z <
+      2*positiveWeight (activeLongWord pick j hj) +
+        kj.natAbs*weightedLength (pick (gubaState pick j).1 hj).val + kj.natAbs) ∧
+    (j ≤ i → 54*rawWeight z <
+      2*positiveWeight (activeLongWord pick i hi) +
+        ki.natAbs*weightedLength (pick (gubaState pick i).1 hi).val + ki.natAbs) := by
+  constructor
+  · intro h
+    exact guba_mixed_factor_not_heavy_at_dominating_rank pick i j h hi hj
+      v z m kj sg hv hz hpow
+  · intro h
+    have hv' := hv.trans (guba_selected_period_weight_mono pick j i h hj hi)
+    exact guba_mixed_factor_not_heavy_at_dominating_rank pick i i le_rfl hi hi
+      v z m ki sg hv' hz hpow
+
+#print axioms guba_selected_period_weight_mono
+#print axioms guba_activeLongWord_weight_mono
+#print axioms activeLongWord_signed_period_factor_bound
+#print axioms guba_mixed_factor_not_heavy_at_dominating_rank
+#print axioms guba_mixed_factor_light_at_larger_rank
+
 end QuandleResearch.Issue070
