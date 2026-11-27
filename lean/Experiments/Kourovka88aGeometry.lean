@@ -2220,4 +2220,89 @@ theorem rankRibbon_lower_regions_no_unique_outlet (pick : WeightedSelector)
 #print axioms coefficientRegions_no_unique_outlet
 #print axioms rankRibbon_lower_regions_no_unique_outlet
 
+
+/-! ## Guba, Lemma 23 (pp. 258–259): quantitative conclusion
+
+The original proof removes a cell of rank >= 2, applies the coverage
+of Lemma 22 to the resulting annulus, discards internal contiguities,
+and applies Lemma 21 to the remaining arcs. We record its precise
+numerical implication, separately from those geometric obligations.
+All weights here are scaled by 10^80 as in Words.lean.
+-/
+
+/-- The a-section takes at most the fraction lambda of the perimeter.
+This is the actual four-block row, not an arbitrary cell weight. -/
+theorem guba23_firstKind_weight (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n)
+    (h : ∃ w : F, ¬ Good (gubaState pick i.1.val).1 w)
+    (hk : i.2 ≠ 0) :
+    let P := rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i)
+    let D := 2 * positiveWeight (activeLongWord pick i.1.val h) +
+      i.2.natAbs * weightedLength (pick (gubaState pick i.1.val).1 h).val
+    P = D + i.2.natAbs ∧
+      10^80 * i.2.natAbs ≤ P := by
+  dsimp
+  have hp := guba_rankHeightRows_weight pick n i h hk
+  have hc := weight_ge_of_bad (gubaState pick i.1.val).1
+    (pick (gubaState pick i.1.val).1 h).val
+    (pick (gubaState pick i.1.val).1 h).property.1
+  have hm := Nat.mul_le_mul_left i.2.natAbs hc
+  rw [hp]
+  constructor
+  · rfl
+  · rw [Nat.mul_comm (10^80 : ℕ) i.2.natAbs]
+    omega
+
+/-- The final estimate of Lemma 23, with the paper's actual constants:
+rho=.9, eta=.95, T=10^11, lambda=10^-80, gamma=10^-19.
+C is the total retained length of the interior-cell contiguity arcs.
+The coverage and transfer assumptions are precisely the geometric
+part that still has to be proved. -/
+theorem guba23_perimeter_arithmetic (P D C B : ℚ)
+    (hP : 0 < P)
+    (hD : (1 - 1 / 10^80) * P ≤ D)
+    (hcover : (95/100 - 18/10^11) * D < C)
+    (htransfer : (9/10) * C - (6/10^19) * P ≤ B) :
+    (4/5) * P < B := by
+  norm_num at hD hcover htransfer ⊢
+  linarith
+
+/-- A concrete rank-height row satisfies the perimeter conclusion
+once the annular coverage and transfer bounds of Lemma 23 are
+established for that row. This does NOT assert their existence. -/
+theorem guba23_row_perimeter_of_coverage (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n) (w : F)
+    (h : ∃ u : F, ¬ Good (gubaState pick i.1.val).1 u)
+    (hk : i.2 ≠ 0) (C : ℚ)
+    (hcover : (95/100 - 18/10^11) *
+      ((2 * positiveWeight (activeLongWord pick i.1.val h) +
+        i.2.natAbs * weightedLength (pick (gubaState pick i.1.val).1 h).val : ℕ) : ℚ) < C)
+    (htransfer : (9/10) * C - (6/10^19) *
+      (rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) : ℚ) ≤
+        (weightedLength w : ℚ)) :
+    4 * rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) <
+      5 * weightedLength w := by
+  let P := rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i)
+  let D := 2 * positiveWeight (activeLongWord pick i.1.val h) +
+    i.2.natAbs * weightedLength (pick (gubaState pick i.1.val).1 h).val
+  obtain ⟨hp,hm⟩ := guba23_firstKind_weight pick n i h hk
+  change P = D + i.2.natAbs at hp
+  change 10^80 * i.2.natAbs ≤ P at hm
+  have hkn : 0 < i.2.natAbs := Int.natAbs_pos.mpr hk
+  have hp0 : 0 < P := by omega
+  have hpQ : 0 < (P : ℚ) := by exact_mod_cast hp0
+  have hpQ' : (P : ℚ) = (D : ℚ) + (i.2.natAbs : ℚ) := by exact_mod_cast hp
+  have hmQ : (10 : ℚ)^80 * (i.2.natAbs : ℚ) ≤ (P : ℚ) := by exact_mod_cast hm
+  have hd : (1 - 1 / 10^80) * (P : ℚ) ≤ (D : ℚ) := by
+    norm_num at hmQ ⊢
+    linarith
+  have hres := guba23_perimeter_arithmetic (P : ℚ) (D : ℚ) C
+    (weightedLength w : ℚ) hpQ hd hcover htransfer
+  have hnat : (4 : ℚ) * (P : ℚ) < 5 * (weightedLength w : ℚ) := by linarith
+  exact_mod_cast hnat
+
+#print axioms guba23_firstKind_weight
+#print axioms guba23_perimeter_arithmetic
+#print axioms guba23_row_perimeter_of_coverage
+
 end QuandleResearch.Issue070
