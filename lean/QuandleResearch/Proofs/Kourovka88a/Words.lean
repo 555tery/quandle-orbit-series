@@ -843,4 +843,87 @@ theorem guba19_resolvent (q p z r : List (Fin 2))
     exact hend
   exact ⟨k, hk, hkh, factor_of_weighted_interval p z r _ _ v heq hstart hend'⟩
 
+
+/-! ## Discharging the weight hypothesis in property 1.9
+
+A bad word necessarily uses the expensive generator. Thus the
+paper's inequality |Q| > 10^70 |C| already implies the lower bound
+on |Q| used in guba19_resolvent. No geometric assumption is needed.
+-/
+
+/-- A raw word weighing less than one b-letter consists entirely of
+signed a-letters, and therefore represents an integral power of a. -/
+theorem mk_eq_a_zpow_of_light (w : RawWord) (hw : rawWeight w < 10^80) :
+    ∃ n : ℤ, FreeGroup.mk w = a ^ n := by
+  induction w with
+  | nil => exact ⟨0, by rw [zpow_zero, FreeGroup.one_eq_mk]⟩
+  | cons x xs ih =>
+    have hw' : letterWeight x + rawWeight xs < 10^80 := hw
+    have hx : x.1 = 0 := by
+      by_contra hne
+      have hlarge : letterWeight x = 10^80 := by simp [letterWeight, hne]
+      omega
+    obtain ⟨n, hn⟩ := ih (by omega)
+    rcases x with ⟨i, s⟩
+    change i = 0 at hx
+    subst i
+    have hmul : FreeGroup.mk ((0,s)::xs) =
+        FreeGroup.mk [(0,s)] * FreeGroup.mk xs := by
+      rw [FreeGroup.mul_mk]
+    cases s with
+    | false =>
+      refine ⟨-1+n, ?_⟩
+      rw [hmul, FreeGroup.mk_eq_inv_of, hn, zpow_add]
+      simp [a]
+    | true =>
+      refine ⟨1+n, ?_⟩
+      rw [hmul, FreeGroup.mk_eq_of, hn, zpow_add]
+      simp [a]
+
+theorem eq_a_zpow_of_light (w : F) (hw : weightedLength w < 10^80) :
+    ∃ n : ℤ, w = a ^ n := by
+  obtain ⟨n, hn⟩ := mk_eq_a_zpow_of_light w.toWord hw
+  rw [FreeGroup.mk_toWord] at hn
+  exact ⟨n, hn⟩
+
+theorem good_a_zpow (N : Subgroup F) (n : ℤ) : Good N (a ^ n) := by
+  refine ⟨1, n, ?_⟩
+  simpa using N.one_mem
+
+/-- Every bad period has weight at least the weight of b. -/
+theorem weight_ge_of_bad (N : Subgroup F) (C : F) (hbad : ¬ Good N C) :
+    10^80 ≤ weightedLength C := by
+  by_contra! h
+  obtain ⟨n, hn⟩ := eq_a_zpow_of_light C h
+  apply hbad
+  rw [hn]
+  exact good_a_zpow N n
+
+theorem chosenEvenPrefix_weight_ge (N : Subgroup F) (C : F)
+    (hbad : ¬ Good N C) (previousWeight : ℕ) :
+    6*10^80 ≤ positiveWeight (gubaEvenPrefix (chooseEvenPrefixIndex C previousWeight)) := by
+  have h := chooseEvenPrefixIndex_spec C previousWeight
+  have hlt := lt_of_le_of_lt
+    (le_max_left (10^70 * weightedLength C) previousWeight) h
+  calc
+    6*10^80 ≤ (10^70 : ℕ)*10^80 := by norm_num
+    _ ≤ 10^70*weightedLength C :=
+      Nat.mul_le_mul_left _ (weight_ge_of_bad N C hbad)
+    _ ≤ _ := le_of_lt hlt
+
+/-- Property 1.9 specialized to the actual least-index prefix choice.
+The auxiliary weight bound is now a consequence, not an extra
+hypothesis. The geometry and uniqueness of resolvents remain open. -/
+theorem guba19_chosen_resolvent (N : Subgroup F) (C : F)
+    (hbad : ¬ Good N C) (previousWeight : ℕ) (p z r : List (Fin 2)) :
+    let q := gubaEvenPrefix (chooseEvenPrefixIndex C previousWeight)
+    longRaw q (10^20) = p ++ z ++ r →
+    positiveWeight (longRaw q (10^20)) < 240*10^17 * positiveWeight z →
+    ∃ k, 7 ≤ k ∧ k < 10^20 ∧
+      ∃ left right, z = left ++ resolventRaw q k ++ right := by
+  dsimp only
+  intro hword hlong
+  exact guba19_resolvent _ p z r
+    (chosenEvenPrefix_weight_ge N C hbad previousWeight) hword hlong
+
 end QuandleResearch.Issue070
