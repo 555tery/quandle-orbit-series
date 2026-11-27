@@ -15908,8 +15908,8 @@ theorem guba23_gubaTypeMinimal_no_same_rank_height_splice
         rw [hrel] at hval
         exact hval
 
-/-- Long-side exclusion for a full-type minimizer, with actual rank labels on both cells. -/
 set_option maxRecDepth 8192 in
+/-- Long-side exclusion for a full-type minimizer, with actual rank labels on both cells. -/
 theorem guba23_no_heavy_direct_long_side_walks_full_type
     (pick : WeightedSelector)
     (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
@@ -17084,6 +17084,7 @@ theorem GubaFourBlockRead_eval {D : Type} (read : D → Letter)
     heightRelator (positiveWord X) C k
   simp only [heightRelator,mul_assoc]
 
+set_option maxRecDepth 8192 in
 /-- Extract the actual long-side splice from the two four-block
 certificates and the literal paired dart factor. No separately
 supplied prefix walks, quotient identities or aligned positive
@@ -17163,7 +17164,6 @@ theorem guba23_no_heavy_actual_opposite_long_blocks
   have hback := congrArg FreeGroup.invRev hW₂
   rw [FreeGroup.invRev_invRev,FreeGroup.invRev_append,FreeGroup.invRev_append,
     hpair,FreeGroup.invRev_invRev] at hback
-  simp only [List.append_assoc] at hback
   obtain ⟨p,z,q,hfirst,hp,hz,hq⟩ := read_factor_lift
     (fun a : Fin 2 => (a,true)) (activeLongWord pick i.val hi)
       (l.map read) (ds.map read) (r.map read) hU₁.symm
@@ -17267,8 +17267,10 @@ theorem ribbon_loop_literal_cut {D : Type} [Fintype D]
   cases M with
   | nil =>
     change Walk R.rotation (R.rotation c) x (R.edge c::N) at hB
-    cases hB
-    exact (hne rfl).elim
+    have he := walk_departures_successors R.rotation hB
+    have h := congrArg List.head? he
+    simp only [List.head?_cons,List.cons_append] at h
+    exact (hne (Option.some.inj h)).elim
   | cons d ds =>
     have hd : R.rotation c = d := by
       change Walk R.rotation (R.rotation c) x (d::(ds++(R.edge c::N))) at hB
