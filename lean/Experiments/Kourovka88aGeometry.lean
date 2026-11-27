@@ -13052,4 +13052,155 @@ theorem twoPeriodSelector_ends (N : Subgroup F)
 
 #print axioms twoPeriodSelector_ends
 
+
+/-- Exact endpoint data of a nonempty signed word. -/
+def RawEnds (w : RawWord) (x y : Letter) : Prop :=
+  w.head? = some x ∧ w.getLast? = some y
+
+theorem rawEnds_append {u v : RawWord} {x y z t : Letter}
+    (hu : RawEnds u x y) (hv : RawEnds v z t) :
+    RawEnds (u++v) x t := by
+  obtain ⟨p,hp⟩ := List.head?_eq_some_iff.mp hu.1
+  obtain ⟨q,hq⟩ := List.getLast?_eq_some_iff.mp hv.2
+  constructor
+  · rw [hp]
+    rfl
+  · rw [hq,← List.append_assoc]
+    exact List.getLast?_eq_some_iff.mpr ⟨u++q,rfl⟩
+
+theorem rawEnds_invRev {w : RawWord} {x y : Letter}
+    (h : RawEnds w x y) :
+    RawEnds (FreeGroup.invRev w) (reverseLetter y) (reverseLetter x) := by
+  obtain ⟨p,hp⟩ := List.head?_eq_some_iff.mp h.1
+  obtain ⟨q,hq⟩ := List.getLast?_eq_some_iff.mp h.2
+  constructor
+  · rw [hq,FreeGroup.invRev_append]
+    rfl
+  · rw [hp,FreeGroup.invRev_cons]
+    exact List.getLast?_eq_some_iff.mpr ⟨FreeGroup.invRev p,rfl⟩
+
+theorem rawEnds_natPow {w : RawWord} {x y : Letter}
+    (h : RawEnds w x y) (m : ℕ) :
+    RawEnds (rawNatPow w (m+1)) x y := by
+  induction m with
+  | zero => simpa only [rawNatPow,List.nil_append] using h
+  | succ m ih =>
+    rw [rawNatPow]
+    exact rawEnds_append ih h
+
+/-- The seam criterion is Mathlib's chain append theorem on signed
+letters. No reduction algorithm on enormous relators is required. -/
+theorem rawReduced_append_of_ends {u v : RawWord} {x y z t : Letter}
+    (hu : RawEnds u x y) (hv : RawEnds v z t)
+    (hru : FreeGroup.IsReduced u) (hrv : FreeGroup.IsReduced v)
+    (hseam : y.1 = z.1 → y.2 = z.2) :
+    FreeGroup.IsReduced (u++v) := by
+  change List.IsChain (fun a b : Letter => a.1 = b.1 → a.2 = b.2) (u++v)
+  apply List.isChain_append.mpr
+  refine ⟨hru,hrv,?_⟩
+  intro a ha b hb
+  rw [hu.2] at ha
+  rw [hv.1] at hb
+  have ha' : a = y := by simpa using ha
+  have hb' : b = z := by simpa using hb
+  subst a
+  subst b
+  exact hseam
+
+theorem rawReduced_invRev {w : RawWord} (h : FreeGroup.IsReduced w) :
+    FreeGroup.IsReduced (FreeGroup.invRev w) := by
+  have hw : (FreeGroup.mk w).toWord = w := by
+    rw [FreeGroup.toWord_mk,h.reduce_eq]
+  have hi : ((FreeGroup.mk w)⁻¹).toWord = FreeGroup.invRev w := by
+    rw [FreeGroup.toWord_inv,hw]
+  rw [← hi]
+  exact FreeGroup.isReduced_toWord
+
+/-- All four seams of X C^k X^-1 a^-k are simultaneously safe
+once the conjugator begins with b and ends with a, the signed
+period block avoids the two forbidden endpoints, and the final
+block is a nonempty signed light power. The proof includes the
+cyclic seam, not just ordinary free reduction. -/
+theorem fourBlocks_cyclicallyReduced
+    (U V A : RawWord) (x y : Letter) (sg : Bool)
+    (hu : RawEnds U (1,true) (0,true))
+    (hv : RawEnds V x y)
+    (ha : RawEnds A (0,sg) (0,sg))
+    (hru : FreeGroup.IsReduced U)
+    (hrv : FreeGroup.IsReduced V)
+    (hra : FreeGroup.IsReduced A)
+    (hx : x ≠ (0,false)) (hy : y ≠ (0,true)) :
+    FreeGroup.IsCyclicallyReduced (U++V++FreeGroup.invRev U++A) := by
+  have hi : RawEnds (FreeGroup.invRev U) (0,false) (1,false) :=
+    rawEnds_invRev hu
+  have h1 : (0 : Fin 2) = x.1 → true = x.2 := by
+    rcases x with ⟨i,b⟩
+    fin_cases i <;> cases b <;> simp_all
+  have h2 : y.1 = (0 : Fin 2) → y.2 = false := by
+    rcases y with ⟨i,b⟩
+    fin_cases i <;> cases b <;> simp_all
+  have h3 : (1 : Fin 2) = 0 → false = sg := by decide
+  have hr1 := rawReduced_append_of_ends hu hv hru hrv h1
+  have he1 := rawEnds_append hu hv
+  have hr2 := rawReduced_append_of_ends he1 hi hr1 (rawReduced_invRev hru) h2
+  have he2 := rawEnds_append he1 hi
+  have hr3 := rawReduced_append_of_ends he2 ha hr2 hra h3
+  have he3 := rawEnds_append he2 ha
+  apply FreeGroup.isCyclicallyReduced_iff.mpr
+  refine ⟨hr3,?_⟩
+  intro a hlast b hhead
+  rw [he3.2] at hlast
+  rw [he3.1] at hhead
+  have he : a = (0,sg) := by simpa using hlast
+  have hf : b = (1,true) := by simpa using hhead
+  subst a
+  subst b
+  decide
+
+/-- The signed powers of a normalized minimal bad period preserve
+its forbidden-endpoint convention, for every nonzero height. -/
+theorem minBad_signed_power_ends {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (he : PeriodEnds c) (k : ℤ) (hk : k ≠ 0) :
+    ∃ x y : Letter, RawEnds (rawIntPow c.toWord k) x y ∧
+      x ≠ (0,false) ∧ y ≠ (0,true) ∧
+      FreeGroup.IsReduced (rawIntPow c.toWord k) := by
+  obtain ⟨x,y,u,v,hu,hv,hx,hy⟩ := he
+  have h : RawEnds c.toWord x y :=
+    ⟨List.head?_eq_some_iff.mpr ⟨u,hu⟩,List.getLast?_eq_some_iff.mpr ⟨v,hv⟩⟩
+  have hr : FreeGroup.IsReduced (rawIntPow c.toWord k) := by
+    rw [← minBad_intPow_toWord hc k]
+    exact FreeGroup.isReduced_toWord
+  cases k with
+  | ofNat m =>
+    cases m with
+    | zero => exact (hk rfl).elim
+    | succ m => exact ⟨x,y,rawEnds_natPow h m,hx,hy,hr⟩
+  | negSucc m =>
+    refine ⟨reverseLetter y,reverseLetter x,rawEnds_invRev (rawEnds_natPow h m),?_,?_,hr⟩
+    · rcases y with ⟨i,b⟩
+      fin_cases i <;> cases b <;> simp_all [reverseLetter]
+    · rcases x with ⟨i,b⟩
+      fin_cases i <;> cases b <;> simp_all [reverseLetter]
+
+/-- A cyclically reduced literal height row has exactly its
+declared perimeter as the weighted length of the group element. -/
+theorem rankHeightRows_exact_weight_of_reduced
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (i : RankHeight n)
+    (h : FreeGroup.IsReduced (rankHeightRows pick X n i)) :
+    (rankHeightRel pick X n i).toWord = rankHeightRows pick X n i ∧
+    weightedLength (rankHeightRel pick X n i) = rawWeight (rankHeightRows pick X n i) := by
+  have he : (rankHeightRel pick X n i).toWord = rankHeightRows pick X n i := by
+    rw [← rankHeightRows_eval,FreeGroup.toWord_mk,h.reduce_eq]
+  exact ⟨he,by rw [weightedLength,he]⟩
+
+#print axioms RawEnds
+#print axioms rawEnds_append
+#print axioms rawEnds_invRev
+#print axioms rawEnds_natPow
+#print axioms rawReduced_append_of_ends
+#print axioms rawReduced_invRev
+#print axioms fourBlocks_cyclicallyReduced
+#print axioms minBad_signed_power_ends
+#print axioms rankHeightRows_exact_weight_of_reduced
+
 end QuandleResearch.Issue070
