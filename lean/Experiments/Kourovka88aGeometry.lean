@@ -2583,4 +2583,140 @@ theorem guba22_prune_preserves_geometry {A C D : Type} [DecidableEq A]
 #print axioms guba22_prune_coverage
 #print axioms guba22_prune_preserves_geometry
 
+
+
+/-! ## Two-outlet regions in the actual coefficient ribbon
+
+The two-outlet condition is a property of a genuine component of the
+refined permutation map. It is not a choice of arbitrary paired
+words. Here we prove mutual normal-closure dependence of the two
+outlet readings by the spherical boundary theorem. This is weaker
+than conjugacy or the full quadrilateral/contiguity construction.
+-/
+
+/-- The preserved vertex readings of the coefficient region have
+not changed, even though all the non-coefficient vertices were split. -/
+theorem guba22_coefficient_preserved_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter)
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (d : D) (hd : keep d) :
+    ((P.coefficientRegions keep hkeep).vertexBoundary d).map read =
+      (P.vertexBoundary d).map read := by
+  classical
+  let S := P.coefficientRegions keep hkeep
+  change (S.vertexBoundary d).map read = _
+  have hag : ∀ e, P.rotation.SameCycle d e → S.rotation e = P.rotation e := by
+    intro e hde
+    have hk : keep e := by
+      obtain ⟨m, hm⟩ := hde.exists_nat_pow_eq
+      rw [← hm]
+      clear hm hde
+      induction m with
+      | zero => exact hd
+      | succ m ih =>
+        rw [pow_succ', Equiv.Perm.mul_apply]
+        exact (hkeep _).mpr ih
+    simp [S, RibbonMap.coefficientRegions_rotation, hk]
+  change (((P.withRotation S.rotation).vertexBoundary d).map read) = _
+  exact refined_vertex_read_of_agreement P S.rotation d hag
+
+/-- If all the coefficient vertices are trivial in a normal quotient
+and the component has only the two indicated outlets, killing the
+second outlet forces the first to vanish in the same quotient. -/
+theorem guba22_two_outlet_mem_of_other {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a b : D) (ha : ¬keep a) (hb : ¬keep b)
+    (honly : ∀ d, (P.coefficientRegions keep hkeep).SameComponent a d →
+      ¬keep d → d = a ∨ d = b)
+    (hmb : FreeGroup.mk [read b] ∈ N) :
+    FreeGroup.mk [read a] ∈ N := by
+  classical
+  let S := P.coefficientRegions keep hkeep
+  have hSa : S.rotation a = a := by
+    simp [S, RibbonMap.coefficientRegions_rotation, ha]
+  have hSb : S.rotation b = b := by
+    simp [S, RibbonMap.coefficientRegions_rotation, hb]
+  have hm := component_boundary_mem_normal S read N (fun d => he d)
+    (P.coefficientRegions_euler keep hkeep hE) a (by
+      intro d hc hnc
+      by_cases hd : keep d
+      · change FreeGroup.mk
+          (((P.coefficientRegions keep hkeep).vertexBoundary d).map read) ∈ N
+        rw [guba22_coefficient_preserved_read P read keep hkeep d hd]
+        exact hint d hd
+      · rcases honly d hc hd with rfl | rfl
+        · exact (hnc (.refl _ _)).elim
+        · rw [fixed_vertex_read_singleton S b hSb]
+          simpa only [List.map_cons, List.map_nil] using hmb)
+  rw [fixed_vertex_read_singleton S a hSa] at hm
+  simpa only [List.map_cons, List.map_nil] using hm
+
+/-- The preceding implication is symmetric for two outlets in one
+actual connected component. In particular nonvanishing propagates
+from either outlet to the other. -/
+theorem guba22_two_outlet_mem_iff {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a b : D) (ha : ¬keep a) (hb : ¬keep b)
+    (hab : (P.coefficientRegions keep hkeep).SameComponent a b)
+    (honly : ∀ d, (P.coefficientRegions keep hkeep).SameComponent a d →
+      ¬keep d → d = a ∨ d = b) :
+    FreeGroup.mk [read a] ∈ N ↔ FreeGroup.mk [read b] ∈ N := by
+  constructor
+  · apply guba22_two_outlet_mem_of_other P read N keep hkeep hE he hint b a hb ha
+    intro d hbd hd
+    exact (honly d (Relation.EqvGen.trans _ _ _ hab hbd) hd).symm
+  · exact guba22_two_outlet_mem_of_other P read N keep hkeep hE he hint a b ha hb honly
+
+/-- A two-element component support is an actual pair, not merely
+an upper bound on the number of outlets. -/
+theorem guba22_component_support_pair {D : Type} [DecidableEq D]
+    (P : RibbonMap D) (B : Finset D) (a b : D)
+    (ha : a ∈ B) (hb : b ∈ B) (hab : P.SameComponent a b)
+    (honly : ∀ d ∈ B, P.SameComponent a d → d = a ∨ d = b) :
+    guba22_component_support P B a = {a,b} := by
+  ext d
+  rw [guba22_mem_component_support]
+  simp only [Finset.mem_insert, Finset.mem_singleton]
+  constructor
+  · rintro ⟨hd, hconn⟩
+    exact honly d hd hconn
+  · rintro (rfl | rfl)
+    · exact ⟨ha, Relation.EqvGen.refl _⟩
+    · exact ⟨hb, hab⟩
+
+/-- A nonvanishing outlet cannot occur in a singleton component.
+Consequently, if its actual outlet support has cardinality at most
+two, it has exactly one other outlet. -/
+theorem guba22_exists_unique_other_outlet {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a : D) (ha : ¬keep a) (hna : FreeGroup.mk [read a] ∉ N)
+    (hcap : ∀ b c, (P.coefficientRegions keep hkeep).SameComponent a b →
+      (P.coefficientRegions keep hkeep).SameComponent a c →
+      ¬keep b → ¬keep c → b ≠ a → c ≠ a → b = c) :
+    ∃! b, (P.coefficientRegions keep hkeep).SameComponent a b ∧
+      ¬keep b ∧ b ≠ a := by
+  obtain ⟨b, hab, hb, hba⟩ :=
+    coefficientRegions_no_unique_outlet P read N keep hkeep hE he hint a ha hna
+  refine ⟨b, ⟨hab,hb,hba⟩, ?_⟩
+  intro c hc
+  exact hcap c b hc.1 hab hc.2.1 hb hc.2.2 hba
+
+#print axioms guba22_coefficient_preserved_read
+#print axioms guba22_two_outlet_mem_of_other
+#print axioms guba22_two_outlet_mem_iff
+#print axioms guba22_component_support_pair
+#print axioms guba22_exists_unique_other_outlet
+
 end QuandleResearch.Issue070
