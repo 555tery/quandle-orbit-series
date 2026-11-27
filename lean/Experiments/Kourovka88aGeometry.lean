@@ -8139,10 +8139,11 @@ theorem good_raw_rotation_iff (N : Subgroup F) (l r : RawWord) :
           FreeGroup.mk (l ++ r) := by
         rw [← List.append_assoc, ← FreeGroup.mul_mk]
         group
-  -- Use conjugacy invariance before rewriting the rotated product.
-  have h := good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))
-  rw [he] at h
-  exact h.symm
+  have hh : Good N (FreeGroup.mk (l ++ r)) ↔
+      Good N (FreeGroup.mk (r ++ l)) := by
+    rw [← he]
+    exact good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))
+  exact hh.symm
 
 /-- At two distinct active ranks, sufficiently long common literal
 periodic readings cannot start with cyclic rotations of both selected
@@ -8189,6 +8190,78 @@ theorem distinct_rank_literal_period_overlap (pick : WeightedSelector)
 #print axioms selected_period_good_next
 #print axioms good_raw_rotation_iff
 #print axioms distinct_rank_literal_period_overlap
+
+
+
+/-! ## Quotient-level cross-rank obstruction
+
+A later minimal bad period cannot be conjugate to any nonnegative
+power of an earlier selected period in its preceding quotient.
+The proof needs no estimate on the length of the conjugator.
+It does not say that a power of the later period is bad.
+-/
+
+/-- Goodness is invariant under actual conjugacy in the quotient,
+not merely conjugacy of free words. -/
+theorem good_of_quotient_conj {N : Subgroup F} [N.Normal] {u v : F}
+    (h : IsConj (QuotientGroup.mk' N u) (QuotientGroup.mk' N v))
+    (hv : Good N v) : Good N u := by
+  obtain ⟨k,hk⟩ := (good_iff_quotient N v).mp hv
+  exact (good_iff_quotient N u).mpr ⟨k,h.trans hk⟩
+
+/-- A later active period is not conjugate to any positive power
+of an earlier selected period, even after imposing all relations
+of ranks preceding the later period. -/
+theorem distinct_rank_quotient_power_separation (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i j : ℕ) (hij : i < j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w)
+    (m : ℕ) :
+    let M := weightedStages pick X j
+    letI : M.Normal := weightedStages_normal pick X j
+    ¬ IsConj (QuotientGroup.mk' M (pick M hj).val)
+      (QuotientGroup.mk' M ((pick (weightedStages pick X i) hi).val ^ m)) := by
+  dsimp only
+  let M := weightedStages pick X j
+  let _ : M.Normal := weightedStages_normal pick X j
+  intro h
+  have hg : Good M (pick (weightedStages pick X i) hi).val :=
+    good_mono (weightedStages_mono pick X (Nat.succ_le_of_lt hij))
+      (selected_period_good_next pick X i hi)
+  exact (pick M hj).property.1 (good_of_quotient_conj h (good_pow M hg m))
+
+/-- A concrete lower-rank relation expressing the later selected
+period as a conjugate of an earlier power is impossible. -/
+theorem distinct_rank_power_relation_not_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i j t : ℕ) (hij : i < j) (htj : t ≤ j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w)
+    (m : ℕ) (g : F) :
+    g * (pick (weightedStages pick X j) hj).val * g⁻¹ *
+      (((pick (weightedStages pick X i) hi).val ^ m)⁻¹) ∉
+        weightedStages pick X t := by
+  let M := weightedStages pick X j
+  let _ : M.Normal := weightedStages_normal pick X j
+  let c := (pick (weightedStages pick X i) hi).val
+  let d := (pick M hj).val
+  let q := QuotientGroup.mk' M
+  intro h
+  have hm : g * d * g⁻¹ * (c ^ m)⁻¹ ∈ M :=
+    weightedStages_mono pick X htj h
+  have he : q (g * d * g⁻¹ * (c ^ m)⁻¹) = 1 :=
+    (QuotientGroup.eq_one_iff _).mpr hm
+  simp only [map_mul,map_inv] at he
+  have hc : IsConj (q d) (q (c ^ m)) := by
+    apply isConj_iff.mpr
+    refine ⟨q g,?_⟩
+    calc
+      _ = (q g * q d * (q g)⁻¹ * (q (c ^ m))⁻¹) * q (c ^ m) := by group
+      _ = _ := by rw [he,one_mul]
+  exact distinct_rank_quotient_power_separation pick X i j hij hi hj m hc
+
+#print axioms good_of_quotient_conj
+#print axioms distinct_rank_quotient_power_separation
+#print axioms distinct_rank_power_relation_not_mem
 
 
 end QuandleResearch.Issue070
