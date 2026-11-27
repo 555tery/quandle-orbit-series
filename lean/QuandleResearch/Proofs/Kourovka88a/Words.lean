@@ -144,4 +144,115 @@ or small-cancellation property is asserted here. -/
 def longConjugator (q : F) (blocks : ℕ) : F :=
   ((List.range blocks).map (fun j => b ^ (3 : ℕ) * q ^ (j + 1))).prod
 
+
+/-- Deleting letters never increases the integral weight. -/
+theorem rawWeight_le_of_sublist {u v : RawWord} (h : u.Sublist v) :
+    rawWeight u ≤ rawWeight v := by
+  induction h with
+  | slnil => exact Nat.le_refl 0
+  | cons x h ih =>
+    have hx := letterWeight_pos x
+    simp only [rawWeight]
+    omega
+  | cons₂ x h ih =>
+    simp only [rawWeight]
+    omega
+
+/-- Free reduction can only decrease weighted length. -/
+theorem weightedLength_mk_le (w : RawWord) :
+    weightedLength (FreeGroup.mk w) ≤ rawWeight w := by
+  rw [weightedLength, FreeGroup.toWord_mk]
+  exact rawWeight_le_of_sublist FreeGroup.reduce.red.sublist
+
+theorem weightedLength_mul_le (u v : F) :
+    weightedLength (u * v) ≤ weightedLength u + weightedLength v := by
+  unfold weightedLength
+  rw [← rawWeight_append]
+  exact rawWeight_le_of_sublist (FreeGroup.toWord_mul_sublist u v)
+
+/-- A positive word is already freely reduced: adjacent positive
+letters cannot form an inverse pair. -/
+theorem reduce_positive (q : List (Fin 2)) :
+    FreeGroup.reduce (q.map (fun x => (x, true))) =
+      q.map (fun x => (x, true)) := by
+  induction q with
+  | nil => rfl
+  | cons x q ih =>
+    rw [List.map_cons, FreeGroup.reduce.cons, ih]
+    cases q <;> simp
+
+theorem toWord_positiveWord (q : List (Fin 2)) :
+    (positiveWord q).toWord = q.map (fun x => (x, true)) := by
+  rw [positiveWord, FreeGroup.toWord_mk, reduce_positive]
+
+theorem positiveWord_append (p q : List (Fin 2)) :
+    positiveWord (p ++ q) = positiveWord p * positiveWord q := by
+  unfold positiveWord
+  rw [List.map_append, ← FreeGroup.mul_mk]
+
+/-- There is no loss of weight on concatenating positive words. -/
+theorem weightedLength_positive_mul (p q : List (Fin 2)) :
+    weightedLength (positiveWord p * positiveWord q) =
+      weightedLength (positiveWord p) + weightedLength (positiveWord q) := by
+  rw [← positiveWord_append]
+  simp only [weightedLength, toWord_positiveWord, List.map_append, rawWeight_append]
+
+theorem rawWeight_replicate (n : ℕ) (x : Letter) :
+    rawWeight (List.replicate n x) = n * letterWeight x := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    rw [List.replicate_succ, rawWeight, ih, Nat.succ_mul, Nat.add_comm]
+
+/-- Exact weight of an arbitrary signed power of the short generator. -/
+theorem weightedLength_a_zpow (k : ℤ) : weightedLength (a ^ k) = k.natAbs := by
+  simp only [weightedLength, a, FreeGroup.toWord_of_zpow, rawWeight_replicate,
+    letterWeight, if_pos rfl, Nat.mul_one]
+
+/-- Exact weight of an arbitrary signed power of the long generator. -/
+theorem weightedLength_b_zpow (k : ℤ) :
+    weightedLength (b ^ k) = k.natAbs * 10 ^ 80 := by
+  have hb : (1 : Fin 2) ≠ 0 := by decide
+  simp only [weightedLength, b, FreeGroup.toWord_of_zpow, rawWeight_replicate,
+    letterWeight, if_neg hb]
+
+/-- Repeating a positive raw word realizes powers without cancellation. -/
+theorem positiveWord_repeat (q : List (Fin 2)) (n : ℕ) :
+    positiveWord (List.replicate n q).flatten = positiveWord q ^ n := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    simp only [List.replicate_succ, List.flatten_cons, positiveWord_append, ih, pow_succ']
+
+/-- Weight grows exactly linearly under positive powers. -/
+theorem weightedLength_positive_pow (q : List (Fin 2)) (n : ℕ) :
+    weightedLength (positiveWord q ^ n) = n * weightedLength (positiveWord q) := by
+  induction n with
+  | zero => simp [weightedLength, FreeGroup.toWord_one, rawWeight]
+  | succ n ih =>
+    rw [pow_succ', ← positiveWord_repeat q n, weightedLength_positive_mul,
+      positiveWord_repeat, ih, Nat.succ_mul, Nat.add_comm]
+
+/-- Positive raw blocks for the candidate long-conjugator formula.
+This is not a proof of Guba's overlap restrictions. -/
+def longBlock (q : List (Fin 2)) (j : ℕ) : List (Fin 2) :=
+  List.replicate 3 1 ++ (List.replicate (j+1) q).flatten
+
+theorem positiveWord_longBlock (q : List (Fin 2)) (j : ℕ) :
+    positiveWord (longBlock q j) = b ^ (3 : ℕ) * positiveWord q ^ (j+1) := by
+  rw [longBlock, positiveWord_append, positiveWord_repeat]
+  have hb : positiveWord (List.replicate 3 (1 : Fin 2)) = b ^ (3 : ℕ) := by decide
+  rw [hb]
+
+theorem weightedLength_longBlock (q : List (Fin 2)) (j : ℕ) :
+    weightedLength (positiveWord (longBlock q j)) =
+      3 * 10 ^ 80 + (j+1) * weightedLength (positiveWord q) := by
+  rw [longBlock, positiveWord_append, weightedLength_positive_mul, positiveWord_repeat,
+    weightedLength_positive_pow]
+  have hb : weightedLength (positiveWord (List.replicate 3 (1 : Fin 2))) =
+      3 * 10 ^ 80 := by
+    rw [weightedLength, toWord_positiveWord]
+    norm_num [rawWeight, letterWeight]
+  rw [hb]
+
 end QuandleResearch.Issue070
