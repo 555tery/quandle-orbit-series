@@ -54,4 +54,10 @@ example : answer ↔
 #print axioms answer_of_weightedStages
 #print axioms answer_of_weightedStages_short
 
+#print axioms weightedStages_eq_stage
+#print axioms weightedRankHeightRelator_one
+#print axioms weightedRankHeightRelator_mem
+#print axioms weightedHeightStage_eq
+#print axioms answer_of_heightStages_short
+
 end QuandleResearch.Issue070
