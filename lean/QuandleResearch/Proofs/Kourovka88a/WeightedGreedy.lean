@@ -285,4 +285,26 @@ theorem answer_of_heightStages_short (pick : WeightedSelector)
   rw [weightedHeightStage_eq]
   exact hw
 
+
+/-- The merger identity holds for the actual rank-indexed relation family,
+including the inactive-rank case. No assertion about adjacency is made. -/
+theorem weightedRankHeightRelator_add (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ) (k l : ℤ) :
+    weightedRankHeightRelator pick X i (k+l) =
+      weightedRankHeightRelator pick X i k * a^k *
+        weightedRankHeightRelator pick X i l * (a^k)⁻¹ := by
+  classical
+  by_cases h : ∃ w : F, ¬ Good (weightedStages pick X i) w
+  · simp only [weightedRankHeightRelator, dite_eq_left h]
+    exact heightRelator_add _ _ k l
+  · simp [weightedRankHeightRelator, h]
+
+theorem weightedRankHeightRelator_zero (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ) :
+    weightedRankHeightRelator pick X i 0 = 1 := by
+  classical
+  by_cases h : ∃ w : F, ¬ Good (weightedStages pick X i) w
+  · simp only [weightedRankHeightRelator, dite_eq_left h, heightRelator_zero]
+  · simp [weightedRankHeightRelator, h]
+
 end QuandleResearch.Issue070
