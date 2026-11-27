@@ -14529,4 +14529,95 @@ theorem guba23_no_heavy_direct_long_side_walks
 #print axioms activeLongWord_heavy_factor_cut_eq
 #print axioms guba23_no_heavy_direct_long_side_walks
 
+
+/-- For the direct long-side exclusion it suffices to exhibit the
+two literal based boundary decompositions at the paired factor.
+The required corner walks are automatic: the last positive dart
+and the first inverse dart are paired by the actual ribbon edge.
+No separate walk or endpoint-conjugacy premise is needed. -/
+theorem guba23_no_heavy_direct_long_side_cuts
+    (pick : WeightedSelector)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick (gubaConjugatorChoice pick) n w s)
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let val := fun d => FreeGroup.mk [read d]
+    ∀ (c x y : _) (A U B M N : List _)
+      (i j : Fin n) (k m : ℤ) (index : Fin s.length)
+      (hi : ∃ a : F, ¬ Good (gubaState pick i.val).1 a)
+      (hj : ∃ a : F, ¬ Good (gubaState pick j.val).1 a)
+      (p z r u t v : List (Fin 2)),
+      ¬ R.rotation.SameCycle c (R.edge c) →
+      ¬ R.rotation.SameCycle root c →
+      ¬ R.rotation.SameCycle root (R.edge c) →
+      (idx c).val = index.val+1 → s[index.val].1.2.1 = i →
+      activeLongWord pick i.val hi = p ++ z ++ r →
+      activeLongWord pick j.val hj = u ++ t ++ v →
+      R.vertexBoundary x = (A ++ (U++[c])) ++ B →
+      R.vertexBoundary y = M ++ (((U++[c]).map R.edge).reverse ++ N) →
+      A.map read = p.map (fun a => (a,true)) →
+      (U++[c]).map read = z.map (fun a => (a,true)) →
+      ((U++[c]).map R.edge).reverse.map read =
+        FreeGroup.invRev (t.map (fun a => (a,true))) →
+      min (positiveWeight (activeLongWord pick i.val hi))
+        (positiveWeight (activeLongWord pick j.val hj)) <
+          240*10^17*positiveWeight z →
+      FreeGroup.mk ((R.vertexBoundary x).map read) = rankHeightRel pick X n (i,k) →
+      FreeGroup.mk ((R.vertexBoundary y).map read) = rankHeightRel pick X n (j,m) →
+      FreeGroup.mk (M.map read) = positiveWord (activeLongWord pick j.val hj) *
+        ((pick (gubaState pick j.val).1 hj).val)^m * (positiveWord v)⁻¹ →
+      False := by
+  classical
+  intro X rows R root read idx val c x y A U B M N i j k m index hi hj p z r u t v
+    hn hrc hre hidx hlabel hfirst hsecond hxpart hypart hA hz ht hheavy hx hy hM
+  let L := A ++ (U++[c])
+  let ds := U++[c]
+  let dt := (ds.map R.edge).reverse
+  have hwx : Walk R.rotation x x (R.vertexBoundary x) := cycleBoundary_walk _ _
+  rw [hxpart] at hwx
+  obtain ⟨a,hL,_⟩ := walk_split_departures R.rotation L B x x hwx
+  have hLpart : L = (A++U)++[c] := by simp only [L,List.append_assoc]
+  rw [hLpart] at hL
+  obtain ⟨b,_,hcwalk⟩ := walk_split_departures R.rotation (A++U) [c] x a hL
+  obtain ⟨d,hd,hda⟩ := walk_predecessor_mem R.rotation hcwalk (by simp)
+  have hdc : d = c := List.mem_singleton.mp hd
+  subst d
+  rw [← hLpart,← hda] at hL
+  have hwy : Walk R.rotation y y (R.vertexBoundary y) := cycleBoundary_walk _ _
+  rw [hypart] at hwy
+  obtain ⟨e,hMwalk,hrest⟩ := walk_split_departures R.rotation M (dt++N) y y hwy
+  have hdt : dt = R.edge c :: (U.map R.edge).reverse := by
+    simp [dt,ds,List.map_append,List.reverse_append]
+  rw [hdt] at hrest
+  have he : e = R.edge c := by
+    change Walk R.rotation e y (R.edge c :: ((U.map R.edge).reverse ++ N)) at hrest
+    cases hrest
+    rfl
+  rw [he] at hMwalk
+  have hread (l : List _) : (l.map val).prod = FreeGroup.mk (l.map read) := by
+    rw [rawWord_eval_prod,List.map_map]
+    rfl
+  have hleft : cycleProduct R.rotation val x = rankHeightRel pick X n (i,k) :=
+    (hread (R.vertexBoundary x)).trans hx
+  have hright : cycleProduct R.rotation val y = rankHeightRel pick X n (j,m) :=
+    (hread (R.vertexBoundary y)).trans hy
+  have hp : (L.map val).prod = positiveWord (p++z) := by
+    rw [hread]
+    change FreeGroup.mk ((A++(U++[c])).map read) = positiveWord (p++z)
+    rw [List.map_append,hA,hz]
+    simp only [positiveWord,List.map_append]
+  exact guba23_no_heavy_direct_long_side_walks pick n w s hm hw hs
+    c x y L M ds dt i j k m index hi hj p z r u t v
+    hn hrc hre hidx hlabel hfirst hsecond rfl hz ht hheavy hL hMwalk hleft hright
+      hp ((hread M).trans hM)
+
+#print axioms guba23_no_heavy_direct_long_side_cuts
+
 end QuandleResearch.Issue070
