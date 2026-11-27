@@ -1330,14 +1330,13 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
       2 * w = (1 / (8 * (t : ℝ))) * (1 / (8 * (t : ℝ))) := by
         dsimp [w]
         field_simp
-        <;> ring
+        ring
       _ ≤ ((R : ℝ) / (p : ℝ))^2 := by simpa [pow_two] using hs
   have hwidth : (m : ℝ) * 1000001 < (L : ℝ) * w := by
     have he : (L : ℝ) * w = (m : ℝ) * 1000001 + 1 := by
       dsimp [L, w]
       push_cast
       field_simp
-      <;> ring
     linarith
   have hD : N * ((2 * R + 1) * (2 * R + 1))^m < G := by
     have hprod := Nat.mul_le_mul hrt hrt
@@ -1536,7 +1535,8 @@ theorem roth_sqrt_bound (N : ℕ) (hN : 1 ≤ N) :
     have hh := (le_div_iff₀ hb).mp (show (m : ℝ) - 1 ≤ u / b by linarith)
     calc
       (m : ℝ) * a = ((m : ℝ) - 1) * b * b + a := by rw [← hb2]; ring
-      _ ≤ u * b + a := add_le_add_right (mul_le_mul_of_nonneg_right hh hb.le) _
+      _ ≤ u * b + a := by
+        linarith [mul_le_mul_of_nonneg_right hh hb.le]
       _ = b * u + a := by ring
   have hlog : Real.log (N : ℝ) / (m : ℝ) ≤ b * u := by
     apply (div_le_iff₀ hm').2
