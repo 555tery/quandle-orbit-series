@@ -6355,4 +6355,115 @@ theorem protected_simultaneous_vertex_partitions {D : Type} [Fintype D]
 #print axioms protected_simultaneous_vertex_partitions
 
 
+
+/-! ## Connectivity of the simultaneous interval refinement
+
+Grouping consecutive singleton outlets of one coefficient component
+does not change its component. The following theorem proves the
+component correspondence on the original dart type, retaining the
+protected vertices and the actual rotation cuts.
+-/
+
+/-- Component comparison can be proved on the actual generators of
+the connectivity relation, namely edge and rotation steps. -/
+theorem ribbon_component_of_steps {D : Type} (P Q : RibbonMap D)
+    (he : ∀ d, Q.SameComponent d (P.edge d))
+    (hr : ∀ d, Q.SameComponent d (P.rotation d))
+    {a b : D} (h : P.SameComponent a b) : Q.SameComponent a b := by
+  induction h with
+  | rel x y h =>
+    rcases h with h | h
+    · rw [← h]
+      exact he x
+    · rw [← h]
+      exact hr x
+  | refl x => exact Relation.EqvGen.refl _
+  | symm x y _ ih => exact Relation.EqvGen.symm _ _ ih
+  | trans x y z _ _ ih₁ ih₂ => exact Relation.EqvGen.trans _ _ _ ih₁ ih₂
+
+/-- When every peripheral vertex is partitioned into blocks lying
+in single coefficient components, the simultaneous geometric
+refinement has exactly the same connected components as the
+singleton coefficient refinement. No components are merged or lost. -/
+theorem coefficient_partition_sameComponent {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hstep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (reps : List D) (blocks : D → List (D × List D))
+    (hselected : ∀ a ∈ reps, ¬ keep a)
+    (hcov : ∀ d, ¬ keep d → ∃ a ∈ reps, P.rotation.SameCycle a d)
+    (hsep : reps.Pairwise (fun a b => ¬ P.rotation.SameCycle a b))
+    (hpart : ∀ a ∈ reps,
+      P.vertexBoundary a = (blocks a).flatMap (fun b => b.1 :: b.2))
+    (hlocal : ∀ a ∈ reps, ∀ b ∈ blocks a, ∀ d ∈ b.2,
+      (P.coefficientRegions keep hstep).SameComponent b.1 d)
+    (hE : P.EulerEquality) :
+    ∃ tau : Equiv.Perm D, SplitRefinement P.rotation tau ∧
+      (P.withRotation tau).EulerEquality ∧
+      (∀ a ∈ reps, ∀ b ∈ blocks a,
+        (P.withRotation tau).vertexBoundary b.1 = b.1 :: b.2) ∧
+      (∀ d, keep d → (P.withRotation tau).vertexBoundary d = P.vertexBoundary d) ∧
+      (∀ d e, (P.withRotation tau).SameComponent d e ↔
+        (P.coefficientRegions keep hstep).SameComponent d e) := by
+  classical
+  obtain ⟨tau,href,hEuler,hread,hprotected⟩ :=
+    protected_simultaneous_vertex_partitions P keep reps blocks hkeep hselected hsep hpart hE
+  let Q := P.withRotation tau
+  let S := P.coefficientRegions keep hstep
+  have hSread (d : D) (hd : keep d) : S.vertexBoundary d = P.vertexBoundary d := by
+    change (P.withRotation S.rotation).vertexBoundary d = P.vertexBoundary d
+    apply refined_vertex_read_of_agreement
+    intro e he
+    have hk := (hkeep d e he).mp hd
+    change (P.coefficientRegions keep hstep).rotation e = P.rotation e
+    rw [RibbonMap.coefficientRegions_rotation,ite_eq_left hk]
+  have hQtoS (d : D) : S.SameComponent d (Q.rotation d) := by
+    by_cases hd : keep d
+    · have hr : Q.vertexBoundary d = S.vertexBoundary d :=
+        (hprotected d hd).trans (hSread d hd).symm
+      have hcyc : Q.rotation.SameCycle d (Q.rotation d) :=
+        Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+      exact S.component_of_vertexCycle
+        ((sameCycle_iff_of_vertexBoundary_eq S Q d (Q.rotation d) hr).mp hcyc)
+    · obtain ⟨a,ha,had⟩ := hcov d hd
+      have hm := (P.mem_vertexBoundary_iff a d).mpr had
+      rw [hpart a ha] at hm
+      obtain ⟨b,hb,hdb⟩ := List.mem_flatMap.mp hm
+      have hbRead : Q.vertexBoundary b.1 = b.1 :: b.2 := hread a ha b hb
+      have hc : Q.rotation.SameCycle b.1 d :=
+        (Q.mem_vertexBoundary_iff _ _).mp (hbRead.symm ▸ hdb)
+      have hnext : Q.rotation.SameCycle b.1 (Q.rotation d) :=
+        Equiv.Perm.sameCycle_apply_right.mpr hc
+      have hmem : Q.rotation d ∈ b.1 :: b.2 := by
+        rw [← hbRead]
+        exact (Q.mem_vertexBoundary_iff _ _).mpr hnext
+      have hlocal' (e : D) (he : e ∈ b.1 :: b.2) : S.SameComponent b.1 e := by
+        rcases List.mem_cons.mp he with he | he
+        · rw [he]
+          exact Relation.EqvGen.refl _
+        · exact hlocal a ha b hb e he
+      exact Relation.EqvGen.trans _ _ _ (Relation.EqvGen.symm _ _ (hlocal' d hdb))
+        (hlocal' _ hmem)
+  have hStoQ (d : D) : Q.SameComponent d (S.rotation d) := by
+    by_cases hd : keep d
+    · have hr : S.vertexBoundary d = Q.vertexBoundary d :=
+        (hSread d hd).trans (hprotected d hd).symm
+      have hcyc : S.rotation.SameCycle d (S.rotation d) :=
+        Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+      exact Q.component_of_vertexCycle
+        ((sameCycle_iff_of_vertexBoundary_eq Q S d (S.rotation d) hr).mp hcyc)
+    · have hf : S.rotation d = d := by
+        change (P.coefficientRegions keep hstep).rotation d = d
+        rw [RibbonMap.coefficientRegions_rotation,ite_eq_right hd]
+      rw [hf]
+      exact Relation.EqvGen.refl _
+  refine ⟨tau,href,hEuler,hread,hprotected,?_⟩
+  intro d e
+  exact ⟨ribbon_component_of_steps Q S (fun x => S.component_edge x) hQtoS,
+    ribbon_component_of_steps S Q (fun x => Q.component_edge x) hStoQ⟩
+
+#print axioms ribbon_component_of_steps
+#print axioms coefficient_partition_sameComponent
+
+
 end QuandleResearch.Issue070
