@@ -8907,4 +8907,62 @@ theorem guba23_designated_boundary_cycle
 #print axioms guba23_designated_boundary_cycle
 
 
+
+/-! ### Exact vertex factorization under a spanning-tree splice
+
+For connectedness of a rank-minimal ribbon we need more than
+normal-closure membership of a component's boundary. We need a
+Peiffer expression that uses the retained vertices with their
+original multiplicity. Expand one splice into precisely its two
+original vertex products; unchanged vertices introduce no factor.
+-/
+
+
+theorem guba23_splice_expand_vertex_product {D K : Type}
+    [Fintype D] [Group K] (P : RibbonMap D) (v : D → K)
+    (c d : D) (hn : ¬ P.rotation.SameCycle c (P.edge c))
+    (hd : (P.edgeSplice c).rotation.SameCycle (P.rotation c) d)
+    (g : K) :
+    ∃ u t : K, g * cycleProduct (P.edgeSplice c).rotation v d * g⁻¹ =
+      (u * cycleProduct P.rotation v c * u⁻¹) *
+      (t * cycleProduct P.rotation v (P.edge c) * t⁻¹) := by
+  have hnc : ¬ P.rotation.SameCycle (P.rotation c) (P.edge c) := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  obtain ⟨k,hk⟩ := guba22_cycleProduct_conjugator
+    (P.edgeSplice c).rotation v (P.rotation c) d hd
+  have hc : P.rotation.SameCycle c (P.rotation c) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  obtain ⟨j,hj⟩ := guba22_cycleProduct_conjugator P.rotation v c (P.rotation c) hc
+  have hmerge : cycleProduct (P.edgeSplice c).rotation v (P.rotation c) =
+      cycleProduct P.rotation v (P.rotation c) *
+        cycleProduct P.rotation v (P.edge c) :=
+    cycleProduct_cutAt_merge P.rotation v (P.rotation c) (P.edge c) hnc
+  refine ⟨g*k*j,g*k,?_⟩
+  rw [hk,hmerge,hj]
+  group
+
+/-- A vertex outside the merged cycle retains its original based
+product. This is the other case in the multiplicity-preserving
+expansion, with no extra occurrences. -/
+theorem guba23_splice_keep_vertex_product {D K : Type}
+    [Fintype D] [Group K] (P : RibbonMap D) (v : D → K)
+    (c d : D) (hn : ¬ P.rotation.SameCycle c (P.edge c))
+    (hd : ¬ (P.edgeSplice c).rotation.SameCycle (P.rotation c) d) :
+    cycleProduct (P.edgeSplice c).rotation v d = cycleProduct P.rotation v d := by
+  have hnc : ¬ P.rotation.SameCycle (P.rotation c) (P.edge c) := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  have ha : ¬ P.rotation.SameCycle d (P.rotation c) := by
+    intro h
+    exact hd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc h.symm)
+  have hb : ¬ P.rotation.SameCycle d (P.edge c) := by
+    intro h
+    have hh : (P.edgeSplice c).rotation.SameCycle (P.rotation c) (P.edge c) :=
+      cutAt_sameCycle_of_not_sameCycle P.rotation _ _ hnc
+    exact hd (hh.trans (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc h.symm))
+  exact cycleProduct_cutAt_unchanged P.rotation v _ _ _ ha hb
+
+#print axioms guba23_splice_expand_vertex_product
+#print axioms guba23_splice_keep_vertex_product
+
+
 end QuandleResearch.Issue070
