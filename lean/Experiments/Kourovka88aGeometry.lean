@@ -17782,4 +17782,171 @@ theorem gubaPowerCounterexample_no_actual_self_long_pair
 #print axioms exists_gubaPowerCounterexample_minimal
 #print axioms gubaPowerCounterexample_no_actual_self_long_pair
 
+
+/-! ## Long strips for general cyclically reduced exteriors
+
+The one-dart case excluded the exterior by comparing its weight
+with a single letter. A simultaneous power counterexample can
+have a much longer exterior, so retain the exterior as a
+separate, explicit branch. There is no estimate of its period
+weight assumed here.
+-/
+
+theorem guba_cyclic_boundary_no_monogons (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk
+      (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n i)) s = w)
+    (hpos : ∀ x ∈ s, x.2 = true)
+    (hw : FreeGroup.IsCyclicallyReduced (FreeGroup.invRev w.toWord)) :
+    let P := boundaryRibbon
+      (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n) w s hs
+    ∀ d, P.face d ≠ d := by
+  classical
+  let rows := rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n
+  let P := boundaryRibbon rows w s hs
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  have hrows (j : Fin (boundaryIdentity s).length) :
+      FreeGroup.IsCyclicallyReduced (orientedWord
+        (markedRows rows w (boundaryIdentity s)[j].1.2) (boundaryIdentity s)[j].2) := by
+    obtain ⟨v,hv⟩ := j
+    cases v with
+    | zero =>
+      exact hw
+    | succ v =>
+      have hlt : v < s.length := by simpa [boundaryIdentity] using hv
+      have hp := hpos s[v] (List.getElem_mem hlt)
+      have hidx : (boundaryIdentity s)[(⟨v+1,hv⟩ : Fin (boundaryIdentity s).length)] =
+          markOccurrence s[v] := by
+        change (boundaryIdentity s)[v+1]'hv = markOccurrence s[v]
+        simp [boundaryIdentity]
+      rw [hidx]
+      change FreeGroup.IsCyclicallyReduced (orientedWord (rows s[v].1.2) s[v].2)
+      rw [hp]
+      change FreeGroup.IsCyclicallyReduced (rows s[v].1.2)
+      by_cases hn : rows s[v].1.2 = []
+      · rw [hn]
+        simp [FreeGroup.isCyclicallyReduced_iff]
+      · exact guba_normalized_rows_cyclicallyReduced n s[v].1.2 hn
+  intro d
+  apply ribbon_no_monogon_of_reduced_readings P read
+  · exact relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)
+  · intro e
+    exact (boundaryRibbon_all_cyclic_readings rows w s hs hrows e).isReduced
+
+
+set_option maxRecDepth 8192 in
+/-- A long paired factor in a single source block, for any cyclically
+reduced exterior. Its paired block is either on a genuine interior
+cell (four blocks) or a literal factor of the original exterior
+read at its distinguished zero corner (one block). The same
+constant 54 works in both branches. -/
+theorem guba_actual_single_block_pair_cyclic_exterior
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) n i)) s = w)
+    (hpos : ∀ x ∈ s, x.2 = true) (hw : w ≠ 1)
+    (hcyc : FreeGroup.IsCyclicallyReduced (FreeGroup.invRev w.toWord)) :
+    let pick := twoPeriodSelector
+    let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
+    let P := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    P.Connected → P.EulerEquality →
+    ∃ (d e : _) (i : Fin s.length) (bs cs : List (List _))
+        (v : List _) (t : _) (b c : List _),
+      (idx d).val = i.val+1 ∧
+      P.vertexBoundary d = bs.flatMap id ∧ P.vertexBoundary e = cs.flatMap id ∧
+      (∃ h : ∃ g : F, ¬ Good (gubaState pick s[i.val].1.2.1.val).1 g,
+        GubaFourBlockRead read bs (activeLongWord pick s[i.val].1.2.1.val h)
+          (pick (gubaState pick s[i.val].1.2.1.val).1 h).val s[i.val].1.2.2) ∧
+      ((e = root ∧ cs = [P.vertexBoundary root]) ∨
+       ∃ (j : Fin s.length), (idx e).val = j.val+1 ∧
+        ∃ h : ∃ g : F, ¬ Good (gubaState pick s[j.val].1.2.1.val).1 g,
+          GubaFourBlockRead read cs (activeLongWord pick s[j.val].1.2.1.val h)
+            (pick (gubaState pick s[j.val].1.2.1.val).1 h).val s[j.val].1.2.2) ∧
+      b ∈ bs ∧ c ∈ cs ∧
+      (∃ p q : List _, b = p ++ (v++[t]) ++ q) ∧
+      (∃ p q : List _, c = p ++ (((v++[t]).map P.edge).reverse) ++ q) ∧
+      (∀ x ∈ v, P.face (P.face x) = x) ∧
+      rawWeight ((P.vertexBoundary d).map read) ≤ 54 * rawWeight ((v++[t]).map read) ∧
+      ¬ (∀ x ∈ (v++[t]).map read, x.1 = 0) ∧
+      ¬ (∀ x ∈ (((v++[t]).map P.edge).reverse).map read, x.1 = 0) := by
+  classical
+  intro pick rows P root read idx hc hE
+  have hmono : ∀ d, P.face d ≠ d := guba_cyclic_boundary_no_monogons n w s hs hpos hcyc
+  obtain ⟨vert,hvert,hend⟩ := ribbon_low_end_vertex P root hc hE hmono
+  obtain ⟨d₀,rfl⟩ := Quotient.exists_rep vert
+  have hd₀ : ¬ P.rotation.SameCycle root d₀ :=
+    fun h => hvert (Quotient.sound h.symm)
+  have hidx₀ : idx d₀ ≠ boundaryOccurrence s := by
+    intro h
+    exact hd₀ ((boundaryDart_sameVertex_iff rows w s hs hw d₀).mpr h)
+  obtain ⟨d,i,bs,hd,hi,hbs,hiRead⟩ :=
+    guba_positive_cell_four_blocks pick n w s hs hpos d₀ hidx₀
+  have hcount : ribbonVertexEndCount P (P.vertexOf d) ≤ 5 := by
+    rw [show P.vertexOf d = P.vertexOf d₀ from Quotient.sound hd]
+    exact hend
+  obtain ⟨p,u,q,z,hpart,hbig,hL⟩ := ribbon_long_direct_strip P read d 5 hcount
+  have hchoose : ∃ (e : _) (cs : List (List _)),
+      P.rotation.SameCycle e (P.edge z) ∧
+      P.vertexBoundary e = cs.flatMap id ∧ cs.length ≤ 4 ∧
+      ((e = root ∧ cs = [P.vertexBoundary root]) ∨
+       ∃ (j : Fin s.length), (idx e).val = j.val+1 ∧
+        ∃ h : ∃ g : F, ¬ Good (gubaState pick s[j.val].1.2.1.val).1 g,
+          GubaFourBlockRead read cs (activeLongWord pick s[j.val].1.2.1.val h)
+            (pick (gubaState pick s[j.val].1.2.1.val).1 h).val s[j.val].1.2.2) := by
+    by_cases hroot : P.rotation.SameCycle root (P.edge z)
+    · exact ⟨root,[P.vertexBoundary root],hroot,by simp,by decide,Or.inl ⟨rfl,rfl⟩⟩
+    · have he : idx (P.edge z) ≠ boundaryOccurrence s := by
+        intro he
+        exact hroot ((boundaryDart_sameVertex_iff rows w s hs hw (P.edge z)).mpr he)
+      obtain ⟨e,j,cs,he,hj,hcs,hjRead⟩ :=
+        guba_positive_cell_four_blocks pick n w s hs hpos (P.edge z) he
+      have hclen : cs.length = 4 := by
+        obtain ⟨h,hh⟩ := hjRead
+        exact GubaFourBlockRead_length _ _ _ _ _ hh
+      exact ⟨e,cs,he,hcs,le_of_eq hclen,Or.inr ⟨j,hj,hjRead⟩⟩
+  obtain ⟨e,cs,he,hcs,hclen,hkind⟩ := hchoose
+  obtain ⟨v,t,b,c,hb,hc',hp,hq,_,hbig',hW⟩ :=
+    ribbon_direct_strip_single_block_pair P read d e z p u q hpart hbig he bs cs hbs hcs
+  have hblen : bs.length = 4 := by
+    obtain ⟨h,hh⟩ := hiRead
+    exact GubaFourBlockRead_length _ _ _ _ _ hh
+  have hW' : rawWeight ((u++[z]).map read) ≤ 9*rawWeight ((v++[t]).map read) := by
+    apply hW.trans
+    exact Nat.mul_le_mul_right _ (by omega)
+  have hLong : rawWeight ((P.vertexBoundary d).map read) ≤
+      54 * rawWeight ((v++[t]).map read) := by omega
+  have hnonpure : ¬ (∀ x ∈ (v++[t]).map read, x.1 = 0) := by
+    intro hlight
+    obtain ⟨ha',hread⟩ := hiRead
+    obtain ⟨l,r,hr⟩ := hp
+    have hf : (v++[t]).map read <:+: b.map read := by
+      refine ⟨l.map read,r.map read,?_⟩
+      rw [hr]
+      simp only [List.map_append]
+    have hshort := guba_four_block_pure_a_short read pick s[i.val].1.2.1.val ha'
+      s[i.val].1.2.2 bs b ((v++[t]).map read) hread hb hf hlight
+    rw [← hbs] at hshort
+    change 54*rawWeight ((v++[t]).map read) <
+      rawWeight ((P.vertexBoundary d).map read) at hshort
+    exact (Nat.not_lt_of_ge hLong) hshort
+  have hnonpure' : ¬ (∀ x ∈ (((v++[t]).map P.edge).reverse).map read, x.1 = 0) := by
+    intro hlight
+    have heq := boundaryRibbon_inverse_read rows w s hs (v++[t])
+    change (((v++[t]).map P.edge).reverse).map read =
+      FreeGroup.invRev ((v++[t]).map read) at heq
+    rw [heq] at hlight
+    have h' := invRev_pure_a hlight
+    rw [FreeGroup.invRev_invRev] at h'
+    exact hnonpure h'
+  exact ⟨d,e,i,bs,cs,v,t,b,c,hi,hbs,hcs,hiRead,hkind,hb,hc',hp,hq,hbig',
+    hLong,hnonpure,hnonpure'⟩
+
+#print axioms guba_cyclic_boundary_no_monogons
+#print axioms guba_actual_single_block_pair_cyclic_exterior
+
 end QuandleResearch.Issue070
