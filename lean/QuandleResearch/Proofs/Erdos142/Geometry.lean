@@ -1272,6 +1272,138 @@ theorem roth_finite_parameters (p m R N L J K : ℕ) [Fact p.Prime]
     exact le_trans hK (Nat.mul_le_mul_left N hJS)
 
 
+
+/-! Eliminate the prime modulus and auxiliary shell parameters. -/
+
+lemma div_mul_bounds (a b : ℕ) (hb : 0 < b) :
+    a / b * b ≤ a ∧ a < a / b * b + b := by
+  have he := Nat.div_add_mod a b
+  have hr := Nat.mod_lt a hb
+  rw [Nat.mul_comm b (a / b)] at he
+  omega
+
+/-- A dimension-dependent lower bound involving only integer parameters
+N, m and t. The additive 2 accounts for two finite pigeonhole roundings.
+No asymptotic hypothesis or unproved geometric premise is present. -/
+theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
+    (hNt : N < (t * t)^m) :
+    (N : ℝ) * (73 / 250 : ℝ)^m <
+      (128 : ℝ) * ((m : ℝ) * 1000001 + 1) * (t : ℝ)^2 *
+        ((rothNumberNat N : ℝ) + 2) := by
+  obtain ⟨p, hpbound, hprime⟩ := Nat.exists_infinite_primes
+    (max (max N 2400000) (8 * t))
+  letI : Fact p.Prime := ⟨hprime⟩
+  have hN : N ≤ p := le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) hpbound
+  have hp : 2400000 ≤ p :=
+    le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hpbound
+  have hpt : 8 * t ≤ p := le_trans (le_max_right _ _) hpbound
+  have hp0 : 0 < p := by omega
+  let R := p / (4 * t)
+  let L := 128 * (m * 1000001 + 1) * t^2
+  let G := (p * p)^m
+  let A := (finiteBlock p).card^m
+  let J := A / L
+  let K := (N * J) / G
+  let w : ℝ := 1 / (128 * (t : ℝ)^2)
+  have hL : 0 < L := by dsimp [L]; positivity
+  have hG : 0 < G := by dsimp [G]; positivity
+  have hR := div_mul_bounds p (4 * t) (by omega)
+  have hrlo : p ≤ 8 * t * R := by
+    change R * (4 * t) ≤ p ∧ p < R * (4 * t) + 4 * t at hR
+    nlinarith [hR.2, hpt]
+  have hrt : (2 * R + 1) * t ≤ p := by
+    change R * (4 * t) ≤ p ∧ p < R * (4 * t) + 4 * t at hR
+    nlinarith [hR.1, hpt]
+  have ht0 : 0 < (t : ℝ) := by exact_mod_cast ht
+  have hp' : 0 < (p : ℝ) := by exact_mod_cast hp0
+  have hw : 0 < w := by dsimp [w]; positivity
+  have hwR : 2 * w ≤ ((R : ℝ) / (p : ℝ))^2 := by
+    have hr : (p : ℝ) ≤ 8 * (t : ℝ) * (R : ℝ) := by exact_mod_cast hrlo
+    have hdiv : 1 / (8 * (t : ℝ)) ≤ (R : ℝ) / (p : ℝ) := by
+      apply (div_le_div_iff₀ (by positivity : 0 < 8 * (t : ℝ)) hp').2
+      linarith
+    have hs := mul_le_mul hdiv hdiv (by positivity) (by positivity)
+    calc
+      2 * w = (1 / (8 * (t : ℝ))) * (1 / (8 * (t : ℝ))) := by
+        dsimp [w]
+        field_simp
+        <;> ring
+      _ ≤ ((R : ℝ) / (p : ℝ))^2 := by simpa [pow_two] using hs
+  have hwidth : (m : ℝ) * 1000001 < (L : ℝ) * w := by
+    have he : (L : ℝ) * w = (m : ℝ) * 1000001 + 1 := by
+      dsimp [L, w]
+      push_cast
+      field_simp
+      <;> ring
+    linarith
+  have hD : N * ((2 * R + 1) * (2 * R + 1))^m < G := by
+    have hprod := Nat.mul_le_mul hrt hrt
+    have hbase : (t * t) * ((2 * R + 1) * (2 * R + 1)) ≤ p * p := by
+      simpa only [Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using hprod
+    calc
+      _ < (t * t)^m * ((2 * R + 1) * (2 * R + 1))^m :=
+        Nat.mul_lt_mul_of_pos_right hNt (by positivity)
+      _ = ((t * t) * ((2 * R + 1) * (2 * R + 1)))^m := by rw [mul_pow]
+      _ ≤ G := Nat.pow_le_pow_left hbase m
+  have hJ := div_mul_bounds A L hL
+  have hK := div_mul_bounds (N * J) G hG
+  have hJ' : L * J ≤ A := by simpa [J, Nat.mul_comm] using hJ.1
+  have hK' : G * K ≤ N * J := by simpa [K, Nat.mul_comm] using hK.1
+  have hr := roth_finite_parameters p m R N L J K hN hp hL w hw hwR hwidth hD hJ' hK'
+  have hNG : N ≤ G := by
+    have hpp : p ≤ p * p := by nlinarith
+    have hpow : p * p ≤ (p * p)^m := by
+      simpa using (pow_le_pow_right' (show 1 ≤ p * p by positivity)
+        (show 1 ≤ m by omega))
+    exact hN.trans (hpp.trans hpow)
+  have hden := finite_block_density p hp
+  have hden' : (73 / 250 : ℝ) * ((p : ℝ) * p) ≤ ((finiteBlock p).card : ℝ) := by
+    have hd : 73 * (p : ℝ)^2 ≤ 250 * ((finiteBlock p).card : ℝ) := by exact_mod_cast hden
+    nlinarith
+  have hpow := pow_le_pow_left₀ (by positivity : 0 ≤ (73 / 250 : ℝ) * ((p : ℝ) * p)) hden' m
+  have hAG : (73 / 250 : ℝ)^m * (G : ℝ) ≤ (A : ℝ) := by
+    dsimp [A, G]
+    push_cast
+    rw [← mul_pow]
+    exact hpow
+  have hA : (A : ℝ) < (L : ℝ) * ((J : ℝ) + 1) := by
+    have hh : (A : ℝ) < (J : ℝ) * (L : ℝ) + (L : ℝ) := by
+      exact_mod_cast hJ.2
+    nlinarith
+  have hNJ : (N : ℝ) * (J : ℝ) < (G : ℝ) * ((K : ℝ) + 1) := by
+    have hh : (N : ℝ) * (J : ℝ) < (K : ℝ) * (G : ℝ) + (G : ℝ) := by
+      exact_mod_cast hK.2
+    nlinarith
+  have hNG' : (N : ℝ) ≤ (G : ℝ) := by exact_mod_cast hNG
+  have hKr : (K : ℝ) ≤ (rothNumberNat N : ℝ) := by exact_mod_cast hr
+  have hLp : 0 < (L : ℝ) := by exact_mod_cast hL
+  have hGp : 0 < (G : ℝ) := by exact_mod_cast hG
+  have hnp : 0 ≤ (N : ℝ) := by positivity
+  have hN0 : N = 0 ∨ 0 < N := by omega
+  rcases hN0 with hzero | hpos
+  · subst N
+    positivity
+  have hNp : 0 < (N : ℝ) := by exact_mod_cast hpos
+  have hmain : (N : ℝ) * (73 / 250 : ℝ)^m * (G : ℝ) <
+      (L : ℝ) * ((rothNumberNat N : ℝ) + 2) * (G : ℝ) := by
+    calc
+      _ ≤ (N : ℝ) * (A : ℝ) := by
+        simpa only [mul_assoc] using mul_le_mul_of_nonneg_left hAG hnp
+      _ < (N : ℝ) * ((L : ℝ) * ((J : ℝ) + 1)) :=
+        mul_lt_mul_of_pos_left hA hNp
+      _ = (L : ℝ) * ((N : ℝ) * (J : ℝ) + (N : ℝ)) := by ring
+      _ < (L : ℝ) * ((G : ℝ) * ((K : ℝ) + 2)) := by
+        apply mul_lt_mul_of_pos_left _ hLp
+        nlinarith
+      _ ≤ (L : ℝ) * ((G : ℝ) * ((rothNumberNat N : ℝ) + 2)) := by
+        gcongr
+      _ = _ := by ring
+  have hfinal := (mul_lt_mul_right hGp).mp hmain
+  dsimp [L] at hfinal
+  push_cast at hfinal
+  exact hfinal
+
+
 end
 
 end QuandleResearch.Erdos142
