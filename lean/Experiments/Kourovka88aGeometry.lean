@@ -3995,6 +3995,8 @@ theorem guba19_total_vertex_dart_weight {D : Type} [Fintype D]
   apply Finset.sum_congr rfl
   intro v _
   obtain ⟨a,rfl⟩ := Quotient.exists_rep v
+  change (ribbonVertexPerimeter P read (P.vertexOf a) : ℝ) ^ (2/3 : ℝ) =
+    ∑ d ∈ Finset.univ.filter (fun d => P.vertexOf d = P.vertexOf a), weight d
   have hset : Finset.univ.filter (fun d => P.vertexOf d = P.vertexOf a) =
       (P.vertexBoundary a).toFinset := by
     ext d
@@ -4050,6 +4052,8 @@ theorem ribbon_total_edge_weight {D : Type} [Fintype D]
   apply Finset.sum_congr rfl
   intro e _
   obtain ⟨d,rfl⟩ := Quotient.exists_rep e
+  change ribbonEdgeWeight P weight (P.edgeOf d) =
+    ∑ x ∈ Finset.univ.filter (fun x => P.edgeOf x = P.edgeOf d), weight x
   have hset : Finset.univ.filter (fun x => P.edgeOf x = P.edgeOf d) =
       {d, P.edge d} := by
     ext x
