@@ -343,6 +343,90 @@ theorem potential_gap {sx sy sz ax ay az ux uy uz : ℝ} {j k : ℤ}
     exact large_s_gap hx hy hz hcurv hlarge
 
 
+
+/-! A rational inner rectangle certificate.  The 480 vertical strips use
+horizontal radii with denominator 2400.  We first establish containment
+and an exact sum of rectangle areas, separately from measure additivity. -/
+
+def lowerRadiusUnits (i : ℕ) : ℕ := min 600 (120 + 3 * i)
+
+def upperRadiusUnits (j : ℕ) : ℕ :=
+  min 300 (min (240 + 3 * j) (480 - 3 * (j + 1)))
+
+lemma lower_rectangle_mem {i : ℕ} {s a : ℝ} (hi : i < 240)
+    (hs₁ : (i : ℝ) / 480 < s)
+    (hs₂ : s < ((i : ℝ) + 1) / 480)
+    (ha : |a| < (lowerRadiusUnits i : ℝ) / 2400) :
+    Lower s a := by
+  have hi' : (i : ℝ) < 240 := by exact_mod_cast hi
+  have hi0 : 0 ≤ (i : ℝ) := by positivity
+  have hi1 : (i : ℝ) + 1 ≤ 240 := by
+    exact_mod_cast (show i + 1 ≤ 240 by omega)
+  have hcap : (lowerRadiusUnits i : ℝ) ≤ 600 := by
+    exact_mod_cast (min_le_left 600 (120 + 3 * i))
+  have hlin : (lowerRadiusUnits i : ℝ) ≤ 120 + 3 * (i : ℝ) := by
+    exact_mod_cast (min_le_right 600 (120 + 3 * i))
+  exact ⟨by linarith, by linarith, by linarith, by linarith⟩
+
+lemma upper_rectangle_mem {j : ℕ} {s u : ℝ} (hj₁ : 2 ≤ j)
+    (hj₂ : j < 160)
+    (hs₁ : (240 + (j : ℝ)) / 480 < s)
+    (hs₂ : s < (240 + (j : ℝ) + 1) / 480)
+    (hu : |u| < (upperRadiusUnits j : ℝ) / 2400) :
+    Upper s u := by
+  have hj₁' : 2 ≤ (j : ℝ) := by exact_mod_cast hj₁
+  have hj₂' : (j : ℝ) + 1 ≤ 160 := by
+    exact_mod_cast (show j + 1 ≤ 160 by omega)
+  have hcap : (upperRadiusUnits j : ℝ) ≤ 300 := by
+    exact_mod_cast (min_le_left 300 (min (240 + 3 * j) (480 - 3 * (j + 1))))
+  have hleft : (upperRadiusUnits j : ℝ) ≤ 240 + 3 * (j : ℝ) := by
+    exact_mod_cast (show upperRadiusUnits j ≤ 240 + 3 * j from
+      le_trans (min_le_right _ _) (min_le_left _ _))
+  have hrightN : upperRadiusUnits j ≤ 480 - 3 * (j + 1) :=
+    le_trans (min_le_right _ _) (min_le_right _ _)
+  have hrightN' : upperRadiusUnits j + 3 * (j + 1) ≤ 480 := by omega
+  have hright : (upperRadiusUnits j : ℝ) + 3 * ((j : ℝ) + 1) ≤ 480 := by
+    exact_mod_cast hrightN'
+  exact ⟨by linarith, by linarith, by linarith, by linarith, by linarith⟩
+
+/-- Distinct strips have disjoint open vertical intervals. -/
+lemma strips_disjoint {i j : ℕ} {s : ℝ} (hij : i ≠ j)
+    (hi₁ : (i : ℝ) / 480 < s)
+    (hi₂ : s < ((i : ℝ) + 1) / 480)
+    (hj₁ : (j : ℝ) / 480 < s)
+    (hj₂ : s < ((j : ℝ) + 1) / 480) : False := by
+  rcases lt_or_gt_of_ne hij with h | h
+  · have h' : (i : ℝ) + 1 ≤ (j : ℝ) := by
+      exact_mod_cast (show i + 1 ≤ j by omega)
+    linarith
+  · have h' : (j : ℝ) + 1 ≤ (i : ℝ) := by
+      exact_mod_cast (show j + 1 ≤ i by omega)
+    linarith
+
+/-- Lower rectangles count their full horizontal widths in units 1/2400;
+upper rectangles count both arcs.  Multiplying by the height 1/480
+gives the rational inner area certificate. -/
+def lowerAreaUnits : ℕ :=
+  ∑ i ∈ Finset.range 240, 2 * lowerRadiusUnits i
+
+def upperAreaUnits : ℕ :=
+  ∑ j ∈ Finset.range 158, 4 * upperRadiusUnits (j + 2)
+
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 0 in
+theorem rectangle_area_units :
+    lowerAreaUnits = 210720 ∧ upperAreaUnits = 126948 := by
+  decide
+
+/-- Strict numerical comparison for the inner rectangles, not yet a
+measure/cardinality theorem about the torus. -/
+theorem rectangle_area_comparison :
+    (7 / 24 : ℚ) <
+      ((lowerAreaUnits + upperAreaUnits : ℕ) : ℚ) / (480 * 2400) := by
+  rw [rectangle_area_units.1, rectangle_area_units.2]
+  norm_num
+
+
 end
 
 end QuandleResearch.Erdos142
