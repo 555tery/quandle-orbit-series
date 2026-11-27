@@ -154,7 +154,7 @@ jobs:
                    "guba23_sublist_weight", "guba23_flatMap_weight", "guba23_outer_arcs_weight", "guba23_arc_transfer_sum", "guba23_boundary_transfer", "guba23_row_perimeter_of_arcs",
                    "guba22_component_support", "guba22_mem_component_support", "guba22_component_support_disjoint", "guba22_exists_component_representatives", "guba22_component_partition_weight", "guba22_second_kind_card", "guba22_prune_coverage", "guba22_prune_preserves_geometry",
                    "guba22_coefficient_preserved_read", "guba22_two_outlet_mem_of_other", "guba22_two_outlet_mem_iff", "guba22_component_support_pair", "guba22_exists_unique_other_outlet",
-                   "guba22_cycleProduct_conjugator", "guba22_exists_leaving_edge", "guba22_edgeSplice_connected", "guba22_two_boundary_product"]
+                   "guba22_cycleProduct_conjugator", "guba22_exists_leaving_edge", "guba22_edgeSplice_connected", "guba22_two_boundary_product", "guba22_two_outlet_inverse_conjugacy"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
