@@ -12045,7 +12045,8 @@ theorem exists_minBad_periodEnds (N : Subgroup F)
   · refine ⟨x,h,t++p,q,hstart,?_,hx,hp⟩
     rw [heword,hempty,List.append_nil]
   · refine ⟨x,(0,false),t++p,(q++[h])++v,hstart,?_,hx,by decide⟩
-    rw [heword,hv,List.append_assoc]
+    rw [heword,hv]
+    simp only [List.append_assoc]
 
 /-- A weight-minimal selector with the endpoint convention. -/
 noncomputable def endpointWeightedSelector : WeightedSelector :=
@@ -13101,8 +13102,8 @@ theorem rawReduced_append_of_ends {u v : RawWord} {x y z t : Letter}
   intro a ha b hb
   rw [hu.2] at ha
   rw [hv.1] at hb
-  have ha' : a = y := by simpa using ha
-  have hb' : b = z := by simpa using hb
+  have ha' : y = a := by simpa using ha
+  have hb' : z = b := by simpa using hb
   subst a
   subst b
   exact hseam
@@ -13154,8 +13155,8 @@ theorem fourBlocks_cyclicallyReduced
     intro a hlast b hhead
     rw [he3.2] at hlast
     rw [he3.1] at hhead
-    have he : a = (0,sg) := by simpa using hlast
-    have hf : b = (1,true) := by simpa using hhead
+    have he : (0,sg) = a := by simpa using hlast
+    have hf : (1,true) = b := by simpa using hhead
     subst a
     subst b
     intro h
@@ -13316,7 +13317,7 @@ theorem rawCyclic_move_head (x : Letter) (l : RawWord)
       have hb' : b ∈ (x::y::ys).head? := by simpa using hb
       exact hcyc a ha' b hb'
     · intro a ha b hb
-      have ha' : a = x := by simpa [List.getLast?_append] using ha
+      have ha' : x = a := by simpa [List.getLast?_append] using ha
       subst a
       apply hxy b
       simpa using hb
