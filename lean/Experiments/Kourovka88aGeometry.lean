@@ -9994,14 +9994,16 @@ theorem separating_vertexCut_intact {D : Type} [Fintype D]
     have hd := (P.mem_vertexBoundary_iff a d).mpr hh
     rw [hpart,List.mem_append] at hd
     have hc' : c = a ∨ c = b := by simpa using hc
-    rcases hc' with rfl | rfl
-    · rcases hd with hd | hd
+    rcases hc' with hca | hcb
+    · subst c
+      rcases hd with hd | hd
       · exact hnot ((Q.mem_vertexBoundary_iff a d).mp hd)
       · have hbd := Q.component_of_vertexCycle
           ((Q.mem_vertexBoundary_iff b d).mp hd)
         exact hsep (Relation.EqvGen.trans _ _ _ hcd
           (Relation.EqvGen.symm _ _ hbd))
-    · rcases hd with hd | hd
+    · subst c
+      rcases hd with hd | hd
       · have had := Q.component_of_vertexCycle
           ((Q.mem_vertexBoundary_iff a d).mp hd)
         exact hsep (Relation.EqvGen.trans _ _ _ had
@@ -10133,7 +10135,7 @@ theorem canonical_split_norm (z : F) (L R : RawWord)
     FreeGroup.norm (FreeGroup.mk L) = L.length ∧
     FreeGroup.norm (FreeGroup.mk R) = R.length := by
   have hprod : FreeGroup.mk L * FreeGroup.mk R = z := by
-    rw [← FreeGroup.mul_mk,h,FreeGroup.mk_toWord]
+    rw [FreeGroup.mul_mk,h,FreeGroup.mk_toWord]
   have hlen : FreeGroup.norm z = L.length + R.length := by
     change z.toWord.length = _
     rw [← h,List.length_append]
@@ -10191,7 +10193,7 @@ theorem guba21_boundary_cut_reduced_factors
     change FreeGroup.norm (FreeGroup.mk R)⁻¹ = R.length
     rw [FreeGroup.norm_inv_eq,hr]
   have hprod : FreeGroup.mk L * FreeGroup.mk R = w⁻¹ := by
-    rw [← FreeGroup.mul_mk,hcat,FreeGroup.mk_toWord]
+    rw [FreeGroup.mul_mk,hcat,FreeGroup.mk_toWord]
   refine ⟨?_,?_,?_,?_⟩
   · intro he
     rw [he,FreeGroup.norm_one] at hu
