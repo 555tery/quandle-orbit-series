@@ -1,5 +1,6 @@
 import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 import Mathlib.Basic.Real.Basic
+import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
 import Mathlib.Data.List.Perm.Subperm
 import Mathlib.Data.List.FinRange
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
@@ -11623,5 +11624,172 @@ theorem answer_of_initial_period_survival (pick : WeightedSelector)
 #print axioms commWord_mem_iff_initial_period_mem
 #print axioms weightedStages_comm_iff_initial_period
 #print axioms answer_of_initial_period_survival
+
+
+/-! ## Direct nonabelian certificate for the first positive period
+
+This is an independent algebraic base case, not a graded overlap
+argument. The certificate is a permutation representation over the
+algebraic closure of the rationals. Only the initial four letters
+of the conjugating word are used.
+-/
+
+/-- Fixed-point polynomial of a positive word in two affine maps
+with common multiplier T and respective fixed points 0 and 1. -/
+def affineFixedPolynomial (K : Type) [Field K] :
+    List (Fin 2) → Polynomial K
+  | [] => 1
+  | i :: xs => Polynomial.X * affineFixedPolynomial K xs +
+      (if i = 0 then 0 else 1 - Polynomial.X)
+
+theorem affineFixedPolynomial_eval_one (K : Type) [Field K]
+    (xs : List (Fin 2)) :
+    (affineFixedPolynomial K xs).eval 1 = 1 := by
+  induction xs with
+  | nil => simp [affineFixedPolynomial]
+  | cons i xs ih =>
+    fin_cases i <;> simp [affineFixedPolynomial,ih]
+
+theorem affineFixedPolynomial_prefix (K : Type) [Field K]
+    (xs : List (Fin 2)) :
+    affineFixedPolynomial K (1::1::1::0::xs) =
+      1 - Polynomial.X^3 + Polynomial.X^4 * affineFixedPolynomial K xs := by
+  norm_num [affineFixedPolynomial] <;> ring
+
+/-- The prefix bbba forces a nonconstant polynomial with no roots
+at zero or one. Algebraic closure supplies a suitable multiplier. -/
+theorem affineFixedPolynomial_root (xs : List (Fin 2)) :
+    ∃ t : AlgebraicClosure ℚ, t ≠ 0 ∧ t ≠ 1 ∧
+      (affineFixedPolynomial (AlgebraicClosure ℚ) (1::1::1::0::xs)).eval t = 0 := by
+  let K := AlgebraicClosure ℚ
+  let p := affineFixedPolynomial K (1::1::1::0::xs)
+  have h3 : p.coeff 3 = -1 := by
+    change (affineFixedPolynomial K (1::1::1::0::xs)).coeff 3 = _
+    rw [affineFixedPolynomial_prefix]
+    norm_num [Polynomial.coeff_add,Polynomial.coeff_sub,
+      Polynomial.coeff_X_pow,Polynomial.coeff_X_pow_mul']
+  have hdeg : p.degree ≠ 0 := by
+    intro h
+    have hp := Polynomial.eq_C_of_degree_eq_zero h
+    rw [hp] at h3
+    norm_num at h3
+  obtain ⟨t,ht⟩ := IsAlgClosed.exists_root p hdeg
+  change p.eval t = 0 at ht
+  refine ⟨t,?_,?_,ht⟩
+  · intro he
+    rw [he] at ht
+    change (affineFixedPolynomial K (1::1::1::0::xs)).eval 0 = 0 at ht
+    rw [affineFixedPolynomial_prefix] at ht
+    norm_num at ht
+  · intro he
+    rw [he] at ht
+    change (affineFixedPolynomial K (1::1::1::0::xs)).eval 1 = 0 at ht
+    rw [affineFixedPolynomial_eval_one] at ht
+    exact one_ne_zero ht
+
+/-- The affine bijection x ↦ t*x+s. -/
+def affinePerm {K : Type} [Field K] (t s : K) (ht : t ≠ 0) :
+    Equiv.Perm K where
+  toFun x := t*x+s
+  invFun y := (y-s)/t
+  left_inv x := by field_simp <;> ring
+  right_inv y := by field_simp <;> ring
+
+def affineFreeMap {K : Type} [Field K] (t : K) (ht : t ≠ 0) :
+    F →* Equiv.Perm K :=
+  FreeGroup.lift (fun i => affinePerm t (if i = 0 then 0 else 1-t) ht)
+
+theorem affineFreeMap_a {K : Type} [Field K] (t : K) (ht : t ≠ 0) (x : K) :
+    affineFreeMap t ht a x = t*x := by
+  simp [affineFreeMap,a,FreeGroup.lift_apply_of,affinePerm]
+
+theorem affineFreeMap_b {K : Type} [Field K] (t : K) (ht : t ≠ 0) (x : K) :
+    affineFreeMap t ht b x = t*x+1-t := by
+  simp [affineFreeMap,b,FreeGroup.lift_apply_of,affinePerm] <;> ring
+
+/-- The polynomial evaluates the image of 1; the full affine
+function is determined by its multiplier and this value. -/
+theorem affineFreeMap_positive {K : Type} [Field K] (t : K) (ht : t ≠ 0)
+    (xs : List (Fin 2)) (x : K) :
+    affineFreeMap t ht (positiveWord xs) x =
+      t^xs.length*(x-1)+(affineFixedPolynomial K xs).eval t := by
+  induction xs with
+  | nil =>
+    have he : positiveWord [] = 1 := rfl
+    rw [he,map_one]
+    simp [affineFixedPolynomial]
+  | cons i xs ih =>
+    have he : positiveWord (i::xs) = FreeGroup.of i * positiveWord xs := by
+      change FreeGroup.mk ((i,true)::xs.map (fun j => (j,true))) = _
+      rw [← FreeGroup.mk_eq_of,FreeGroup.mul_mk]
+      rfl
+    rw [he,map_mul,Equiv.Perm.mul_apply]
+    change (affineFreeMap t ht (FreeGroup.of i))
+      (affineFreeMap t ht (positiveWord xs) x) = _
+    rw [ih]
+    fin_cases i
+    · change affineFreeMap t ht a _ = _
+      rw [affineFreeMap_a]
+      simp [affineFixedPolynomial,List.length_cons,pow_succ]
+      ring
+    · change affineFreeMap t ht b _ = _
+      rw [affineFreeMap_b]
+      simp [affineFixedPolynomial,List.length_cons,pow_succ]
+      ring
+
+/-- If X begins bbba, the relator X b X^-1 a^-1 has an explicit
+nonabelian quotient. In particular b*a^-1 is not in its normal
+closure. No assumption about diagram minimality is needed. -/
+theorem first_positive_relator_survival (xs : List (Fin 2)) :
+    let X := positiveWord (1::1::1::0::xs)
+    b*a⁻¹ ∉ adjoin ⊥ (X*b*X⁻¹*a⁻¹) := by
+  intro X hm
+  obtain ⟨t,ht0,ht1,hroot⟩ := affineFixedPolynomial_root xs
+  let q := affineFreeMap t ht0
+  have hX (x : AlgebraicClosure ℚ) : q X x =
+      t^(1::1::1::0::xs : List (Fin 2)).length*(x-1) := by
+    have h := affineFreeMap_positive t ht0 (1::1::1::0::xs) x
+    rw [hroot,add_zero] at h
+    exact h
+  have halign : q X * q b = q a * q X := by
+    ext x
+    simp only [Equiv.Perm.mul_apply]
+    change q X (q b x) = q a (q X x)
+    rw [hX,affineFreeMap_b,affineFreeMap_a,hX]
+    ring
+  have hrel : q (X*b*X⁻¹*a⁻¹) = 1 := by
+    simp only [map_mul,map_inv]
+    rw [halign]
+    group
+  have hker : adjoin ⊥ (X*b*X⁻¹*a⁻¹) ≤ q.ker := by
+    unfold adjoin
+    apply Subgroup.normalClosure_le_normal
+    intro w hw
+    rcases hw with h | h
+    · have hw1 : w = 1 := h
+      rw [hw1]
+      exact q.ker.one_mem
+    · have hw1 : w = X*b*X⁻¹*a⁻¹ := h
+      subst w
+      exact hrel
+  have he : q (b*a⁻¹) = 1 := hker hm
+  simp only [map_mul,map_inv] at he
+  have hb : q b = q a := by
+    calc
+      _ = (q b*(q a)⁻¹)*q a := by group
+      _ = _ := by rw [he,one_mul]
+  have h0 := congrArg (fun f : Equiv.Perm (AlgebraicClosure ℚ) => f 0) hb
+  change q b 0 = q a 0 at h0
+  rw [affineFreeMap_b,affineFreeMap_a] at h0
+  apply ht1
+  linear_combination -h0
+
+#print axioms affineFixedPolynomial_eval_one
+#print axioms affineFixedPolynomial_prefix
+#print axioms affineFixedPolynomial_root
+#print axioms affineFreeMap_a
+#print axioms affineFreeMap_b
+#print axioms affineFreeMap_positive
+#print axioms first_positive_relator_survival
 
 end QuandleResearch.Issue070
