@@ -4357,7 +4357,6 @@ theorem exists_coefficient_star_compression {D : Type} [Fintype D]
     (P : RibbonMap D) (keep : D → Prop)
     (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
     (hE : P.EulerEquality) :
-    let S := P.coefficientRegions keep hkeep
     ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D),
       Q.EulerEquality ∧
       (∀ d, f (Q.edge d) = P.edge (f d)) ∧
@@ -4367,7 +4366,7 @@ theorem exists_coefficient_star_compression {D : Type} [Fintype D]
         (keep (f b) → Q.rotation.SameCycle a b) ∧
         (¬ keep (f b) → Q.rotation.SameCycle a (Q.edge b))) := by
   classical
-  intro S
+  let S := P.coefficientRegions keep hkeep
   have hS : S.EulerEquality := P.coefficientRegions_euler keep hkeep hE
   have hinv : ∀ d e, S.rotation.SameCycle d e → (keep d ↔ keep e) := by
     intro d e h
