@@ -827,7 +827,8 @@ theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
   let emb : E × Fin q × Fin r → ↥(finiteBlock p) := fun e => ⟨g e, hg e⟩
   have hc := Fintype.card_le_of_injective emb
     (show Function.Injective emb from fun _ _ he => hinj (congrArg Subtype.val he))
-  simpa [E, Fintype.card_prod, inner_cell_index_card, Nat.mul_assoc] using hc
+  have hE : Fintype.card E = lowerAreaUnits + upperAreaUnits := inner_cell_index_card
+  simpa only [Fintype.card_prod, Fintype.card_fin, hE, Fintype.card_coe, Nat.mul_assoc] using hc
 
 
 
@@ -1054,7 +1055,7 @@ lemma mem_shortResidues {p R : ℕ} {x : ℤ}
   apply Finset.mem_image.mpr
   refine ⟨i, Finset.mem_range.mpr hib, ?_⟩
   have he : (i : ℤ) - (R : ℤ) = x := by omega
-  exact congrArg (fun a : ℤ => (a : ZMod p)) he
+  simpa only [Int.cast_sub] using congrArg (fun a : ℤ => (a : ZMod p)) he
 
 lemma shortResidues_card (p R : ℕ) :
     (shortResidues p R).card ≤ 2 * R + 1 := by
@@ -1069,7 +1070,10 @@ lemma shortBox_card (p m R : ℕ) :
   unfold shortBox
   rw [Fintype.card_piFinset_const]
   change ((shortResidues p R).product (shortResidues p R)).card ^ m ≤ _
-  simp only [Finset.card_product]
+  have hc : ((shortResidues p R).product (shortResidues p R)).card =
+      (shortResidues p R).card * (shortResidues p R).card :=
+    Finset.card_product _ _
+  rw [hc]
   exact Nat.pow_le_pow_left
     (Nat.mul_le_mul (shortResidues_card p R) (shortResidues_card p R)) _
 
