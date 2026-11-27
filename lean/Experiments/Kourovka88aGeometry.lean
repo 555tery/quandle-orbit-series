@@ -7302,4 +7302,118 @@ theorem exists_minimal_inverse_conjugator_weight (N : Subgroup F)
 #print axioms exists_minimal_inverse_conjugator_weight
 
 
+
+/-! ## Explicit connector readings at an actual edge splice
+
+The earlier two-boundary theorem discards the length of the
+conjugator when it changes base corners. Retain the literal
+departure words instead. The following local splice estimate
+charges exactly their weights, without any claim yet that a
+preferred system of short connectors exists.
+-/
+
+/-- Change of base corner along an actual walk, with its explicit
+ordered conjugating product rather than an existential witness. -/
+theorem walk_cycleProduct_transport {D K : Type} [Finite D] [Group K]
+    (sigma : Equiv.Perm D) (v : D → K)
+    {a b : D} {l : List D} (h : Walk sigma a b l) :
+    cycleProduct sigma v a * (l.map v).prod =
+      (l.map v).prod * cycleProduct sigma v b := by
+  induction h with
+  | nil d => simp
+  | cons d e l ht ih =>
+    obtain ⟨tail, htail⟩ := cycleBoundary_cons sigma d
+    have hnext : cycleProduct sigma v (sigma d) =
+        (v d)⁻¹ * cycleProduct sigma v d * v d := by
+      simp only [cycleProduct, cycleBoundary_next sigma d tail htail, htail,
+        List.map_append, List.map_cons, List.map_nil, List.prod_append,
+        List.prod_cons, List.prod_nil, mul_one]
+      group
+    simp only [List.map_cons,List.prod_cons]
+    calc
+      _ = v d * (cycleProduct sigma v (sigma d) * (l.map v).prod) := by
+        rw [hnext]
+        group
+      _ = _ := by rw [ih]; group
+
+/-- The actual connector words are obtained from the two rotation
+walks to the corners selected by the edge splice. Their combined
+weight bounds the conjugator in the lower quotient. -/
+theorem edgeSplice_explicit_inverse_conjugator {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (c : D) (hn : ¬ P.rotation.SameCycle c (P.edge c))
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, P.SameComponent c d →
+      ¬ P.rotation.SameCycle c d →
+      ¬ P.rotation.SameCycle (P.edge c) d →
+      FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a b : D) (p r : List D)
+    (hp : Walk P.rotation a (P.rotation c) p)
+    (hr : Walk P.rotation b (P.edge c) r) :
+    let g := FreeGroup.mk (p.map read ++ FreeGroup.invRev (r.map read))
+    FreeGroup.mk ((P.vertexBoundary a).map read) * g *
+      FreeGroup.mk ((P.vertexBoundary b).map read) * g⁻¹ ∈ N ∧
+      weightedLength g ≤ rawWeight (p.map read) + rawWeight (r.map read) := by
+  let q := QuotientGroup.mk' N
+  let val : D → F ⧸ N := fun d => q (FreeGroup.mk [read d])
+  have eval (ds : List D) :
+      (ds.map val).prod = q (FreeGroup.mk (ds.map read)) := by
+    induction ds with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons d ds ih =>
+      change val d * (ds.map val).prod =
+        q (FreeGroup.mk ([read d] ++ ds.map read))
+      rw [ih, ← FreeGroup.mul_mk, map_mul]
+  have based (d : D) : cycleProduct P.rotation val d =
+      q (FreeGroup.mk ((P.vertexBoundary d).map read)) :=
+    eval (P.vertexBoundary d)
+  have hA := walk_cycleProduct_transport P.rotation val hp
+  have hB := walk_cycleProduct_transport P.rotation val hr
+  simp only [based, eval] at hA hB
+  have hm := edgeSplice_boundary_mem_normal P read N c hn hE he hint
+  have hm' : q (FreeGroup.mk (((P.vertexBoundary (P.rotation c)).map read) ++
+      (P.vertexBoundary (P.edge c)).map read)) = 1 :=
+    (QuotientGroup.eq_one_iff _).mpr hm
+  rw [← FreeGroup.mul_mk, map_mul] at hm'
+  dsimp only
+  constructor
+  · apply (QuotientGroup.eq_one_iff _).mp
+    change q (FreeGroup.mk ((P.vertexBoundary a).map read) *
+      FreeGroup.mk (p.map read ++ FreeGroup.invRev (r.map read)) *
+      FreeGroup.mk ((P.vertexBoundary b).map read) *
+      (FreeGroup.mk (p.map read ++ FreeGroup.invRev (r.map read)))⁻¹) = 1
+    simp only [← FreeGroup.mul_mk, ← FreeGroup.inv_mk, map_mul, map_inv]
+    have ha : q (FreeGroup.mk ((P.vertexBoundary a).map read)) =
+        q (FreeGroup.mk (p.map read)) *
+          q (FreeGroup.mk ((P.vertexBoundary (P.rotation c)).map read)) *
+          (q (FreeGroup.mk (p.map read)))⁻¹ := by
+      calc
+        _ = (q (FreeGroup.mk ((P.vertexBoundary a).map read)) *
+              q (FreeGroup.mk (p.map read))) *
+              (q (FreeGroup.mk (p.map read)))⁻¹ := by group
+        _ = _ := by rw [hA]
+    have hb : q (FreeGroup.mk ((P.vertexBoundary b).map read)) =
+        q (FreeGroup.mk (r.map read)) *
+          q (FreeGroup.mk ((P.vertexBoundary (P.edge c)).map read)) *
+          (q (FreeGroup.mk (r.map read)))⁻¹ := by
+      calc
+        _ = (q (FreeGroup.mk ((P.vertexBoundary b).map read)) *
+              q (FreeGroup.mk (r.map read))) *
+              (q (FreeGroup.mk (r.map read)))⁻¹ := by group
+        _ = _ := by rw [hB]
+    rw [ha,hb]
+    calc
+      _ = q (FreeGroup.mk (p.map read)) *
+        (q (FreeGroup.mk ((P.vertexBoundary (P.rotation c)).map read)) *
+          q (FreeGroup.mk ((P.vertexBoundary (P.edge c)).map read))) *
+          (q (FreeGroup.mk (p.map read)))⁻¹ := by group
+      _ = 1 := by rw [hm']; simp
+  · have h := weightedLength_mk_le (p.map read ++ FreeGroup.invRev (r.map read))
+    rwa [rawWeight_append,rawWeight_invRev] at h
+
+#print axioms walk_cycleProduct_transport
+#print axioms edgeSplice_explicit_inverse_conjugator
+
+
 end QuandleResearch.Issue070
