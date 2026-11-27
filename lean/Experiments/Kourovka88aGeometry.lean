@@ -2719,4 +2719,183 @@ theorem guba22_exists_unique_other_outlet {D : Type} [Fintype D]
 #print axioms guba22_component_support_pair
 #print axioms guba22_exists_unique_other_outlet
 
+
+
+/-! ## Nonabelian two-boundary theorem by actual planar splicing
+
+The splicing operation retains every dart, merges two distinct vertices,
+and decreases the number of vertices by one. Thus we can use induction
+on vertex count, without choosing a hypothetical system of corridors.
+-/
+
+open SmallPresentationStatements.PermutationCycles
+
+/-- The complete based products at two corners of the same vertex
+are conjugate, with an explicit group element as witness. -/
+theorem guba22_cycleProduct_conjugator {D K : Type} [Finite D] [Group K]
+    (sigma : Equiv.Perm D) (v : D → K) (a b : D)
+    (hab : sigma.SameCycle a b) :
+    ∃ g : K, cycleProduct sigma v b =
+      g * cycleProduct sigma v a * g⁻¹ := by
+  obtain ⟨m, hm⟩ := hab.exists_nat_pow_eq
+  rw [← hm]
+  clear hm hab
+  induction m with
+  | zero =>
+    exact ⟨1, by simp⟩
+  | succ m ih =>
+    obtain ⟨g, hg⟩ := ih
+    let d := (sigma ^ m) a
+    obtain ⟨l, hl⟩ := cycleBoundary_cons sigma d
+    have hnext : cycleProduct sigma v (sigma d) =
+        (v d)⁻¹ * cycleProduct sigma v d * v d := by
+      simp only [cycleProduct, cycleBoundary_next sigma d l hl, hl,
+        List.map_append, List.map_cons, List.map_nil, List.prod_append,
+        List.prod_cons, List.prod_nil, mul_one]
+      group
+    rw [pow_succ', Equiv.Perm.mul_apply]
+    change ∃ k : K, cycleProduct sigma v (sigma d) =
+      k * cycleProduct sigma v a * k⁻¹
+    refine ⟨(v d)⁻¹ * g, ?_⟩
+    rw [hnext, show cycleProduct sigma v d =
+      g * cycleProduct sigma v a * g⁻¹ from hg]
+    group
+
+/-- There is an actual edge leaving the vertex of a whenever a
+connected ribbon has a second vertex. -/
+theorem guba22_exists_leaving_edge {D : Type} (P : RibbonMap D)
+    (hc : P.Connected) (a b : D) (hab : ¬ P.rotation.SameCycle a b) :
+    ∃ c, P.rotation.SameCycle a c ∧ ¬ P.rotation.SameCycle a (P.edge c) := by
+  classical
+  by_contra hx
+  have hclosed : ∀ e, P.rotation.SameCycle a e →
+      P.rotation.SameCycle a (P.edge e) := by
+    intro e he
+    by_contra hn
+    exact hx ⟨e,he,hn⟩
+  have hedge (d : D) : P.rotation.SameCycle a (P.edge d) ↔
+      P.rotation.SameCycle a d := by
+    constructor
+    · intro h
+      simpa only [P.edge_involutive d] using hclosed (P.edge d) h
+    · exact hclosed d
+  exact hab ((P.invariant_on_component (P.rotation.SameCycle a) hedge
+    (fun d => Equiv.Perm.sameCycle_apply_right) (hc a b)).mp (.refl _ _))
+
+/-- Splicing an edge between distinct vertices preserves connectedness. -/
+theorem guba22_edgeSplice_connected {D : Type} [Fintype D]
+    (P : RibbonMap D) (hc : P.Connected) (c : D)
+    (hn : ¬ P.rotation.SameCycle c (P.edge c)) :
+    (P.edgeSplice c).Connected := by
+  classical
+  have hcard := P.card_components_of_connected hc c
+  have hs := (P.edgeSplice_counts c hn).2.2.2
+  have hsub : Subsingleton (P.edgeSplice c).Component :=
+    Fintype.card_le_one_iff_subsingleton.mp (by omega)
+  intro d e
+  exact Quotient.exact (hsub.elim ((P.edgeSplice c).componentClass d)
+    ((P.edgeSplice c).componentClass e))
+
+/-- Two distinct exceptional vertices in a connected spherical ribbon
+have inverse-conjugate based products. All other vertices have product
+one. No bound on the conjugator is claimed here. -/
+theorem guba22_two_boundary_product {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hc : P.Connected) (hE : P.EulerEquality)
+    (a b : D) (hab : ¬ P.rotation.SameCycle a b)
+    (hint : ∀ d, ¬ P.rotation.SameCycle a d →
+      ¬ P.rotation.SameCycle b d → cycleProduct P.rotation v d = 1) :
+    ∃ g : K, cycleProduct P.rotation v a * g *
+      cycleProduct P.rotation v b * g⁻¹ = 1 := by
+  classical
+  obtain ⟨c, hac, hce⟩ := guba22_exists_leaving_edge P hc a b hab
+  have hn : ¬ P.rotation.SameCycle c (P.edge c) :=
+    fun h => hce (hac.trans h)
+  have hnc : ¬ P.rotation.SameCycle (P.rotation c) (P.edge c) := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  let S := P.edgeSplice c
+  have hES : S.EulerEquality := (P.edgeSplice_euler_iff c hn).mpr hE
+  have hCS : S.Connected := guba22_edgeSplice_connected P hc c hn
+  have hca : P.rotation.SameCycle a (P.rotation c) :=
+    hac.trans (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))
+  obtain ⟨p, hp⟩ := guba22_cycleProduct_conjugator P.rotation v a
+    (P.rotation c) hca
+  have hmerge : cycleProduct S.rotation v (P.rotation c) =
+      cycleProduct P.rotation v (P.rotation c) *
+        cycleProduct P.rotation v (P.edge c) :=
+    cycleProduct_cutAt_merge P.rotation v (P.rotation c) (P.edge c) hnc
+  have unchanged (d : D) (hd : ¬ S.rotation.SameCycle (P.rotation c) d) :
+      cycleProduct S.rotation v d = cycleProduct P.rotation v d := by
+    have ha' : ¬ P.rotation.SameCycle d (P.rotation c) := by
+      intro hh
+      exact hd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc hh.symm)
+    have hb' : ¬ P.rotation.SameCycle d (P.edge c) := by
+      intro hh
+      have h0 : S.rotation.SameCycle (P.rotation c) (P.edge c) :=
+        cutAt_sameCycle_of_not_sameCycle P.rotation _ _ hnc
+      exact hd (h0.trans (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc hh.symm))
+    exact cycleProduct_cutAt_unchanged P.rotation v _ _ _ ha' hb'
+  have hnA (d : D) (hd : ¬ S.rotation.SameCycle (P.rotation c) d) :
+      ¬ P.rotation.SameCycle a d := by
+    intro h
+    exact hd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc (hca.symm.trans h))
+  by_cases hb : P.rotation.SameCycle b (P.edge c)
+  · obtain ⟨q, hq⟩ := guba22_cycleProduct_conjugator P.rotation v b (P.edge c) hb
+    have hprod : cycleProduct S.rotation v (P.rotation c) = 1 := by
+      apply RibbonMap.boundary_product_one D S v (fun d => he d) hCS hES
+      intro d hd
+      have hnB : ¬ P.rotation.SameCycle b d := by
+        intro h
+        have h0 : S.rotation.SameCycle (P.rotation c) (P.edge c) :=
+          cutAt_sameCycle_of_not_sameCycle P.rotation _ _ hnc
+        exact hd (h0.trans
+          (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc (hb.symm.trans h)))
+      change cycleProduct S.rotation v d = 1
+      rw [unchanged d hd]
+      exact hint d (hnA d hd) hnB
+    have hh : cycleProduct P.rotation v (P.rotation c) *
+        cycleProduct P.rotation v (P.edge c) = 1 := hmerge.symm.trans hprod
+    refine ⟨p⁻¹ * q, ?_⟩
+    calc
+      _ = p⁻¹ * (cycleProduct P.rotation v (P.rotation c) *
+          cycleProduct P.rotation v (P.edge c)) * p := by rw [hp,hq]; group
+      _ = 1 := by rw [hh]; simp
+  · have hB : ¬ S.rotation.SameCycle (P.rotation c) b := by
+      intro hh
+      rcases (P.edgeSplice_sameVertex_iff c hn _ _).mp hh with h | h
+      · exact hab (hca.trans h)
+      · rcases h.2 with h' | h'
+        · exact hab (hac.trans h'.symm)
+        · exact hb h'
+    have hother : cycleProduct P.rotation v (P.edge c) = 1 :=
+      hint _ hce hb
+    have hprodA : cycleProduct S.rotation v (P.rotation c) =
+        p * cycleProduct P.rotation v a * p⁻¹ := by
+      rw [hmerge, hother, mul_one, hp]
+    have hprodB := unchanged b hB
+    obtain ⟨g, hg⟩ := guba22_two_boundary_product S v (fun d => he d) hCS hES
+      (P.rotation c) b hB (by
+        intro d hd hbd
+        rw [unchanged d hd]
+        apply hint d (hnA d hd)
+        intro hh
+        exact hbd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc hh))
+    refine ⟨p⁻¹ * g, ?_⟩
+    calc
+      _ = p⁻¹ * (cycleProduct S.rotation v (P.rotation c) * g *
+          cycleProduct S.rotation v b * g⁻¹) * p := by
+            rw [hprodA,hprodB]; group
+      _ = 1 := by rw [hg]; simp
+termination_by Fintype.card P.Vertex
+decreasing_by
+  have hcount := (P.edgeSplice_counts c hn).1
+  dsimp [S] at *
+  omega
+
+#print axioms guba22_cycleProduct_conjugator
+#print axioms guba22_exists_leaving_edge
+#print axioms guba22_edgeSplice_connected
+#print axioms guba22_two_boundary_product
+
 end QuandleResearch.Issue070
