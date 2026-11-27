@@ -16071,4 +16071,270 @@ theorem guba23_no_heavy_direct_long_side_cuts_full_type
 #print axioms guba23_no_heavy_direct_long_side_walks_full_type
 #print axioms guba23_no_heavy_direct_long_side_cuts_full_type
 
+
+/-! ## Simultaneous seam cuts of actual direct strips
+
+A long bigon strip need not be confined to one of the four blocks
+of a height row. Mark each seam on the first side and the reverse
+seam on the second side. Both marks are pulled back by injections.
+The longest remaining strip loses at most a factor nine for two
+four-block rows, independently of the heights or the word lengths.
+-/
+
+theorem walk_departures_prefix_of_length_le {D : Type}
+    (sigma : Equiv.Perm D) {x y z : D} {l m : List D}
+    (h : Walk sigma x y l) (h' : Walk sigma x z m)
+    (hlen : l.length ≤ m.length) : l <+: m := by
+  induction h generalizing z m with
+  | nil d => simp
+  | cons d e l ht ih =>
+    cases h' with
+    | nil => simp at hlen
+    | cons d' e' m ht' =>
+      obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp
+        (ih ht' (by simpa using hlen))
+      exact List.prefix_iff_exists_append_eq.mpr
+        ⟨r,by simpa only [List.cons_append] using congrArg (List.cons d) hr⟩
+
+/-- Include the terminal corner: every transition of the first
+walk corresponds to the preceding departure of the reverse walk. -/
+theorem walk_departures_successors {D : Type} (sigma : Equiv.Perm D)
+    {x y : D} {l : List D} (h : Walk sigma x y l) :
+    x :: l.map sigma = l ++ [y] := by
+  induction h with
+  | nil => rfl
+  | cons d e l ht ih =>
+    simpa only [List.map_cons,List.cons_append] using
+      congrArg (List.cons d) ih
+
+theorem walk_departure_sameCycle {D : Type} (sigma : Equiv.Perm D)
+    {x y : D} {l : List D} (h : Walk sigma x y l)
+    (d : D) (hd : d ∈ l) : sigma.SameCycle x d := by
+  induction h with
+  | nil => simp at hd
+  | cons a e l ht ih =>
+    rcases List.mem_cons.mp hd with rfl | hd
+    · exact .refl _ _
+    · exact (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)).trans (ih hd)
+
+/-- The only marked departures are the final darts of the
+nonempty blocks; empty blocks contribute no seam. -/
+def stripBlockEnds {D : Type} (bs : List (List D)) : List D :=
+  bs.filterMap List.getLast?
+
+theorem stripBlockEnds_length {D : Type} (bs : List (List D)) :
+    (stripBlockEnds bs).length ≤ bs.length := by
+  induction bs with
+  | nil => simp [stripBlockEnds]
+  | cons b bs ih =>
+    cases h : b.getLast? <;>
+      simp only [stripBlockEnds,List.filterMap_cons,h,List.length_cons] at ih ⊢ <;> omega
+
+/-- An actual interval that crosses no block end in its internal
+departures is a literal factor of one block of the given canonical
+vertex traversal. The last dart may itself be a block end. -/
+theorem ribbon_walk_inside_block {D : Type} [Fintype D]
+    (P : RibbonMap D) (a x z : D) (u : List D)
+    (bs : List (List D)) (hbs : P.vertexBoundary a = bs.flatMap id)
+    (hx : P.rotation.SameCycle a x) (hw : Walk P.rotation x z u)
+    (havoid : ∀ d ∈ u, d ∉ stripBlockEnds bs) :
+    ∃ b ∈ bs, ∃ p q : List D, b = p ++ (u++[z]) ++ q := by
+  classical
+  have hm : x ∈ P.vertexBoundary a := (P.mem_vertexBoundary_iff a x).mpr hx
+  rw [hbs] at hm
+  obtain ⟨b,hb,hxb⟩ := List.mem_flatMap.mp hm
+  obtain ⟨A,B,hAB⟩ := List.mem_iff_append.mp hb
+  obtain ⟨p,q,hpq⟩ := List.mem_iff_append.mp hxb
+  have hfull : P.vertexBoundary a = (A.flatMap id++p) ++ (x::q) ++ B.flatMap id := by
+    rw [hbs,hAB,List.flatMap_append,List.flatMap_cons,hpq]
+    simp only [id_eq,List.append_assoc]
+  have hW : Walk P.rotation a a (P.vertexBoundary a) := cycleBoundary_walk _ _
+  rw [hfull,List.append_assoc] at hW
+  obtain ⟨v,_,ht⟩ := walk_split_departures P.rotation _ _ _ _ hW
+  obtain ⟨e,hqw,_⟩ := walk_split_departures P.rotation (x::q) (B.flatMap id) v a ht
+  have hv : v = x := by cases hqw; rfl
+  subst v
+  have hall : Walk P.rotation x (P.rotation z) (u++[z]) :=
+    hw.append (.cons _ _ _ (.nil _))
+  by_cases hlen : (u++[z]).length ≤ (x::q).length
+  · obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp
+      (walk_departures_prefix_of_length_le P.rotation hall hqw hlen)
+    refine ⟨b,hb,p,r,?_⟩
+    rw [hpq,← hr,List.append_assoc]
+  · have hle : (x::q).length ≤ u.length := by
+      simp only [List.length_append,List.length_singleton] at hlen
+      omega
+    obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp
+      (walk_departures_prefix_of_length_le P.rotation hqw hw hle)
+    cases hlast : (x::q).getLast? with
+    | none => simp at hlast
+    | some d =>
+      obtain ⟨v,hv⟩ := List.getLast?_eq_some_iff.mp hlast
+      have hd : d ∈ u := by rw [← hr,hv]; simp
+      have hlastb : b.getLast? = some d := by
+        rw [hpq,hv,← List.append_assoc]
+        exact List.getLast?_eq_some_iff.mpr ⟨p++v,rfl⟩
+      exact (havoid d hd (List.mem_filterMap.mpr ⟨b,hb,hlastb⟩)).elim
+
+/-- An injective pullback cannot encounter more distinct marks
+than there are marks in the target list. -/
+theorem strip_mark_count_le {D E : Type} (f : D → E)
+    (hf : Function.Injective f) (l : List D) (hn : l.Nodup)
+    (marks : List E) [DecidableEq E] :
+    (l.map (fun d => if f d ∈ marks then (1 : ℕ) else 0)).sum ≤ marks.length := by
+  classical
+  let t := l.filter (fun d => decide (f d ∈ marks))
+  have hs : (l.map (fun d => if f d ∈ marks then (1 : ℕ) else 0)).sum =
+      t.length := by
+    dsimp only [t]
+    clear hn
+    induction l with
+    | nil => rfl
+    | cons d ds ih =>
+      by_cases h : f d ∈ marks <;>
+        simp [List.filter_cons,h,ih] <;> omega
+  have hnd : (t.map f).Nodup := (hn.filter _).map hf
+  have hsub : (t.map f).Subperm marks := by
+    apply hnd.subperm
+    intro e he
+    obtain ⟨d,hd,rfl⟩ := List.mem_map.mp he
+    exact of_decide_eq_true (List.mem_filter.mp hd).2
+  rw [hs,← List.length_map f]
+  exact hsub.length_le
+
+theorem strip_mark_union_count {D : Type} (l : List D)
+    (A B : D → Prop) [DecidablePred A] [DecidablePred B] :
+    (l.map (fun d => if A d ∨ B d then (1 : ℕ) else 0)).sum ≤
+      (l.map (fun d => if A d then (1 : ℕ) else 0)).sum +
+      (l.map (fun d => if B d then (1 : ℕ) else 0)).sum := by
+  induction l with
+  | nil => simp
+  | cons d ds ih =>
+    by_cases ha : A d <;> by_cases hb : B d <;> simp [ha,hb] <;> omega
+
+/-- Simultaneously cut an actual direct strip at both cells'
+seams. The right-hand mark at d is the last dart edge(rotation d)
+of the reverse traversal. The selected substrip lies in one
+literal block on each of the two actual boundary cycles. -/
+theorem ribbon_direct_strip_single_block_pair {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (d e z : D)
+    (p u q : List D)
+    (hpart : P.vertexBoundary d = p ++ (u++[z]) ++ q)
+    (hbigon : ∀ t ∈ u, P.face (P.face t) = t)
+    (hopp : P.rotation.SameCycle e (P.edge z))
+    (bs cs : List (List D))
+    (hbs : P.vertexBoundary d = bs.flatMap id)
+    (hcs : P.vertexBoundary e = cs.flatMap id) :
+    ∃ (v : List D) (t : D) (b c : List D),
+      b ∈ bs ∧ c ∈ cs ∧
+      (∃ a r : List D, b = a ++ (v++[t]) ++ r) ∧
+      (∃ a r : List D, c = a ++ (((v++[t]).map P.edge).reverse) ++ r) ∧
+      (∃ a r : List D, u++[z] = a ++ (v++[t]) ++ r) ∧
+      (∀ a ∈ v, P.face (P.face a) = a) ∧
+      rawWeight ((u++[z]).map read) ≤
+        (bs.length+cs.length+1) * rawWeight ((v++[t]).map read) := by
+  classical
+  let l := u++[z]
+  let L := stripBlockEnds bs
+  let R := stripBlockEnds cs
+  let A : D → Prop := fun t => t ∈ L
+  let B : D → Prop := fun t => P.edge (P.rotation t) ∈ R
+  let stop : D → Prop := fun t => A t ∨ B t
+  have hnd := P.vertexBoundary_nodup d
+  rw [hpart] at hnd
+  have hn : l.Nodup := (List.nodup_append.mp (List.nodup_append.mp hnd).1).2.1
+  have hleft := strip_mark_count_le id (fun _ _ h => h) l hn L
+  have hright := strip_mark_count_le (fun t => P.edge (P.rotation t))
+    (fun _ _ h => P.rotation.injective (P.edge.injective h)) l hn R
+  have hcount : (l.map (fun t => if stop t then (1 : ℕ) else 0)).sum ≤
+      bs.length+cs.length := by
+    have h := strip_mark_union_count l A B
+    have hL := stripBlockEnds_length bs
+    have hR := stripBlockEnds_length cs
+    change (l.map (fun t => if stop t then 1 else 0)).sum ≤
+      (l.map (fun t => if A t then 1 else 0)).sum +
+      (l.map (fun t => if B t then 1 else 0)).sum at h
+    change (l.map (fun t => if A t then 1 else 0)).sum ≤ L.length at hleft
+    change (l.map (fun t => if B t then 1 else 0)).sum ≤ R.length at hright
+    change L.length ≤ bs.length at hL
+    change R.length ≤ cs.length at hR
+    omega
+  obtain ⟨blocks,he,hgood,hlen⟩ := marked_linear_blocks stop l
+  have hne : blocks ≠ [] := by
+    intro h
+    rw [h,List.flatMap_nil] at he
+    simp [l] at he
+  let weight : List D × D → ℕ := fun b => rawWeight ((b.1++[b.2]).map read)
+  have hw : (blocks.map weight).sum = rawWeight (l.map read) := by
+    rw [he]
+    clear he hgood hlen hne
+    induction blocks with
+    | nil => rfl
+    | cons b blocks ih =>
+      simp only [List.map_cons,List.sum_cons,List.flatMap_cons,List.map_append,rawWeight_append]
+      simpa only [weight,List.map_append,rawWeight_append,List.map_cons,List.map_nil]
+        using congrArg (fun n => weight b+n) ih
+  obtain ⟨b,hb,hmax⟩ := list_weight_max weight blocks hne
+  have hW : rawWeight (l.map read) ≤ (bs.length+cs.length+1)*weight b := by
+    rw [← hw]
+    exact (list_sum_map_le_length_mul weight blocks (weight b) hmax).trans
+      (Nat.mul_le_mul_right _ (by omega))
+  obtain ⟨pre,post,hsub⟩ := flattened_block_factor blocks b hb
+  have hsub' : l = pre ++ (b.1++[b.2]) ++ post := he.trans hsub
+  have hprefix : (pre++b.1) <+: u++[z] := by
+    apply List.prefix_iff_exists_append_eq.mpr
+    refine ⟨[b.2]++post,?_⟩
+    simpa only [List.append_assoc] using hsub'.symm
+  have hpLen : (pre++b.1).length ≤ u.length := by
+    have h := congrArg List.length hsub'
+    simp only [l,List.length_append,List.length_singleton] at h ⊢
+    omega
+  have hpU := (List.isPrefix_append_of_length hpLen).mp hprefix
+  have hbig : ∀ a ∈ b.1, P.face (P.face a) = a := by
+    intro a ha
+    exact hbigon a (hpU.sublist.subset (List.mem_append.mpr (Or.inr ha)))
+  have hpart' : P.vertexBoundary d = (p++pre) ++ (b.1++[b.2]) ++ (post++q) := by
+    rw [hpart,show u++[z] = _ from hsub']
+    simp only [List.append_assoc]
+  obtain ⟨x,hx,hy⟩ := ribbon_direct_strip_two_walks P d b.2
+    (p++pre) b.1 (post++q) hpart' hbig
+  have hxmem : x ∈ P.vertexBoundary d := by
+    rw [hpart',← walk_departures_successors P.rotation hx]
+    simp
+  obtain ⟨b',hb',hp⟩ := ribbon_walk_inside_block P d x b.2 b.1 bs hbs
+    ((P.mem_vertexBoundary_iff d x).mp hxmem) hx
+    (fun a ha h => hgood b hb a ha (Or.inl h))
+  obtain ⟨y,_,horig⟩ := ribbon_direct_strip_two_walks P d z p u q hpart hbigon
+  have htmem : b.2 ∈ l := by rw [hsub']; simp
+  have heMem : P.edge b.2 ∈ ((l.map P.edge).reverse) :=
+    List.mem_reverse.mpr (List.mem_map.mpr ⟨b.2,htmem,rfl⟩)
+  have heCycle : P.rotation.SameCycle e (P.edge b.2) :=
+    hopp.trans (walk_departure_sameCycle P.rotation horig _ heMem)
+  let rev := (b.1.map (fun a => P.edge (P.rotation a))).reverse
+  have hre : ((b.1++[b.2]).map P.edge).reverse = rev++[P.edge x] := by
+    rw [← walk_departures_successors P.rotation hx]
+    simp only [rev,List.map_cons,List.reverse_cons,List.map_map,Function.comp_def]
+  rw [hre] at hy
+  obtain ⟨w,hw',hlast⟩ := walk_split_departures P.rotation rev [P.edge x] _ _ hy
+  have hwe : w = P.edge x := by cases hlast; rfl
+  subst w
+  have havoid : ∀ a ∈ rev, a ∉ stripBlockEnds cs := by
+    intro a ha hn'
+    obtain ⟨t,ht,rfl⟩ := List.mem_map.mp (List.mem_reverse.mp ha)
+    exact hgood b hb t ht (Or.inr hn')
+  obtain ⟨c',hc',hq⟩ := ribbon_walk_inside_block P e (P.edge b.2)
+    (P.edge x) rev cs hcs heCycle hw' havoid
+  rw [← hre] at hq
+  exact ⟨b.1,b.2,b',c',hb',hc',hp,hq,⟨pre,post,hsub'⟩,hbig,hW⟩
+
+#print axioms walk_departures_prefix_of_length_le
+#print axioms walk_departures_successors
+#print axioms walk_departure_sameCycle
+#print axioms stripBlockEnds
+#print axioms stripBlockEnds_length
+#print axioms ribbon_walk_inside_block
+#print axioms strip_mark_count_le
+#print axioms strip_mark_union_count
+#print axioms ribbon_direct_strip_single_block_pair
+
 end QuandleResearch.Issue070
