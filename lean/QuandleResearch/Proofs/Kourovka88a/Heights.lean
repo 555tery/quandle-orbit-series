@@ -58,4 +58,58 @@ theorem normalClosure_all_heights (S : Set F) (X C : F) :
       subst w
       exact Subgroup.subset_normalClosure (Or.inr ⟨1, rfl⟩)
 
+
+/-! ## Literal height words
+
+Keep the conjugating segments and repeated period visible in the list,
+rather than replacing the entire relation by its reduced representative.
+The evaluation theorem supplies the bridge to the algebraic stages.
+-/
+
+def rawNatPow (w : RawWord) : ℕ → RawWord
+  | 0 => []
+  | m+1 => rawNatPow w m ++ w
+
+theorem rawNatPow_eval (w : RawWord) (m : ℕ) :
+    FreeGroup.mk (rawNatPow w m) = (FreeGroup.mk w) ^ m := by
+  induction m with
+  | zero => simp [rawNatPow, FreeGroup.one_eq_mk]
+  | succ m ih =>
+    rw [rawNatPow, ← FreeGroup.mul_mk, ih, pow_succ]
+
+def rawIntPow (w : RawWord) : ℤ → RawWord
+  | .ofNat m => rawNatPow w m
+  | .negSucc m => FreeGroup.invRev (rawNatPow w (m+1))
+
+theorem rawIntPow_eval (w : RawWord) (k : ℤ) :
+    FreeGroup.mk (rawIntPow w k) = (FreeGroup.mk w) ^ k := by
+  cases k with
+  | ofNat m =>
+    change FreeGroup.mk (rawNatPow w m) = (FreeGroup.mk w) ^ (m : ℤ)
+    rw [rawNatPow_eval, zpow_natCast]
+  | negSucc m =>
+    change FreeGroup.mk (FreeGroup.invRev (rawNatPow w (m+1))) =
+      (FreeGroup.mk w) ^ Int.negSucc m
+    rw [← FreeGroup.inv_mk, rawNatPow_eval, zpow_negSucc]
+
+/-- The literal cyclic representative used in the greedy relation.
+No reduction across the four displayed blocks is performed.
+The empty word is used at height zero, since that height contributes
+no relation to the normal closure. -/
+def literalHeightWord (X C : F) (k : ℤ) : RawWord :=
+  if k = 0 then [] else
+    X.toWord ++ rawIntPow C.toWord k ++ FreeGroup.invRev X.toWord ++
+      FreeGroup.invRev (rawIntPow a.toWord k)
+
+theorem literalHeightWord_eval (X C : F) (k : ℤ) :
+    FreeGroup.mk (literalHeightWord X C k) = heightRelator X C k := by
+  by_cases hk : k = 0
+  · subst k
+    simp [literalHeightWord, heightRelator, FreeGroup.one_eq_mk]
+  · simp only [literalHeightWord, if_neg hk, ← FreeGroup.mul_mk,
+      ← FreeGroup.inv_mk, rawIntPow_eval, FreeGroup.mk_toWord, heightRelator]
+
+theorem literalHeightWord_zero (X C : F) : literalHeightWord X C 0 = [] := by
+  simp [literalHeightWord]
+
 end QuandleResearch.Issue070
