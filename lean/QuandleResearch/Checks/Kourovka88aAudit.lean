@@ -195,4 +195,10 @@ example : answer ↔
 #print axioms guba_long_overlap_bound
 #print axioms guba_chosen_overlap_bound
 
+#print axioms gubaState_stage
+#print axioms gubaState_weight_mono
+#print axioms gubaState_active_weight_lt
+#print axioms gubaState_active_weight
+#print axioms gubaState_active_weights_distinct
+
 end QuandleResearch.Issue070
