@@ -7837,6 +7837,8 @@ of the refinement. Other components, including all their lower-rank
 cells, contribute nothing to its length bound.
 -/
 
+attribute [local instance] Classical.propDecidable
+
 theorem component_weighted_inverse_conjugator {D : Type} [Fintype D]
     (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
     (he : ∀ d, read (P.edge d) = reverseLetter (read d))
@@ -7947,6 +7949,59 @@ theorem rankRibbon_protected_two_arc_weighted_conjugacy (pick : WeightedSelector
   exact component_weighted_inverse_conjugator T read N he hET a b hab hne hinside
 
 #print axioms rankRibbon_protected_two_arc_weighted_conjugacy
+
+
+
+/-! ## Two-sided local transfer across a conjugating corridor
+
+Minimality applies to a factor of any cyclic rotation of either
+period. The two periods need not be selected at the same rank:
+a relation at the earlier stage remains valid at the later stage.
+This is the algebraic transfer estimate for short factors (within
+one period), not the long periodic-overlap theorem.
+-/
+
+theorem minBad_cyclicFactor_inverse_conjugacy_weight
+    {N : Subgroup F} [N.Normal] {c : F} (hc : MinBad N c)
+    (l r p u s v : RawWord) (g : F)
+    (hword : c.toWord = l ++ r)
+    (hfactor : r ++ l = p ++ u ++ s)
+    (hrel : FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹ ∈ N) :
+    rawWeight u ≤ rawWeight v + 2 * weightedLength g :=
+  minBad_factor_inverse_conjugacy_weight (minBad_rotation hc l r hword).1
+    p u s v g ((minBad_rotation_toWord hc l r hword).trans hfactor) hrel
+
+/-- In a corridor between two cyclic period factors, the loss in
+either direction is at most twice the weight of the same connector.
+The relation is required in the earlier of the two normal subgroups. -/
+theorem minBad_two_cyclicFactors_transfer {N M : Subgroup F}
+    [N.Normal] [M.Normal] (hNM : N ≤ M)
+    {c d : F} (hc : MinBad N c) (hd : MinBad M d)
+    (l r p u s l' r' p' v s' : RawWord) (g : F)
+    (hcword : c.toWord = l ++ r) (hcfactor : r ++ l = p ++ u ++ s)
+    (hdword : d.toWord = l' ++ r') (hdfactor : r' ++ l' = p' ++ v ++ s')
+    (hrel : FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹ ∈ N) :
+    rawWeight u ≤ rawWeight v + 2 * weightedLength g ∧
+      rawWeight v ≤ rawWeight u + 2 * weightedLength g := by
+  constructor
+  · exact minBad_cyclicFactor_inverse_conjugacy_weight hc l r p u s v g
+      hcword hcfactor hrel
+  · have he : (FreeGroup.mk u * g)⁻¹ *
+        (FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹) *
+        ((FreeGroup.mk u * g)⁻¹)⁻¹ =
+        FreeGroup.mk v * g⁻¹ * FreeGroup.mk u * (g⁻¹)⁻¹ := by group
+    have hrev : FreeGroup.mk v * g⁻¹ * FreeGroup.mk u * (g⁻¹)⁻¹ ∈ M := by
+      rw [← he]
+      exact (inferInstance : M.Normal).conj_mem _ (hNM hrel) _
+    have hwt : weightedLength g⁻¹ = weightedLength g := by
+      unfold weightedLength
+      rw [FreeGroup.toWord_inv, rawWeight_invRev]
+    have h := minBad_cyclicFactor_inverse_conjugacy_weight hd l' r' p' v s' u
+      g⁻¹ hdword hdfactor hrev
+    rwa [hwt] at h
+
+#print axioms minBad_cyclicFactor_inverse_conjugacy_weight
+#print axioms minBad_two_cyclicFactors_transfer
 
 
 end QuandleResearch.Issue070
