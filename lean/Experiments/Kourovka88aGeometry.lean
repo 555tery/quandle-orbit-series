@@ -1978,4 +1978,96 @@ theorem rankRibbon_refined_two_boundary_mem (pick : WeightedSelector)
 
 #print axioms rankRibbon_refined_two_boundary_mem
 
+
+/-! ## Cut only vertices above the chosen rank
+
+A predicate on whole original vertices can be protected while
+performing cuts. In particular all lower-rank rows remain intact,
+even when the higher-rank boundary intervals are subdivided.
+-/
+
+theorem vertexCut_rotation_eq_on_protected {D : Type}
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (a b d : D) (ha : ¬keep a) (hb : ¬keep b) (hd : keep d) :
+    (P.vertexCut a b).rotation d = P.rotation d := by
+  classical
+  rw [P.vertexCut_rotation, SmallPresentationStatements.PermutationCycles.cutAt_apply]
+  apply Equiv.swap_apply_of_ne_of_ne
+  · intro h
+    exact ha (h ▸ (hkeep d).mpr hd)
+  · intro h
+    exact hb (h ▸ (hkeep d).mpr hd)
+
+theorem vertexCut_protected_invariant {D : Type}
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (a b : D) (ha : ¬keep a) (hb : ¬keep b) :
+    ∀ d, keep ((P.vertexCut a b).rotation d) ↔ keep d := by
+  classical
+  intro d
+  by_cases hd : keep d
+  · rw [vertexCut_rotation_eq_on_protected P keep hkeep a b d ha hb hd]
+    exact hkeep d
+  · have hnot : ¬keep (P.rotation d) := fun h => hd ((hkeep d).mp h)
+    rw [P.vertexCut_rotation, SmallPresentationStatements.PermutationCycles.cutAt_apply]
+    by_cases h1 : P.rotation d = a
+    · rw [h1, Equiv.swap_apply_left]
+      exact iff_of_false hb hd
+    · by_cases h2 : P.rotation d = b
+      · rw [h2, Equiv.swap_apply_right]
+        exact iff_of_false ha hd
+      · rw [Equiv.swap_apply_of_ne_of_ne h1 h2]
+        exact hkeep d
+
+/-- A genuine sequence of cuts outside protected vertices retains
+their original rotations and keeps the protection predicate invariant. -/
+theorem protected_splitRefinement_agreement {D : Type}
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (cuts : List (D × D))
+    (hout : ∀ x ∈ cuts, ¬keep x.1 ∧ ¬keep x.2) :
+    let S := cuts.foldl (fun (Q : RibbonMap D) x => Q.vertexCut x.1 x.2) P
+    (∀ d, keep (S.rotation d) ↔ keep d) ∧
+      (∀ d, keep d → S.rotation d = P.rotation d) := by
+  induction cuts generalizing P with
+  | nil => exact ⟨hkeep, fun _ _ => rfl⟩
+  | cons x xs ih =>
+    have hx := hout x (by simp)
+    let Q := P.vertexCut x.1 x.2
+    have hQ := vertexCut_protected_invariant P keep hkeep x.1 x.2 hx.1 hx.2
+    have hrest := ih Q hQ (fun y hy => hout y (List.mem_cons_of_mem _ hy))
+    refine ⟨hrest.1, ?_⟩
+    intro d hd
+    exact (hrest.2 d hd).trans
+      (vertexCut_rotation_eq_on_protected P keep hkeep x.1 x.2 d hx.1 hx.2 hd)
+
+/-- Protection defined by actual lower-rank occurrence labels is
+constant around each original vertex, including the marked boundary. -/
+def lowerRankDart (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n j : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (d : DiscDarts (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)) : Prop :=
+  ∃ i : RankHeight n,
+    (boundaryIdentity s)[discOccurrence
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s) d].1.2 =
+        some i ∧ i.1.val < j
+
+theorem lowerRankDart_sameCycle (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n j : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (d e : DiscDarts (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s))
+    (h : (boundaryRibbon (rankHeightRows pick X n) w s hs).rotation.SameCycle d e) :
+    lowerRankDart pick X n j w s d ↔ lowerRankDart pick X n j w s e := by
+  change (discRotation (markedRows (rankHeightRows pick X n) w)
+    (boundaryIdentity s)).SameCycle d e at h
+  rw [disc_sameCycle_iff] at h
+  unfold lowerRankDart
+  rw [h]
+
+#print axioms vertexCut_rotation_eq_on_protected
+#print axioms vertexCut_protected_invariant
+#print axioms protected_splitRefinement_agreement
+#print axioms lowerRankDart
+#print axioms lowerRankDart_sameCycle
+
 end QuandleResearch.Issue070
