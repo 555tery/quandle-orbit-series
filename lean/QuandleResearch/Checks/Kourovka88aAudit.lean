@@ -285,4 +285,12 @@ example : answer ↔
 #print axioms minBad_factor_quadrilateral_weight
 #print axioms minBad_rotation
 
+#print axioms rawWord_eq_of_sublist_weight
+#print axioms minBad_rotation_toWord
+#print axioms minBad_cyclicFactor_quadrilateral_weight
+#print axioms rawNatPow_eq_flatten_replicate
+#print axioms minBad_natPow_toWord
+#print axioms minBad_intPow_toWord
+#print axioms minBad_intPow_weight
+
 end QuandleResearch.Issue070
