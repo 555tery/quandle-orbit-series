@@ -748,4 +748,88 @@ theorem minBad_rotation {N : Subgroup F} {c : F}
   have heq : weightedLength (FreeGroup.mk (r ++ l)) = weightedLength c := by omega
   exact ⟨⟨hbad, fun w hw => heq.le.trans (hc.2 w hw)⟩, heq.trans hweight⟩
 
+
+/-! ## Periodic sides, including negative heights and cyclic cuts
+
+These identities prevent a loss of literal letters when a periodic
+side is represented as a free-group element. They do not assert
+geodesicity of arbitrary powers in the lower-rank quotient.
+-/
+
+/-- A sublist of equal positive weight cannot omit any letter. -/
+theorem rawWord_eq_of_sublist_weight {u v : RawWord} (h : u.Sublist v)
+    (hw : rawWeight u = rawWeight v) : u = v := by
+  induction h with
+  | slnil => rfl
+  | cons x h ih =>
+    have hle := rawWeight_le_of_sublist h
+    have hx := letterWeight_pos x
+    simp only [rawWeight] at hw
+    omega
+  | cons_cons x h ih =>
+    simp only [rawWeight] at hw
+    exact congrArg (List.cons x) (ih (by omega))
+
+/-- The exact spelling of a rotated minimal period is its reduced word. -/
+theorem minBad_rotation_toWord {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (l r : RawWord) (hword : c.toWord = l ++ r) :
+    (FreeGroup.mk (r ++ l)).toWord = r ++ l := by
+  apply rawWord_eq_of_sublist_weight
+  · rw [FreeGroup.toWord_mk]
+    exact FreeGroup.Red.sublist FreeGroup.reduce.red
+  · exact (minBad_rotation hc l r hword).2
+
+/-- A factor crossing a cyclic cut still satisfies the connector bound,
+provided it fits inside one cyclic rotation of the period. -/
+theorem minBad_cyclicFactor_quadrilateral_weight {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) (l r p v q u s t : RawWord)
+    (hword : c.toWord = l ++ r) (hfactor : r ++ l = p ++ v ++ q)
+    (hboundary : FreeGroup.mk ((v ++ t) ++ FreeGroup.invRev (s ++ u)) ∈ N) :
+    rawWeight v ≤ rawWeight u + rawWeight s + rawWeight t :=
+  minBad_factor_quadrilateral_weight (minBad_rotation hc l r hword).1
+    p v q u s t ((minBad_rotation_toWord hc l r hword).trans hfactor) hboundary
+
+/-- The literal repeated-word convention agrees with Mathlib's. -/
+theorem rawNatPow_eq_flatten_replicate (v : RawWord) (m : ℕ) :
+    rawNatPow v m = (List.replicate m v).flatten := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [rawNatPow, ih, List.replicate_succ', List.flatten_concat]
+
+/-- Powers of a cyclically reduced period retain every letter in the
+free group. Mathlib supplies the cyclic reduction lemma for repetitions. -/
+theorem minBad_natPow_toWord {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (m : ℕ) :
+    (c ^ m).toWord = rawNatPow c.toWord m := by
+  rw [FreeGroup.toWord_pow, rawNatPow_eq_flatten_replicate]
+  exact ((minBad_cyclicallyReduced hc).flatten_replicate m).isReduced.reduce_eq
+
+/-- The corresponding exact spelling at every integer height. -/
+theorem minBad_intPow_toWord {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (k : ℤ) :
+    (c ^ k).toWord = rawIntPow c.toWord k := by
+  cases k with
+  | ofNat m =>
+    rw [zpow_natCast]
+    exact minBad_natPow_toWord hc m
+  | negSucc m =>
+    rw [zpow_negSucc, FreeGroup.toWord_inv, minBad_natPow_toWord hc]
+    rfl
+
+/-- The period side has weight exactly the absolute height times the
+period weight, with no free cancellation. -/
+theorem minBad_intPow_weight {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (k : ℤ) :
+    weightedLength (c ^ k) = k.natAbs * weightedLength c := by
+  unfold weightedLength
+  rw [minBad_intPow_toWord hc k]
+  cases k with
+  | ofNat m =>
+    exact rawWeight_rawNatPow c.toWord m
+  | negSucc m =>
+    change rawWeight (FreeGroup.invRev (rawNatPow c.toWord (m+1))) =
+      (m+1) * rawWeight c.toWord
+    rw [rawWeight_invRev, rawWeight_rawNatPow]
+
 end QuandleResearch.Issue070
