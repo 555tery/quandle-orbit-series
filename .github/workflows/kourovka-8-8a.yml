@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: kourovka-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     if: github.event_name != 'pull_request' || github.head_ref == 'lean/kourovka-8-8a'
@@ -25,26 +28,29 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - run: lake update
       - run: lake exe cache get
-      - name: Compile exact target and conditional reduction
+      - name: Compile all Kourovka modules
         run: |
-          lake build QuandleResearch.Questions.Issue070 QuandleResearch.Proofs.Kourovka88a.Greedy
-          lake env lean -DwarningAsError=true QuandleResearch/Questions/Issue070.lean
-          lake env lean -DwarningAsError=true QuandleResearch/Proofs/Kourovka88a/Greedy.lean
+          set -o pipefail
+          lake build QuandleResearch.Proofs.Kourovka88a.Heights 2>&1 | tee kourovka-build.log
       - name: Statement and axiom audit of conditional theorems
         run: |
           set -o pipefail
-          lake env lean -DwarningAsError=true QuandleResearch/Checks/Kourovka88aAudit.lean | tee kourovka-axioms.log
+          lake env lean QuandleResearch/Checks/Kourovka88aAudit.lean 2>&1 | tee kourovka-axioms.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          log = Path("kourovka-axioms.log").read_text()
+          # The project still uses legacy modules. Allow only the exact
+          # compatibility warning; every other warning is a CI failure.
+          ansi = re.compile(r"\x1b\[[0-9;]*m")
+          logs = [ansi.sub("", Path(f).read_text()) for f in
+                  ["kourovka-build.log", "kourovka-axioms.log"]]
+          for line in "\n".join(logs).splitlines():
+              if "warning:" in line.lower():
+                  assert re.search(r"imports `[^\x60]+` from package `mathlib`, which is designed for use with the module system; consider adding `module` to the start of this file$", line), line
+          log = logs[1]
           allowed = {"propext", "Classical.choice", "Quot.sound"}
-          for name in ["good_iff_quotient", "mem_limit_iff", "limit_normal",
-                       "answer_of_chain", "greedy_cover", "answer_of_greedy_relators",
-                       "nextRelator_eq", "nextRelator_eq_one", "adjoin_eq_of_mem",
-                       "greedyStages_normal", "greedyStages_mono", "greedyStages_progress",
-                       "greedyStages_strict_of_bad", "greedyStages_stationary",
-                       "greedyStages_cover", "answer_of_greedyStages"]:
+          names = ["good_iff_quotient","mem_limit_iff","limit_normal","answer_of_chain","greedy_cover","answer_of_greedy_relators","nextRelator_eq","nextRelator_eq_one","adjoin_eq_of_mem","greedyStages_normal","greedyStages_mono","greedyStages_progress","greedyStages_strict_of_bad","greedyStages_stationary","greedyStages_cover","answer_of_greedyStages","letterWeight_pos","rawWeight_append","length_le_rawWeight","rawWeight_eq_zero_iff","weightedLength_eq_zero_iff","mem_letters","mem_boundedWords","mem_weightedBallCover","weightedLength_commWord","commWord_ne_one","answer_of_weighted_survival","heightRelator_one","heightRelator_mem_of_one","normalClosure_all_heights"]
+          for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", log)
               if match:
                   used = {a.strip() for a in match.group(1).split(",") if a.strip()}
