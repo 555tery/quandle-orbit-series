@@ -147,7 +147,8 @@ jobs:
                    "vertexCut_interval_read", "vertexCut_comm", "vertexCut_separated_boundary_mem",
                    "edgeSplice_vertex_read", "edgeSplice_boundary_mem_normal", "refined_two_boundary_region_mem",
                    "vertexCut_partition", "vertexCut_other_vertex_read", "exists_two_vertex_cut_refinement", "vertexCut_prescribed_interval",
-                   "ribbon_vertex_mem_sameCycle", "boundaryRibbon_vertex_mem_of_label", "rankRibbon_lower_vertex_mem", "refined_vertex_read_of_agreement", "rankRibbon_refined_two_boundary_mem"]
+                   "ribbon_vertex_mem_sameCycle", "boundaryRibbon_vertex_mem_of_label", "rankRibbon_lower_vertex_mem", "refined_vertex_read_of_agreement", "rankRibbon_refined_two_boundary_mem",
+                   "vertexCut_rotation_eq_on_protected", "vertexCut_protected_invariant", "protected_splitRefinement_agreement", "lowerRankDart", "lowerRankDart_sameCycle", "rankRibbon_protected_cuts_boundary_mem"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
