@@ -780,7 +780,7 @@ theorem minimal_rankHeight_nonzero_height (pick : WeightedSelector)
     (hs : MinimalExpression (rankHeightRel pick X n) w s)
     (x : Peiffer.Occurrence F (RankHeight n)) (hx : x ∈ s) :
     x.1.2.2 ≠ 0 := by
-  obtain ⟨p,r,he⟩ := List.append_cons_of_mem hx
+  obtain ⟨p,r,he⟩ := List.mem_iff_append.mp hx
   have hsplit : s = p ++ [x] ++ r := by simpa using he
   have hm : MinimalExpression (rankHeightRel pick X n) w (p ++ [x] ++ r) :=
     hsplit ▸ hs
