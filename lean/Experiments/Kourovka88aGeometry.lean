@@ -3760,7 +3760,7 @@ satisfy haccount; that is the remaining geometric obligation.
 
 theorem guba19_outer_weight_arithmetic (V M N : ℝ)
     (hM : 0 ≤ M) (hN : 0 ≤ N) (htotal : V = M + N)
-    (haccount : M ≤ V * (1 - 99/100 + 400*(1/10^7) +
+    (haccount : M ≤ V * (1 - 99/100 + 4000*(1/10^7) +
       450*(1/10^17 : ℝ)^(1/2 : ℝ) +
       300*(1/10^11 : ℝ)^(1/2 : ℝ)) +
       (8/15 + 2*(1/10^7 : ℝ)^(1/2 : ℝ))*M) :
@@ -3775,10 +3775,10 @@ theorem guba19_outer_weight_arithmetic (V M N : ℝ)
     root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
   have hb : (1/10^17 : ℝ)^(1/2 : ℝ) ≤ 1/10^8 :=
     root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
-  have ht : (1/10^11 : ℝ)^(1/2 : ℝ) ≤ 1/100000 :=
+  have ht : (1/10^11 : ℝ)^(1/2 : ℝ) ≤ 1/200000 :=
     root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
   have hV : 0 ≤ V := by linarith
-  have hc : 1 - 99/100 + 400*(1/10^7) +
+  have hc : 1 - 99/100 + 4000*(1/10^7) +
       450*(1/10^17 : ℝ)^(1/2 : ℝ) +
       300*(1/10^11 : ℝ)^(1/2 : ℝ) ≤ (1/75 : ℝ) := by
     linarith only [hb,ht]
@@ -6674,6 +6674,75 @@ theorem rank_type_lt_of_omitted_occurrence {n : ℕ}
 #print axioms rankCount_le_of_sublist
 #print axioms descending_count_lt_of_pointwise
 #print axioms rank_type_lt_of_omitted_occurrence
+
+
+
+/-! ## Numerical dependency audit for Lemmas 13 and 19
+
+The English text of Lemma 19, p. 253, has 4000 omega (twice
+2000 omega), not 400 omega. The earlier arithmetic theorem is
+corrected above to use the actual weaker premise. Here its premise
+is derived explicitly from the separate nine-category inequalities.
+The geometric validity of those inequalities is not assumed as an
+axiom and remains to be proved.
+
+In Lemma 13, p. 251, the displayed parameter comparison appears
+inconsistent with the parameter table as transcribed from the
+English text. Record the exact rational squared comparison rather
+than silently changing the chosen parameters. This is a check of
+the displayed bound, not a refutation of Lemma 13 or the paper.
+-/
+
+/-- The numerical assembly of Lemma 19 from the individual
+category estimates in Lemmas 8--18. In particular the special-cell
+contribution occurs twice, once in H0 and once in P. -/
+theorem guba19_from_nine_categories (V M N K D E F H0 P K0 G0 D0 : ℝ)
+    (hM : 0 ≤ M) (hN : 0 ≤ N) (htotal : V = M + N)
+    (hpartition : M ≤ K+D+E+F+H0+P+K0+G0+D0)
+    (hbase : K+D+E+F ≤ (1-99/100)*V)
+    (h14 : H0 ≤ 2000*(1/10^7)*V)
+    (h15 : K0 ≤ 450*(1/10^17 : ℝ)^(1/2 : ℝ)*V)
+    (h16 : G0 ≤ (8/15)*M)
+    (h17 : D0 ≤ 2*(1/10^7 : ℝ)^(1/2 : ℝ)*M)
+    (h18 : P ≤ 300*(1/10^11 : ℝ)^(1/2 : ℝ)*M + H0) :
+    (95/100 + 300*(1/10^7 : ℝ)^(3/2 : ℝ))*V ≤ N := by
+  have hMV : M ≤ V := by linarith
+  have hcoeff : 0 ≤ 300*(1/10^11 : ℝ)^(1/2 : ℝ) := by positivity
+  have h18' : P ≤ 300*(1/10^11 : ℝ)^(1/2 : ℝ)*V + H0 :=
+    h18.trans (add_le_add_right (mul_le_mul_of_nonneg_left hMV hcoeff) H0)
+  apply guba19_outer_weight_arithmetic V M N hM hN htotal
+  linarith only [hpartition,hbase,h14,h15,h16,h17,h18']
+
+/-- With the parameters as transcribed, the square of the
+coefficient used in the short-section case of Lemma 13 is greater
+than omega cubed, not smaller. All arithmetic is exact. -/
+theorem guba13_transcribed_parameter_square_check :
+    (1/10^7 : ℚ)^3 <
+      (3*10^11 * ((9/10 : ℚ)*(1/10^17)-2*(1/10^19))⁻¹ *
+        (1/10^38))^2 := by
+  norm_num
+
+/-- The purely linear part of the Lemma 13 argument, retaining
+the exact coefficient without replacing it by omega^(3/2).
+The assumptions are the long-section, contiguity, connecting-side,
+and lower-type transfer bounds, in a common length scale. -/
+theorem guba13_short_section_exact_bound (P L q1 q2 p1 p2 B : ℚ)
+    (hP : P < 3*10^11*L)
+    (hdegree : (1/10^17 : ℚ)*L ≤ q1)
+    (hsides : p1+p2 ≤ 2*(1/10^19)*L)
+    (htransfer : (9/10 : ℚ)*q1 ≤ p1+p2+q2)
+    (hshort : q2 ≤ (1/10^38 : ℚ)*B) :
+    P < (3*10^11 * ((9/10 : ℚ)*(1/10^17)-2*(1/10^19))⁻¹ *
+        (1/10^38))*B := by
+  have hL : ((9/10 : ℚ)*(1/10^17)-2*(1/10^19))*L ≤
+      (1/10^38 : ℚ)*B := by
+    linarith only [hdegree,hsides,htransfer,hshort]
+  norm_num at hL hP ⊢
+  linarith only [hL,hP]
+
+#print axioms guba19_from_nine_categories
+#print axioms guba13_transcribed_parameter_square_check
+#print axioms guba13_short_section_exact_bound
 
 
 end QuandleResearch.Issue070
