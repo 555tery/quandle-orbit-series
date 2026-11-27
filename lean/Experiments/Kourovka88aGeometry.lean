@@ -9,6 +9,7 @@ import SmallPresentation.SmallCancellationGeometryRelativeRestriction
 import SmallPresentation.SmallCancellationGeometryCorridorCuts
 import SmallPresentation.SmallCancellationGeometryEdgeContractionTopology
 import SmallPresentation.SmallCancellationGeometryRelativeRegions
+import SmallPresentation.SmallCancellationGeometryRelativeRegionBoundary
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -6978,6 +6979,107 @@ theorem guba23_marked_boundary_transfer_darts {A : Type}
 #print axioms guba23_dart_boundary_transfer
 #print axioms guba23_perimeter_arithmetic_six
 #print axioms guba23_marked_boundary_transfer_darts
+
+
+open SmallPresentationStatements.PermutationCycles
+
+/-! ## Ordered paths between consecutive coefficient outlets
+
+The first-return permutation from the pinned geometry library keeps
+the genuine face cycles of the coefficient ribbon. In contrast to a
+list of component representatives it records the intervening paths
+with their actual incidence order.
+
+These are face walks, not yet the short connecting paths of a Guba
+contiguity subdiagram. Their disjointness is a statement about
+departing darts, not disjointness of the visited lower-rank cells.
+-/
+
+/-- Two first-return paths with a common departure must start at
+the same retained incidence. The argument uses the minimality of
+the return times and injectivity of the original permutation. -/
+theorem firstReturn_paths_disjoint {D : Type} [Finite D]
+    (sigma : Equiv.Perm D) (ret : D → Prop)
+    (a b : {d : D // ret d}) (hne : a ≠ b) :
+    ∀ d,
+      d ∈ List.ofFn (fun k : Fin (FirstReturn.time sigma ret a) =>
+        sigma^[k.val] a.val) →
+      d ∈ List.ofFn (fun k : Fin (FirstReturn.time sigma ret b) =>
+        sigma^[k.val] b.val) → False := by
+  have cancel (u v : {d : D // ret d}) (i j : ℕ)
+      (hj : j < FirstReturn.time sigma ret v) (hij : i ≤ j)
+      (he : sigma^[i] u.val = sigma^[j] v.val) : u = v := by
+    have hsum : i + (j-i) = j := by omega
+    have he' : sigma^[i] u.val = sigma^[i] (sigma^[j-i] v.val) := by
+      rw [← Function.iterate_add_apply,hsum]
+      exact he
+    have huv := (sigma.injective.iterate i) he'
+    by_cases hz : j-i = 0
+    · apply Subtype.ext
+      simpa only [hz,Function.iterate_zero_apply] using huv
+    · exact False.elim ((FirstReturn.no_early sigma ret v (j-i)
+        (by omega) (by omega)) (huv ▸ u.property))
+  intro d ha hb
+  obtain ⟨i,hi⟩ := List.mem_ofFn.mp ha
+  obtain ⟨j,hj⟩ := List.mem_ofFn.mp hb
+  rcases le_total i.val j.val with h | h
+  · exact hne (cancel a b i.val j.val j.isLt h (hi.trans hj.symm))
+  · exact hne (cancel b a j.val i.val i.isLt h (hj.trans hi.symm)).symm
+
+/-- Retained incidence paths have exactly one retained departure,
+namely their start. In particular a path cannot silently cross
+another selected outlet before arriving at its actual next outlet. -/
+theorem firstReturn_retained_departure {D : Type} [Finite D]
+    (sigma : Equiv.Perm D) (ret : D → Prop) (a : {d : D // ret d})
+    (d : D)
+    (hd : d ∈ List.ofFn (fun k : Fin (FirstReturn.time sigma ret a) =>
+      sigma^[k.val] a.val)) (hr : ret d) : d = a.val := by
+  obtain ⟨i,hi⟩ := List.mem_ofFn.mp hd
+  have hz : i.val = 0 := by
+    by_contra h
+    exact FirstReturn.no_early sigma ret a i.val (by omega) i.isLt (hi.symm ▸ hr)
+  simpa only [hz,Function.iterate_zero_apply] using hi.symm
+
+/-- The original coefficient refinement determines a system of
+actual, ordered, nonoverlapping face-walk departures. The endpoint
+permutation preserves precisely the face cycles that meet outlets.
+No connected-component-to-disc implication is used. -/
+theorem coefficient_region_ordered_paths {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d, keep (P.rotation d) ↔ keep d) :
+    let S := P.coefficientRegions keep hkeep
+    let A := {d : D // ¬ keep d}
+    ∃ (next : Equiv.Perm A) (paths : A → List D),
+      (∀ a, paths a ≠ [] ∧ (paths a).Nodup ∧
+        Walk S.face a.val (next a).val (paths a)) ∧
+      (∀ a d, d ∈ paths a → ¬ keep d → d = a.val) ∧
+      (∀ a b, a ≠ b → ∀ d, d ∈ paths a → d ∈ paths b → False) ∧
+      (∀ a b, next.SameCycle a b ↔ S.face.SameCycle a.val b.val) := by
+  classical
+  intro S A
+  let next : Equiv.Perm A := P.regionBoundary keep hkeep
+  let paths : A → List D := fun a =>
+    List.ofFn (fun k : Fin (FirstReturn.time S.face (fun d => ¬ keep d) a) =>
+      S.face^[k.val] a.val)
+  refine ⟨next,paths,?_,?_,?_,?_⟩
+  · intro a
+    refine ⟨?_,FirstReturn.path_nodup S.face _ a,FirstReturn.walk S.face _ a⟩
+    intro h
+    have hn := congrArg List.length h
+    change (List.ofFn (fun k : Fin (FirstReturn.time S.face (fun d => ¬ keep d) a) =>
+      S.face^[k.val] a.val)).length = 0 at hn
+    rw [List.length_ofFn] at hn
+    exact (Nat.ne_of_gt (FirstReturn.time_pos S.face _ a)) hn
+  · intro a d hd hr
+    exact firstReturn_retained_departure S.face (fun e => ¬ keep e) a d hd hr
+  · intro a b hab d ha hb
+    exact firstReturn_paths_disjoint S.face (fun e => ¬ keep e) a b hab d ha hb
+  · intro a b
+    exact P.regionBoundary_sameCycle_iff keep hkeep a b
+
+#print axioms firstReturn_paths_disjoint
+#print axioms firstReturn_retained_departure
+#print axioms coefficient_region_ordered_paths
 
 
 end QuandleResearch.Issue070
