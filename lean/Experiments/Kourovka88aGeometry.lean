@@ -16160,7 +16160,8 @@ theorem ribbon_walk_inside_block {D : Type} [Fintype D]
   · obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp
       (walk_departures_prefix_of_length_le P.rotation hall hqw hlen)
     refine ⟨b,hb,p,r,?_⟩
-    rw [hpq,← hr,List.append_assoc]
+    rw [hpq,← hr]
+    simp only [List.append_assoc]
   · have hle : (x::q).length ≤ u.length := by
       simp only [List.length_append,List.length_singleton] at hlen
       omega
@@ -16336,5 +16337,104 @@ theorem ribbon_direct_strip_single_block_pair {D : Type} [Fintype D]
 #print axioms strip_mark_count_le
 #print axioms strip_mark_union_count
 #print axioms ribbon_direct_strip_single_block_pair
+
+
+/-- Exact four-block certificate on darts, not just an equality of
+group elements. The conjugator and the selected period are the
+actual rank-dependent words, and the sign of k is retained. -/
+def GubaFourBlockRead {D : Type} (read : D → Letter)
+    (bs : List (List D)) (X : List (Fin 2)) (C : F) (k : ℤ) : Prop :=
+  ∃ U V W A : List D,
+    bs = [U,V,W,A] ∧
+    U.map read = X.map (fun x => (x,true)) ∧
+    V.map read = rawIntPow C.toWord k ∧
+    W.map read = FreeGroup.invRev (X.map (fun x => (x,true))) ∧
+    A.map read = FreeGroup.invRev (rawIntPow a.toWord k)
+
+theorem GubaFourBlockRead_length {D : Type} (read : D → Letter)
+    (bs : List (List D)) (X : List (Fin 2)) (C : F) (k : ℤ)
+    (h : GubaFourBlockRead read bs X C k) : bs.length = 4 := by
+  obtain ⟨U,V,W,A,rfl,_,_,_,_⟩ := h
+  rfl
+
+/-- Rebase any actual interior vertex at the original zero corner.
+Its four blocks come from its actual indexed positive Peiffer
+occurrence. This removes an arbitrary partition assumption when
+applying the simultaneous seam cuts to the constructed ribbon. -/
+theorem guba_positive_cell_four_blocks
+    (pick : WeightedSelector) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w)
+    (hpos : ∀ x ∈ s, x.2 = true) :
+    let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
+    let P := boundaryRibbon rows w s hs
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ d, idx d ≠ boundaryOccurrence s →
+      ∃ (d' : _) (i : Fin s.length) (bs : List (List _)),
+        P.rotation.SameCycle d' d ∧ (idx d').val = i.val+1 ∧
+        P.vertexBoundary d' = bs.flatMap id ∧
+        ∃ h : ∃ v : F, ¬ Good (gubaState pick s[i.val].1.2.1.val).1 v,
+          GubaFourBlockRead read bs (activeLongWord pick s[i.val].1.2.1.val h)
+            (pick (gubaState pick s[i.val].1.2.1.val).1 h).val s[i.val].1.2.2 := by
+  classical
+  intro rows P read idx d hd
+  obtain ⟨j,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
+  change discOccurrence (markedRows rows w) (boundaryIdentity s)
+    (discAt (markedRows rows w) (boundaryIdentity s) j k) ≠ boundaryOccurrence s at hd
+  rw [discOccurrence_at] at hd
+  have hlabel : ∃ i : Fin s.length,
+      j.val = i.val+1 ∧ (boundaryIdentity s)[j] = markOccurrence s[i.val] := by
+    obtain ⟨v,hv⟩ := j
+    cases v with
+    | zero => exact (hd (Fin.ext rfl)).elim
+    | succ v =>
+      have hi : v < s.length := by simpa [boundaryIdentity] using hv
+      refine ⟨⟨v,hi⟩,rfl,?_⟩
+      change (boundaryIdentity s)[v+1]'hv = markOccurrence s[v]
+      simp [boundaryIdentity]
+  obtain ⟨i,hi,hmark⟩ := hlabel
+  have hidx : (boundaryIdentity s)[j].1.2 = some s[i.val].1.2 := by
+    rw [hmark]
+    rfl
+  have hp : 0 < (orientedWord
+      (markedRows rows w (boundaryIdentity s)[j].1.2)
+      (boundaryIdentity s)[j].2).length := Nat.zero_lt_of_lt k.isLt
+  have hne : rows s[i.val].1.2 ≠ [] := by
+    intro hn
+    have h := hp
+    rw [orientedWord_length,hidx] at h
+    simp [markedRows,hn] at h
+  obtain ⟨hactive,hk⟩ := guba_rankHeightRows_nonempty pick n s[i.val].1.2 hne
+  let d' := discAt (markedRows rows w) (boundaryIdentity s) j ⟨0,hp⟩
+  have hcyc : P.rotation.SameCycle d'
+      (discAt (markedRows rows w) (boundaryIdentity s) j k) := by
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle d' _
+    rw [disc_sameCycle_iff]
+    simp only [d',discOccurrence_at]
+  have hsign : (boundaryIdentity s)[j].2 = true := by
+    rw [hmark]
+    exact hpos s[i.val] (List.getElem_mem i.isLt)
+  have hr := boundaryRibbon_interior_read rows w s hs j s[i.val].1.2 hidx hp
+  rw [hsign] at hr
+  change (P.vertexBoundary d').map read = rows s[i.val].1.2 at hr
+  change _ = rankHeightRows pick (gubaConjugatorChoice pick) n s[i.val].1.2 at hr
+  rw [guba_rankHeightRows_active pick n s[i.val].1.2 hactive hk] at hr
+  simp only [List.append_assoc] at hr
+  obtain ⟨U,rest,hUrest,hU,hrest⟩ := List.map_eq_append_iff.mp hr
+  obtain ⟨V,rest',hVrest,hV,hrest'⟩ := List.map_eq_append_iff.mp hrest
+  obtain ⟨W,A,hWA,hW,hA⟩ := List.map_eq_append_iff.mp hrest'
+  refine ⟨d',i,[U,V,W,A],hcyc,?_,?_,hactive,U,V,W,A,rfl,hU,hV,hW,hA⟩
+  · change (discOccurrence (markedRows rows w) (boundaryIdentity s) d').val = i.val+1
+    rw [show discOccurrence (markedRows rows w) (boundaryIdentity s) d' = j from
+      discOccurrence_at _ _ _ _]
+    exact hi
+  · rw [hUrest,hVrest,hWA]
+    simp only [List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil]
+
+#print axioms GubaFourBlockRead
+#print axioms GubaFourBlockRead_length
+#print axioms guba_positive_cell_four_blocks
 
 end QuandleResearch.Issue070
