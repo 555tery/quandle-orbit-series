@@ -32,6 +32,12 @@ for path in sources:
     ):
         if name in kinds:
             raise SystemExit("Duplicate declaration: " + name)
+        # Lean elaborates Prop-valued instances as theorems.
+        # The two current named instances prove subgroup normality.
+        if kind == "instance":
+            assert name in {"stageNormal", "adjoinNormal"}, (
+                "Classify new instance by its kernel declaration kind", name)
+            kind = "theorem"
         kinds[name] = kind
 names = re.findall(r"^#print axioms (\w+)\s*$", audit.read_text(), re.M)
 assert names and len(names) == len(set(names)), "Missing or duplicate audit names"
