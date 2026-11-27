@@ -3353,7 +3353,7 @@ theorem guba_boundary_component_large_row (pick : WeightedSelector)
     let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
     let P := boundaryRibbon rows w s hs
     let z := boundaryDart rows w s hw
-    let C := P.componentRibbon z
+    let _C := P.componentRibbon z
     let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
     ∃ (d : {e : DiscDarts (markedRows rows w) (boundaryIdentity s) // P.SameComponent z e})
       (i : RankHeight n),
@@ -8135,7 +8135,7 @@ theorem good_raw_rotation_iff (N : Subgroup F) (l r : RawWord) :
     Good N (FreeGroup.mk (r ++ l)) ↔ Good N (FreeGroup.mk (l ++ r)) := by
   have he : FreeGroup.mk l * FreeGroup.mk (r ++ l) *
       (FreeGroup.mk l)⁻¹ = FreeGroup.mk (l ++ r) := by
-    simp only [← FreeGroup.mul_mk] <;> group
+    simp only [← FreeGroup.mul_mk]; group
   simpa only [he] using
     (good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))).symm
 
@@ -9074,7 +9074,7 @@ theorem guba23_component_exact_vertex_product {D K : Type}
       have hfinal := congrArg (fun x : K => k⁻¹ * x * k) hprod
       rw [hm] at hfinal
       simp only [mul_one,inv_mul_cancel] at hfinal
-      convert hfinal using 1 <;> group
+      convert hfinal using 1; group
 termination_by Fintype.card P.Vertex
 decreasing_by
   have hcount := (P.edgeSplice_counts c hn).1
@@ -9298,9 +9298,9 @@ theorem guba23_vertex_factor_as_occurrence (rows : I → RawWord) (w : F)
         (discAt (markedRows rows w) (boundaryIdentity s) idx k)).map read) * g⁻¹
     rw [hu]
     cases h : s[j.val].2
-    · simp only [Peiffer.term,h,Bool.cond_false,orientedWord,← FreeGroup.inv_mk]
+    · simp only [Peiffer.term,Bool.cond_false,orientedWord,← FreeGroup.inv_mk]
       group
-    · simp only [Peiffer.term,h,Bool.cond_true,orientedWord]
+    · simp only [Peiffer.term,Bool.cond_true,orientedWord]
       group
 
 #print axioms guba23_vertex_factor_as_occurrence
