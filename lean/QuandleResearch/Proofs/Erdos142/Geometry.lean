@@ -537,6 +537,116 @@ theorem shell_endpoint_bound {ι : Type*} [Fintype ι]
   linarith
 
 
+
+/-! An exact finite indexing type for the rational inner cells.  The lower
+column index is signed; upper columns use the two centers 600 and 1800
+in units of 1/2400. -/
+
+def innerCellCoords :
+    ((Σ i : Fin 240, Fin (2 * lowerRadiusUnits i.val)) ⊕
+      (Σ j : Fin 158, Fin 2 × Fin (2 * upperRadiusUnits (j.val + 2)))) →
+      ℤ × ℤ
+  | Sum.inl ⟨i, k⟩ => ((i.val : ℤ),
+      (k.val : ℤ) - (lowerRadiusUnits i.val : ℤ))
+  | Sum.inr ⟨j, l, k⟩ => ((j.val : ℤ) + 242,
+      600 + 1200 * (l.val : ℤ) + (k.val : ℤ) -
+        (upperRadiusUnits (j.val + 2) : ℤ))
+
+theorem inner_cell_index_card :
+    Fintype.card ((Σ i : Fin 240, Fin (2 * lowerRadiusUnits i.val)) ⊕
+      (Σ j : Fin 158, Fin 2 × Fin (2 * upperRadiusUnits (j.val + 2)))) =
+      lowerAreaUnits + upperAreaUnits := by
+  classical
+  simp [Fintype.card_sum, Fintype.card_sigma, Fintype.card_prod,
+    Fin.sum_univ_eq_sum_range, lowerAreaUnits, upperAreaUnits, ← Nat.mul_assoc]
+
+lemma horizontal_cell_radius {R k : ℕ} (hk : k < 2 * R)
+    {a c : ℝ}
+    (h₁ : (c + (k : ℝ) - (R : ℝ)) / 2400 < a)
+    (h₂ : a < (c + (k : ℝ) - (R : ℝ) + 1) / 2400) :
+    |a - c / 2400| < (R : ℝ) / 2400 := by
+  have hk0 : 0 ≤ (k : ℝ) := by positivity
+  have hk1 : (k : ℝ) + 1 ≤ 2 * (R : ℝ) := by
+    exact_mod_cast (show k + 1 ≤ 2 * R by omega)
+  apply abs_lt.mpr
+  constructor <;> linarith
+
+/-- Every point in an indexed open cell belongs to the geometric block. -/
+theorem inner_cell_mem
+    (e : (Σ i : Fin 240, Fin (2 * lowerRadiusUnits i.val)) ⊕
+      (Σ j : Fin 158, Fin 2 × Fin (2 * upperRadiusUnits (j.val + 2))))
+    {s a : ℝ}
+    (hs₁ : ((innerCellCoords e).1 : ℝ) / 480 < s)
+    (hs₂ : s < (((innerCellCoords e).1 : ℝ) + 1) / 480)
+    (ha₁ : ((innerCellCoords e).2 : ℝ) / 2400 < a)
+    (ha₂ : a < (((innerCellCoords e).2 : ℝ) + 1) / 2400) :
+    InBlock s a := by
+  rcases e with ⟨i, k⟩ | ⟨j, l, k⟩
+  · simp only [innerCellCoords, Int.cast_natCast, Int.cast_sub] at hs₁ hs₂ ha₁ ha₂
+    have hr := horizontal_cell_radius k.isLt (c := 0) (a := a)
+      (by linarith [ha₁]) (by linarith [ha₂])
+    apply Or.inl
+    exact lower_rectangle_mem i.isLt hs₁ hs₂ (by simpa using hr)
+  · simp only [innerCellCoords, Int.cast_natCast, Int.cast_add, Int.cast_sub,
+      Int.cast_mul, Int.cast_ofNat] at hs₁ hs₂ ha₁ ha₂
+    have hr := horizontal_cell_radius k.isLt (c := 600 + 1200 * (l.val : ℝ))
+      (a := a) (by linarith [ha₁]) (by linarith [ha₂])
+    have hj₁ : 2 ≤ j.val + 2 := by omega
+    have hj₂ : j.val + 2 < 160 := by have := j.isLt; omega
+    have hsl : (240 + ((j.val + 2 : ℕ) : ℝ)) / 480 < s := by
+      push_cast
+      linarith
+    have hsu : s < (240 + ((j.val + 2 : ℕ) : ℝ) + 1) / 480 := by
+      push_cast
+      linarith
+    have hl : l.val = 0 ∨ l.val = 1 := by have := l.isLt; omega
+    rcases hl with hl | hl
+    · right; left
+      rw [hl] at hr
+      norm_num at hr
+      exact upper_rectangle_mem hj₁ hj₂ hsl hsu hr
+    · right; right
+      rw [hl] at hr
+      norm_num at hr
+      exact upper_rectangle_mem hj₁ hj₂ hsl hsu hr
+
+/-- On an interval of width strictly less than p, integer representatives
+of a residue in ZMod p are unique.  This uses Mathlib's native ZMod. -/
+lemma intCast_injective_close {p : ℕ} {a b : ℤ}
+    (h₁ : a - b < (p : ℤ)) (h₂ : b - a < (p : ℤ))
+    (h : (a : ZMod p) = (b : ZMod p)) : a = b := by
+  have hd : (p : ℤ) ∣ b - a :=
+    (ZMod.intCast_eq_intCast_iff_dvd_sub a b p).mp h
+  by_cases hn : 0 ≤ b - a
+  · have he := Int.eq_zero_of_dvd_of_nonneg_of_lt hn h₂ hd
+    omega
+  · have hd' : (p : ℤ) ∣ a - b := by
+      have he : a - b = -(b - a) := by ring
+      rw [he]
+      exact dvd_neg.mpr hd
+    have he := Int.eq_zero_of_dvd_of_nonneg_of_lt
+      (show 0 ≤ a - b by omega) h₁ hd'
+    omega
+
+/-- A modular progression of integer lifts gives the real-lift equation
+required by the geometric lemmas, after normalization by p. -/
+lemma normalized_modular_AP {p : ℕ} (hp : 0 < p) {x y z : ℤ}
+    (h : (x : ZMod p) + (z : ZMod p) = 2 * (y : ZMod p)) :
+    ∃ j : ℤ, (x : ℝ) / (p : ℝ) + (z : ℝ) / (p : ℝ) -
+      2 * ((y : ℝ) / (p : ℝ)) = (j : ℝ) := by
+  have hzero : ((x + z - 2 * y : ℤ) : ZMod p) = 0 := by
+    push_cast
+    rw [h]
+    ring
+  obtain ⟨j, hj⟩ := (ZMod.intCast_zmod_eq_zero_iff_dvd _ _).mp hzero
+  have hj' : (x : ℝ) + (z : ℝ) - 2 * (y : ℝ) = (p : ℝ) * (j : ℝ) := by
+    exact_mod_cast hj
+  have hp' : (p : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hp)
+  refine ⟨j, ?_⟩
+  field_simp [hp']
+  linarith
+
+
 end
 
 end QuandleResearch.Erdos142
