@@ -17661,4 +17661,125 @@ theorem gubaType_actual_self_long_pair_minimal_power_filling
 #print axioms activeLongWord_aligned_raw_cuts
 #print axioms gubaType_actual_self_long_pair_minimal_power_filling
 
+
+/-! ## A simultaneous counterexample class closed under aligned self-loops
+
+For a fixed stage n, minimize full type among all fillings of
+nonzero powers of a and all actual active periods of ranks < n.
+This is a useful alternative to assuming power survival as an
+extra premise: the aligned loop reduction stays INSIDE this
+counterexample class. No assertion is made that all such
+boundaries are smooth merely because they are powers.
+-/
+
+def GubaPowerBoundary (pick : WeightedSelector) (n : ℕ) (w : F) : Prop :=
+  (∃ k : ℤ, k ≠ 0 ∧ w = a^k) ∨
+  ∃ (i : Fin n) (h : ∃ v : F, ¬ Good (gubaState pick i.val).1 v)
+    (k : ℤ), k ≠ 0 ∧ w = (pick (gubaState pick i.val).1 h).val^k
+
+theorem gubaPowerBoundary_ne_one (pick : WeightedSelector) (n : ℕ)
+    (w : F) (hw : GubaPowerBoundary pick n w) : w ≠ 1 := by
+  rcases hw with ⟨k,hk,rfl⟩ | ⟨i,h,k,hk,rfl⟩
+  · intro he
+    have hweight := weightedLength_a_zpow k
+    rw [he,(weightedLength_eq_zero_iff (1 : F)).mpr rfl] at hweight
+    exact hk (Int.natAbs_eq_zero.mp hweight.symm)
+  · let C := (pick (gubaState pick i.val).1 h).val
+    have hc : MinBad (gubaState pick i.val).1 C :=
+      (pick (gubaState pick i.val).1 h).property
+    have hweight := weight_ge_of_bad (gubaState pick i.val).1 C hc.1
+    intro he
+    change C^k = 1 at he
+    have hpow : weightedLength (C^k) = k.natAbs*weightedLength C := by
+      unfold weightedLength
+      rw [minBad_intPow_toWord hc,rawIntPow_weight_exact]
+    rw [he,(weightedLength_eq_zero_iff (1 : F)).mpr rfl] at hpow
+    have hpos : 0 < k.natAbs := Nat.pos_of_ne_zero (fun hz => hk (Int.natAbs_eq_zero.mp hz))
+    have hmul := Nat.mul_pos hpos (show 0 < weightedLength C by omega)
+    omega
+
+/-- If any coefficient power collapses, choose a least full-type
+counterexample across the entire family, not just one fixed
+boundary. Its filling is also globally minimal for its own
+boundary. -/
+theorem exists_gubaPowerCounterexample_minimal
+    (pick : WeightedSelector) (n : ℕ)
+    (hex : ∃ w : F, GubaPowerBoundary pick n w ∧
+      w ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n) :
+    ∃ (w : F) (s : Peiffer.Sequence F (RankHeight n)),
+      GubaPowerBoundary pick n w ∧
+      GubaTypeMinimalExpression pick (gubaConjugatorChoice pick) n w s ∧
+      (∀ t : Peiffer.Sequence F (RankHeight n),
+        GubaPowerBoundary pick n
+          (Peiffer.evaluation (rankHeightRel pick (gubaConjugatorChoice pick) n) t) →
+        ¬ descendingCountLT (2*n) gubaTypeCoordinate t s) := by
+  let rel := rankHeightRel pick (gubaConjugatorChoice pick) n
+  obtain ⟨w,hw,hmem⟩ := hex
+  obtain ⟨t,ht⟩ := exists_gubaTypeMinimalExpression pick (gubaConjugatorChoice pick) n w hmem
+  have hex' : ∃ u : Peiffer.Sequence F (RankHeight n),
+      GubaPowerBoundary pick n (Peiffer.evaluation rel u) := by
+    refine ⟨t,?_⟩
+    rw [show Peiffer.evaluation rel t = w from ht.1]
+    exact hw
+  obtain ⟨s,hs,hmin⟩ := exists_descending_count_min (2*n)
+    (fun u : Peiffer.Sequence F (RankHeight n) =>
+      GubaPowerBoundary pick n (Peiffer.evaluation rel u)) gubaTypeCoordinate hex'
+  refine ⟨Peiffer.evaluation rel s,s,hs,⟨rfl,?_⟩,?_⟩
+  · intro u hu j hj habove
+    change Peiffer.evaluation rel u = Peiffer.evaluation rel s at hu
+    exact hmin u (by rwa [hu]) j hj habove
+  · intro u hu hlt
+    obtain ⟨j,hj,hstrict,habove⟩ := hlt
+    exact (Nat.not_lt_of_ge (hmin u hu j hj
+      (fun k hk hkn => (habove k hk hkn).symm))) hstrict
+
+set_option maxRecDepth 8192 in
+/-- The actual aligned self-pair is forbidden in a least-type
+counterexample from the coefficient-power family. This closes
+that induction branch without an external smoothness or
+power-survival hypothesis. The other heavy-pair cases and
+exterior-period pairings still have to be excluded. -/
+theorem gubaPowerCounterexample_no_actual_self_long_pair
+    (pick : WeightedSelector) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w)
+    (hw : w ≠ 1)
+    (hmin : ∀ t : Peiffer.Sequence F (RankHeight n),
+      GubaPowerBoundary pick n
+        (Peiffer.evaluation (rankHeightRel pick (gubaConjugatorChoice pick) n) t) →
+      ¬ descendingCountLT (2*n) gubaTypeCoordinate t s) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ (x c : _) (i : Fin s.length)
+      (h : ∃ v : F, ¬ Good (gubaState pick s[i.val].1.2.1.val).1 v)
+      (bs : List (List _)) (l U r l' r' : List _),
+      (idx x).val = i.val+1 →
+      R.vertexBoundary x = bs.flatMap id →
+      GubaFourBlockRead read bs (activeLongWord pick s[i.val].1.2.1.val h)
+        (pick (gubaState pick s[i.val].1.2.1.val).1 h).val s[i.val].1.2.2 →
+      bs[0]? = some (l++(U++[c])++r) →
+      bs[2]? = some (l'++(((U++[c]).map R.edge).reverse)++r') →
+      R.rotation c ≠ R.edge c →
+      s[i.val].1.2.2 ≠ 0 →
+      positiveWeight (activeLongWord pick s[i.val].1.2.1.val h) <
+        240*10^17*rawWeight ((U++[c]).map read) → False := by
+  intro X rows R idx read x c i h bs l U r l' r' hidx hxb hread hb hc hne hk hheavy
+  obtain ⟨u,hlt,hu⟩ := gubaType_actual_self_long_pair_minimal_power_filling
+    pick n w s hs hw x c i h bs l U r l' r' hidx hxb hread hb hc hne hheavy
+  apply hmin u _ hlt
+  rcases hu with hu | hu
+  · rw [hu.1]
+    exact Or.inr ⟨s[i.val].1.2.1,h,-s[i.val].1.2.2,neg_ne_zero.mpr hk,rfl⟩
+  · rw [hu.1]
+    exact Or.inl ⟨s[i.val].1.2.2,hk,rfl⟩
+
+#print axioms GubaPowerBoundary
+#print axioms gubaPowerBoundary_ne_one
+#print axioms exists_gubaPowerCounterexample_minimal
+#print axioms gubaPowerCounterexample_no_actual_self_long_pair
+
 end QuandleResearch.Issue070
