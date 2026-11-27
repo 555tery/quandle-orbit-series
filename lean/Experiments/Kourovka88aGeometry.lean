@@ -14091,4 +14091,56 @@ theorem aligned_opposite_long_sides_merge (P S C : F) (k l : ℤ) :
 
 #print axioms aligned_opposite_long_sides_merge
 
+
+/-- Geometric application of the aligned long-side identity: when
+the two based vertex readings have the specified matching coordinates,
+splicing their actual edge replaces the two rows by one conjugate of
+the height-sum relator. The conclusion holds at every base dart of
+the merged cycle. This does not assert that a long strip is aligned. -/
+theorem ribbon_aligned_height_splice {D : Type} [Fintype D]
+    (R : RibbonMap D) (v : D → F) (c d : D)
+    (hn : ¬ R.rotation.SameCycle c (R.edge c))
+    (hd : (R.edgeSplice c).rotation.SameCycle (R.rotation c) d)
+    (P S C : F) (k l : ℤ)
+    (hleft : cycleProduct R.rotation v (R.rotation c) =
+      S*C^k*(P*S)⁻¹*(a^k)⁻¹*P)
+    (hright : cycleProduct R.rotation v (R.edge c) =
+      P⁻¹*(a^l)⁻¹*(P*S)*C^l*S⁻¹) :
+    ∃ g : F, cycleProduct (R.edgeSplice c).rotation v d =
+      g * heightRelator (P*S) C (k+l) * g⁻¹ := by
+  have hnc : ¬ R.rotation.SameCycle (R.rotation c) (R.edge c) := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  have hm : cycleProduct (R.edgeSplice c).rotation v (R.rotation c) =
+      cycleProduct R.rotation v (R.rotation c) *
+        cycleProduct R.rotation v (R.edge c) :=
+    cycleProduct_cutAt_merge R.rotation v (R.rotation c) (R.edge c) hnc
+  obtain ⟨t,ht⟩ := guba22_cycleProduct_conjugator
+    (R.edgeSplice c).rotation v (R.rotation c) d hd
+  have hi := aligned_opposite_long_sides_merge P S C k l
+  dsimp only at hi
+  refine ⟨t*(S*(C^l)⁻¹*(P*S)⁻¹),?_⟩
+  rw [ht,hm,hleft,hright,hi]
+  group
+
+/-- Opposite heights are the cancellation case of the same actual
+edge splice: the merged vertex has trivial based product everywhere.
+No claim about a change of the other vertex labels is made here. -/
+theorem ribbon_aligned_height_splice_cancel {D : Type} [Fintype D]
+    (R : RibbonMap D) (v : D → F) (c d : D)
+    (hn : ¬ R.rotation.SameCycle c (R.edge c))
+    (hd : (R.edgeSplice c).rotation.SameCycle (R.rotation c) d)
+    (P S C : F) (k : ℤ)
+    (hleft : cycleProduct R.rotation v (R.rotation c) =
+      S*C^k*(P*S)⁻¹*(a^k)⁻¹*P)
+    (hright : cycleProduct R.rotation v (R.edge c) =
+      P⁻¹*(a^(-k))⁻¹*(P*S)*C^(-k)*S⁻¹) :
+    cycleProduct (R.edgeSplice c).rotation v d = 1 := by
+  obtain ⟨g,hg⟩ := ribbon_aligned_height_splice R v c d hn hd P S C k (-k)
+    hleft hright
+  rw [hg,add_neg_cancel]
+  simp [heightRelator]
+
+#print axioms ribbon_aligned_height_splice
+#print axioms ribbon_aligned_height_splice_cancel
+
 end QuandleResearch.Issue070
