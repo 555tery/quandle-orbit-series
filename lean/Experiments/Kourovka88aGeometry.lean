@@ -2999,4 +2999,158 @@ theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
 
 #print axioms guba22_two_outlet_inverse_conjugacy
 
+
+
+/-! ## Literal intervals on distinct peripheral vertices
+
+A single dart is not a contiguity section. We now isolate prescribed
+nonempty proper intervals on two different original vertices, in one
+actual split refinement. The lengths, order, and original incidences
+are retained. An edge between the intervals guarantees that their
+new vertices lie in the same genuine component.
+-/
+
+/-- A cut in a different vertex does not change any iterate along
+the original cycle of the protected starting dart. -/
+theorem guba22_other_cycle_iterate {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b c : D)
+    (ha : ¬ P.rotation.SameCycle c a)
+    (hb : ¬ P.rotation.SameCycle c b) (m : ℕ) :
+    (P.vertexCut a b).rotation^[m] c = P.rotation^[m] c := by
+  classical
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [Function.iterate_succ_apply', Function.iterate_succ_apply', ih]
+    have hcycle : P.rotation.SameCycle c (P.rotation^[m] c) := by
+      rw [← Equiv.Perm.coe_pow]
+      exact Equiv.Perm.sameCycle_pow_right.mpr (.refl _ _)
+    rw [P.vertexCut_rotation, cutAt_apply]
+    apply Equiv.swap_apply_of_ne_of_ne
+    · intro h
+      apply ha
+      rw [← h]
+      exact Equiv.Perm.sameCycle_apply_right.mpr hcycle
+    · intro h
+      apply hb
+      rw [← h]
+      exact Equiv.Perm.sameCycle_apply_right.mpr hcycle
+
+/-- Actual finite cuts isolate two prescribed proper boundary
+intervals simultaneously, with both literal ordered dart lists.
+No assumption about the metric or the relator labels is needed. -/
+theorem guba22_two_interval_refinement {D : Type} [Fintype D]
+    (P : RibbonMap D) (a c : D) (k l : ℕ)
+    (hk : k + 1 < Function.minimalPeriod P.rotation a)
+    (hl : l + 1 < Function.minimalPeriod P.rotation c)
+    (hac : ¬ P.rotation.SameCycle a c) :
+    ∃ tau : Equiv.Perm D, SplitRefinement P.rotation tau ∧
+      (P.withRotation tau).vertexBoundary a =
+        List.ofFn (fun i : Fin k => P.rotation^[i.val] a) ++ [P.rotation^[k] a] ∧
+      (P.withRotation tau).vertexBoundary c =
+        List.ofFn (fun i : Fin l => P.rotation^[i.val] c) ++ [P.rotation^[l] c] ∧
+      ¬ tau.SameCycle a c := by
+  classical
+  let b := P.rotation^[k+1] a
+  let d := P.rotation^[l+1] c
+  let S := P.vertexCut a b
+  have h1 : P.rotation.SameCycle a b := by
+    change P.rotation.SameCycle a (P.rotation^[k+1] a)
+    rw [← Equiv.Perm.coe_pow]
+    exact Equiv.Perm.sameCycle_pow_right.mpr (.refl _ _)
+  have h2 : P.rotation.SameCycle c d := by
+    change P.rotation.SameCycle c (P.rotation^[l+1] c)
+    rw [← Equiv.Perm.coe_pow]
+    exact Equiv.Perm.sameCycle_pow_right.mpr (.refl _ _)
+  have hab : a ≠ b := by
+    intro h
+    have he : P.rotation^[0] a = P.rotation^[k+1] a := h
+    have hzero := Function.iterate_injOn_Iio_minimalPeriod
+      (f := (P.rotation : D → D)) (x := a) (by omega) hk he
+    omega
+  have hcd : c ≠ d := by
+    intro h
+    have he : P.rotation^[0] c = P.rotation^[l+1] c := h
+    have hzero := Function.iterate_injOn_Iio_minimalPeriod
+      (f := (P.rotation : D → D)) (x := c) (by omega) hl he
+    omega
+  have hca : ¬ P.rotation.SameCycle c a := fun h => hac h.symm
+  have hcb : ¬ P.rotation.SameCycle c b := fun h => hac (h1.trans h.symm)
+  have hcread : S.vertexBoundary c = P.vertexBoundary c :=
+    vertexCut_other_vertex_read P a b c hca hcb
+  have hperiod : Function.minimalPeriod S.rotation c =
+      Function.minimalPeriod P.rotation c := by
+    have hlen := congrArg List.length hcread
+    simpa only [RibbonMap.vertexBoundary, List.length_ofFn] using hlen
+  have hiter (m : ℕ) : S.rotation^[m] c = P.rotation^[m] c :=
+    guba22_other_cycle_iterate P a b c hca hcb m
+  have hd : S.rotation^[l+1] c = d := hiter _
+  have h2' : S.rotation.SameCycle c d := by
+    apply (S.mem_vertexBoundary_iff c d).mp
+    rw [hcread]
+    exact (P.mem_vertexBoundary_iff c d).mpr h2
+  have hca' : ¬ S.rotation.SameCycle c a := by
+    intro h
+    have hm := (S.mem_vertexBoundary_iff c a).mpr h
+    rw [hcread] at hm
+    exact hca ((P.mem_vertexBoundary_iff c a).mp hm)
+  let T := S.vertexCut c d
+  have haRead : T.vertexBoundary a = S.vertexBoundary a :=
+    vertexCut_other_vertex_read S c d a
+      (fun h => hca' h.symm) (fun h => hca' (h2'.trans h.symm))
+  have hcRead := vertexCut_prescribed_interval S c l (by rw [hperiod]; exact hl)
+  rw [hd] at hcRead
+  refine ⟨T.rotation, SplitRefinement.cut
+    (SplitRefinement.single P.rotation a b hab h1) c d hcd h2', ?_, ?_, ?_⟩
+  · change T.vertexBoundary a = _
+    rw [haRead]
+    exact vertexCut_prescribed_interval P a k hk
+  · change T.vertexBoundary c = _
+    rw [hcRead, hiter l]
+    congr 1
+    apply congrArg List.ofFn
+    funext i
+    exact hiter i.val
+  · intro h
+    have hm := (T.mem_vertexBoundary_iff a c).mpr h
+    rw [haRead] at hm
+    exact hca' ((S.mem_vertexBoundary_iff a c).mp hm).symm
+
+/-- If one actual edge meets both prescribed intervals, their
+isolated vertices belong to the same component after the two cuts.
+This supplies a concrete two-interval region candidate, not a
+claim that it has no further peripheral vertices. -/
+theorem guba22_connected_interval_refinement {D : Type} [Fintype D]
+    (P : RibbonMap D) (a c e : D) (k l : ℕ)
+    (hk : k + 1 < Function.minimalPeriod P.rotation a)
+    (hl : l + 1 < Function.minimalPeriod P.rotation c)
+    (hac : ¬ P.rotation.SameCycle a c)
+    (he : e ∈ List.ofFn (fun i : Fin k => P.rotation^[i.val] a) ++
+      [P.rotation^[k] a])
+    (he' : P.edge e ∈ List.ofFn (fun i : Fin l => P.rotation^[i.val] c) ++
+      [P.rotation^[l] c]) :
+    ∃ tau : Equiv.Perm D, SplitRefinement P.rotation tau ∧
+      (P.withRotation tau).vertexBoundary a =
+        List.ofFn (fun i : Fin k => P.rotation^[i.val] a) ++ [P.rotation^[k] a] ∧
+      (P.withRotation tau).vertexBoundary c =
+        List.ofFn (fun i : Fin l => P.rotation^[i.val] c) ++ [P.rotation^[l] c] ∧
+      ¬ tau.SameCycle a c ∧ (P.withRotation tau).SameComponent a c := by
+  obtain ⟨tau, href, ha, hc, hne⟩ :=
+    guba22_two_interval_refinement P a c k l hk hl hac
+  let S := P.withRotation tau
+  have h1 : S.rotation.SameCycle a e :=
+    (S.mem_vertexBoundary_iff a e).mp (by rw [show S.vertexBoundary a = _ from ha]; exact he)
+  have h2 : S.rotation.SameCycle c (S.edge e) :=
+    (S.mem_vertexBoundary_iff c (S.edge e)).mp (by
+      rw [show S.vertexBoundary c = _ from hc]
+      exact he')
+  refine ⟨tau,href,ha,hc,hne,?_⟩
+  exact Relation.EqvGen.trans _ _ _ (S.component_of_vertexCycle h1)
+    (Relation.EqvGen.trans _ _ _ (S.component_edge e)
+      (S.component_of_vertexCycle h2.symm))
+
+#print axioms guba22_other_cycle_iterate
+#print axioms guba22_two_interval_refinement
+#print axioms guba22_connected_interval_refinement
+
 end QuandleResearch.Issue070
