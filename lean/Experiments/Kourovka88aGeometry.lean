@@ -10585,4 +10585,169 @@ theorem answer_of_guba_based_nonseparating_step
 #print axioms guba23_perimeter_reduce_to_based_nonseparating
 #print axioms answer_of_guba_based_nonseparating_step
 
+
+/-- Raw weighted perimeter is independent of the based corner,
+without assuming that the cyclic reading is freely reduced. -/
+theorem ribbon_vertex_weight_sameCycle {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a b : D)
+    (hab : P.rotation.SameCycle a b) :
+    rawWeight ((P.vertexBoundary b).map read) =
+      rawWeight ((P.vertexBoundary a).map read) := by
+  obtain ⟨m,hm⟩ := hab.exists_nat_pow_eq
+  rw [← hm]
+  clear hm hab
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    let d := (P.rotation ^ m) a
+    obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation d
+    have hnext := cycleBoundary_next P.rotation d l hl
+    have hstep : rawWeight ((P.vertexBoundary (P.rotation d)).map read) =
+        rawWeight ((P.vertexBoundary d).map read) := by
+      change rawWeight ((cycleBoundary P.rotation (P.rotation d)).map read) =
+        rawWeight ((cycleBoundary P.rotation d).map read)
+      rw [hnext,hl,List.map_append,List.map_cons,rawWeight_append]
+      simp only [List.map_nil,rawWeight]
+      omega
+    rw [pow_succ',Equiv.Perm.mul_apply]
+    exact hstep.trans ih
+
+/-- In a shortest nontrivial kernel word every based cyclic reading
+is itself canonical. This uses minimality in the weighted metric,
+not a general assertion that every relator spelling is reduced. -/
+theorem shortest_kernel_cyclic_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (a b : D) (hab : P.rotation.SameCycle a b)
+    (w : F) (hw : w ≠ 1) (hm : w ∈ N)
+    (hbase : (P.vertexBoundary a).map read = w.toWord)
+    (hmin : ∀ z : F, z ∈ N → z ≠ 1 → weightedLength w ≤ weightedLength z) :
+    (FreeGroup.mk ((P.vertexBoundary b).map read)).toWord =
+      (P.vertexBoundary b).map read := by
+  let z := FreeGroup.mk ((P.vertexBoundary b).map read)
+  have ha : FreeGroup.mk ((P.vertexBoundary a).map read) = w := by
+    rw [hbase,FreeGroup.mk_toWord]
+  have hz : z ∈ N :=
+    (ribbon_vertex_mem_sameCycle P read N a b hab).mp (by rw [ha]; exact hm)
+  have hne : z ≠ 1 := by
+    obtain ⟨u,hu,_⟩ := vertex_short_corner_connector P read a b hab
+    rw [ha] at hu
+    change w * FreeGroup.mk u = FreeGroup.mk u * z at hu
+    intro he
+    rw [he,mul_one] at hu
+    exact hw (mul_right_cancel (hu.trans (one_mul _).symm))
+  have hle := weightedLength_mk_le ((P.vertexBoundary b).map read)
+  have hweight := ribbon_vertex_weight_sameCycle P read a b hab
+  rw [hbase] at hweight
+  change rawWeight ((P.vertexBoundary b).map read) = weightedLength w at hweight
+  apply rawWord_eq_of_sublist_weight
+  · rw [FreeGroup.toWord_mk]
+    exact FreeGroup.Red.sublist FreeGroup.reduce.red
+  · change weightedLength z = rawWeight ((P.vertexBoundary b).map read)
+    have hlow := hmin z hz hne
+    change weightedLength z ≤ _ at hle
+    omega
+
+/-- No two distinct corners of a shortest nontrivial kernel boundary
+can cut off a separate component. This works at EVERY corner,
+and needs no graded minimality or all-cell perimeter induction. -/
+theorem shortest_kernel_no_separating_cut {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (hE : P.EulerEquality)
+    (hedge : ∀ e, read (P.edge e) = reverseLetter (read e))
+    (a : D) (w : F) (hw : w ≠ 1) (hm : w ∈ N)
+    (hbase : (P.vertexBoundary a).map read = w.toWord)
+    (hmin : ∀ z : F, z ∈ N → z ≠ 1 → weightedLength w ≤ weightedLength z)
+    (hint : ∀ e, ¬ P.rotation.SameCycle a e →
+      FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N) :
+    ∀ c d, P.rotation.SameCycle a c → P.rotation.SameCycle a d →
+      c ≠ d → ¬ P.face.SameCycle (P.rotation.symm c) (P.rotation.symm d) := by
+  intro c d hac had hne hf
+  have hcd := hac.symm.trans had
+  have hsep := (spherical_vertexCut_separates_iff P hE c d hne hcd).mpr hf
+  let Q := P.vertexCut c d
+  let L := (Q.vertexBoundary c).map read
+  let R := (Q.vertexBoundary d).map read
+  let z := FreeGroup.mk ((P.vertexBoundary c).map read)
+  have hcat : L ++ R = z.toWord := by
+    rw [shortest_kernel_cyclic_read P read N a c hac w hw hm hbase hmin]
+    change (Q.vertexBoundary c).map read ++ (Q.vertexBoundary d).map read = _
+    rw [← List.map_append]
+    change (((P.vertexCut c d).vertexBoundary c ++
+      (P.vertexCut c d).vertexBoundary d).map read) = _
+    rw [← vertexCut_partition P c d hne hcd]
+  obtain ⟨hl,hr⟩ := canonical_split_weight z L R hcat
+  have hL : L ≠ [] := by
+    intro h
+    have hlen := congrArg List.length h
+    change ((Q.vertexBoundary c).map read).length = 0 at hlen
+    rw [List.length_map] at hlen
+    exact cycleBoundary_ne_nil Q.rotation c (List.length_eq_zero_iff.mp hlen)
+  have hR : R ≠ [] := by
+    intro h
+    have hlen := congrArg List.length h
+    change ((Q.vertexBoundary d).map read).length = 0 at hlen
+    rw [List.length_map] at hlen
+    exact cycleBoundary_ne_nil Q.rotation d (List.length_eq_zero_iff.mp hlen)
+  have hposL : 0 < rawWeight L := by
+    by_contra! h
+    exact hL ((rawWeight_eq_zero_iff L).mp (by omega))
+  have hposR : 0 < rawWeight R := by
+    by_contra! h
+    exact hR ((rawWeight_eq_zero_iff R).mp (by omega))
+  have hmem : FreeGroup.mk L ∈ N := by
+    apply vertexCut_separated_boundary_mem P read N c d
+      (Q.vertexBoundary c) (Q.vertexBoundary d) hne hcd hE hedge
+      (vertexCut_partition P c d hne hcd) rfl rfl hsep
+    intro e _ he
+    exact hint e (fun hae => he (hac.symm.trans hae))
+  have hnon : FreeGroup.mk L ≠ 1 := by
+    intro h
+    have hz := (weightedLength_eq_zero_iff _).mpr h
+    omega
+  have hlow := hmin (FreeGroup.mk L) hmem hnon
+  have hweight := ribbon_vertex_weight_sameCycle P read a c hac
+  rw [hbase,vertexCut_partition P c d hne hcd,List.map_append,rawWeight_append] at hweight
+  change rawWeight L + rawWeight R = weightedLength w at hweight
+  omega
+
+/-- At the first failing rank it suffices to exclude the shortest
+nonidentity kernel word of weight at most that of the commutator.
+The preceding stage is short-word injective, and every proper
+shorter nonidentity word survives even at the failing stage. -/
+theorem answer_of_first_shortest_kernel_step (pick : WeightedSelector)
+    (X : ConjugatorChoice)
+    (step : ∀ j w,
+      (∀ z : F, z ∈ weightedHeightStage pick X j →
+        weightedLength z ≤ 2 + 2 * 10^80 → z = 1) →
+      w ∈ weightedHeightStage pick X (j+1) → w ≠ 1 →
+      weightedLength w ≤ 2 + 2 * 10^80 →
+      (∀ z : F, z ∈ weightedHeightStage pick X (j+1) →
+        z ≠ 1 → weightedLength w ≤ weightedLength z) → False) :
+    answer := by
+  apply answer_of_heightStages_short pick X
+  intro n
+  induction n with
+  | zero =>
+    intro w hw _
+    rw [weightedHeightStage_eq] at hw
+    exact hw
+  | succ j ih =>
+    intro w hw hlen
+    by_contra hn
+    let p : ℕ → Prop := fun m => ∃ z : F,
+      z ∈ weightedHeightStage pick X (j+1) ∧ z ≠ 1 ∧ weightedLength z = m
+    have hex : ∃ m, p m := ⟨weightedLength w,w,hw,hn,rfl⟩
+    classical
+    obtain ⟨v,hv,hvn,hve⟩ := Nat.find_spec hex
+    have hmin (z : F) (hz : z ∈ weightedHeightStage pick X (j+1))
+        (hzn : z ≠ 1) : weightedLength v ≤ weightedLength z := by
+      rw [hve]
+      exact Nat.find_min' hex ⟨z,hz,hzn,rfl⟩
+    exact step j v ih hv hvn ((hmin w hw hn).trans hlen) hmin
+
+#print axioms ribbon_vertex_weight_sameCycle
+#print axioms shortest_kernel_cyclic_read
+#print axioms shortest_kernel_no_separating_cut
+#print axioms answer_of_first_shortest_kernel_step
+
 end QuandleResearch.Issue070
