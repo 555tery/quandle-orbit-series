@@ -12559,8 +12559,8 @@ theorem top_count_zero_mem_lower
     have ht : Peiffer.term (rankHeightRel pick X (j+1)) x ∈ N := by
       rcases x with ⟨⟨u,i⟩,sg⟩
       cases sg
-      · change u * (rankHeightRel pick X (j+1) i)⁻¹ * u⁻¹ ∈ N
-        exact (inferInstance : N.Normal).conj_mem _ (N.inv_mem hr) _
+      · have h := (inferInstance : N.Normal).conj_mem _ hr u
+        simpa only [Peiffer.term,Bool.cond_false] using N.inv_mem h
       · change u * rankHeightRel pick X (j+1) i * u⁻¹ ∈ N
         exact (inferInstance : N.Normal).conj_mem _ hr _
     change Peiffer.term (rankHeightRel pick X (j+1)) x *
@@ -12663,5 +12663,67 @@ theorem unit_height_light_aligned_impossible
 #print axioms rankMinimal_top_count_zero_iff
 #print axioms oneDart_defect_lower_iff_top_count
 #print axioms unit_height_light_aligned_impossible
+
+
+/-- Direct terminal criterion for the one-letter survival approach.
+A single corridor, with inner arc at least 10^-18 of the cell
+perimeter and the local transfer inequality of Lemma 21, suffices.
+The inner and outer words are supplied by the proposed geometric
+certificate; no coverage or simultaneous disjointness is asserted.
+All inequalities are integral, avoiding real-valued conversions. -/
+theorem answer_of_guba_one_dart_single_arc
+    (step : ∀ j (s : Peiffer.Sequence F (RankHeight (j+1)))
+      (hs : Peiffer.evaluation
+        (fun i => FreeGroup.mk (rankHeightRows twoPeriodSelector
+          (gubaConjugatorChoice twoPeriodSelector) (j+1) i)) s = a),
+      a ∉ weightedHeightStage twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) j →
+      RankMinimalExpression twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1) a s →
+      (∀ x ∈ s, x.2 = true) →
+      let rows := rankHeightRows twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1)
+      let P := boundaryRibbon rows a s hs
+      let z := boundaryDart rows a s (show a ≠ 1 by
+        intro h
+        have hw : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+        rw [h] at hw
+        have hz := (weightedLength_eq_zero_iff (1 : F)).mpr rfl
+        omega)
+      P.Connected → P.EulerEquality → P.vertexBoundary z = [z] →
+      ∃ x ∈ s, ∃ inner outer : RawWord,
+        outer.Sublist (FreeGroup.invRev a.toWord) ∧
+        rawWeight (rows x.1.2) ≤ 10^18 * rawWeight inner ∧
+        9 * 10^18 * rawWeight inner ≤
+          10^19 * rawWeight outer + 2 * rawWeight (rows x.1.2)) :
+    answer := by
+  apply answer_of_guba_one_dart_step
+  intro j s hs hnew hm hpos rows P z hc hE hz
+  obtain ⟨x,hx,inner,outer,hsub,hL,hT⟩ :=
+    step j s hs hnew hm hpos hc hE hz
+  have hB := guba23_sublist_weight hsub
+  rw [rawWeight_invRev] at hB
+  change rawWeight outer ≤ weightedLength a at hB
+  have ha : weightedLength a = 1 := by
+    simpa using weightedLength_a_zpow 1
+  rw [ha] at hB
+  obtain ⟨p,r,he⟩ := List.mem_iff_append.mp hx
+  have hn : rankHeightRows twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) (j+1) x.1.2 ≠ [] := by
+    apply rankMinimal_designated_row_nonempty twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) (j+1) a p r x
+    have hsplit : s = p ++ [x] ++ r := by simpa using he
+    exact hsplit ▸ hm
+  have hlarge := guba_rankHeightRows_large twoPeriodSelector (j+1) x.1.2 hn
+  change rawWeight (rankHeightRows twoPeriodSelector
+    (gubaConjugatorChoice twoPeriodSelector) (j+1) x.1.2) ≤
+      10^18 * rawWeight inner at hL
+  change 9 * 10^18 * rawWeight inner ≤
+    10^19 * rawWeight outer + 2 * rawWeight (rankHeightRows twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) (j+1) x.1.2) at hT
+  norm_num at hL hT hlarge
+  omega
+
+#print axioms answer_of_guba_one_dart_single_arc
 
 end QuandleResearch.Issue070
