@@ -11977,6 +11977,92 @@ theorem first_positive_second_minBad (u : F)
   · exact h (hk.symm ▸ hbGood)
   · exact h (hk.symm ▸ hbiGood)
 
+
+/-- The endpoint convention required for the two X/C seams of
+Guba's literal relators. This is a property of the chosen word,
+not of the entire conjugacy class. -/
+def PeriodEnds (c : F) : Prop :=
+  ∃ (x y : Letter) (u v : RawWord),
+    c.toWord = x :: u ∧ c.toWord = v ++ [y] ∧
+    x ≠ (0,false) ∧ y ≠ (0,true)
+
+/-- Cut a list before its first letter different from a^-1,
+with an explicit heavy fallback at the end. The removed prefix
+is empty or ends in a^-1. -/
+theorem period_cut_before_nonnegative (h : Letter)
+    (hh : h ≠ (0,false)) (l : RawWord) :
+    ∃ p q : RawWord, l = p ++ q ∧
+      (∃ x t, q ++ [h] = x :: t ∧ x ≠ (0,false)) ∧
+      (p = [] ∨ ∃ t : RawWord, p = t ++ [(0,false)]) := by
+  induction l with
+  | nil =>
+    exact ⟨[],[],rfl,⟨h,[],rfl,hh⟩,Or.inl rfl⟩
+  | cons y ys ih =>
+    by_cases hy : y = (0,false)
+    · obtain ⟨p,q,he,hq,hp⟩ := ih
+      refine ⟨y::p,q,?_,hq,Or.inr ?_⟩
+      · rw [he]
+        rfl
+      · rcases hp with hp | ⟨t,ht⟩
+        · exact ⟨[],by simp [hp,hy]⟩
+        · exact ⟨y::t,by rw [ht]; rfl⟩
+    · exact ⟨[],y::ys,rfl,⟨y,ys++[h],rfl,hy⟩,Or.inl rfl⟩
+
+/-- Every minimal bad period has a cyclic representative satisfying
+the two endpoint restrictions from Guba's choice convention.
+There is a heavy letter, since pure light words are already good.
+Rotate after that letter, then past any leading negative light run. -/
+theorem exists_minBad_periodEnds (N : Subgroup F)
+    (hex : ∃ w : F, ¬ Good N w) :
+    ∃ c : F, MinBad N c ∧ PeriodEnds c := by
+  classical
+  obtain ⟨c,hc⟩ := exists_minBad N hex
+  have hh : ∃ h ∈ c.toWord, h.1 ≠ 0 := by
+    by_contra! hn
+    obtain ⟨k,hk⟩ := pure_a_word_eval c.toWord hn
+    rw [FreeGroup.mk_toWord] at hk
+    exact hc.1 (hk.symm ▸ good_a_zpow N k)
+  obtain ⟨h,hm,hh⟩ := hh
+  have hn : h ≠ (0,false) := fun he => hh (congrArg Prod.fst he)
+  have hp : h ≠ (0,true) := fun he => hh (congrArg Prod.fst he)
+  obtain ⟨l,r,he⟩ := List.mem_iff_append.mp hm
+  have he' : c.toWord = (l++[h]) ++ r := by
+    simpa only [List.append_assoc,List.singleton_append] using he
+  let d := FreeGroup.mk (r ++ (l++[h]))
+  have hd : MinBad N d := (minBad_rotation hc (l++[h]) r he').1
+  have hdword : d.toWord = (r++l)++[h] := by
+    simpa only [List.append_assoc] using minBad_rotation_toWord hc (l++[h]) r he'
+  obtain ⟨p,q,hpq,⟨x,t,hqt,hx⟩,hpend⟩ := period_cut_before_nonnegative h hn (r++l)
+  have hsplit : d.toWord = p ++ (q++[h]) := by
+    rw [hdword,hpq,List.append_assoc]
+  let e := FreeGroup.mk ((q++[h])++p)
+  have hemin : MinBad N e := (minBad_rotation hd p (q++[h]) hsplit).1
+  have heword : e.toWord = (q++[h])++p :=
+    minBad_rotation_toWord hd p (q++[h]) hsplit
+  refine ⟨e,hemin,?_⟩
+  have hstart : e.toWord = x :: (t++p) := by rw [heword,hqt]; rfl
+  rcases hpend with hempty | ⟨v,hv⟩
+  · refine ⟨x,h,t++p,q,hstart,?_,hx,hp⟩
+    rw [heword,hempty,List.append_nil]
+  · refine ⟨x,(0,false),t++p,(q++[h])++v,hstart,?_,hx,by decide⟩
+    rw [heword,hv,List.append_assoc]
+
+/-- A weight-minimal selector with the endpoint convention. -/
+noncomputable def endpointWeightedSelector : WeightedSelector :=
+  fun N hex => ⟨Classical.choose (exists_minBad_periodEnds N hex),
+    (Classical.choose_spec (exists_minBad_periodEnds N hex)).1⟩
+
+theorem endpointWeightedSelector_ends (N : Subgroup F)
+    (hex : ∃ w : F, ¬ Good N w) :
+    PeriodEnds (endpointWeightedSelector N hex).val :=
+  (Classical.choose_spec (exists_minBad_periodEnds N hex)).2
+
+#print axioms PeriodEnds
+#print axioms period_cut_before_nonnegative
+#print axioms exists_minBad_periodEnds
+#print axioms endpointWeightedSelector
+#print axioms endpointWeightedSelector_ends
+
 /-- Giving priority to b and then b*a^-1 among weight-minimal bad
 words is legitimate at every stage. The second branch is reached
 after the first positive relation whenever b*a^-1 survives. -/
@@ -11985,7 +12071,7 @@ noncomputable def twoPeriodSelector : WeightedSelector := by
   intro N h
   exact if hb : MinBad N b then ⟨b,hb⟩
     else if hd : MinBad N (b*a⁻¹) then ⟨b*a⁻¹,hd⟩
-    else arbitraryWeightedSelector N h
+    else endpointWeightedSelector N h
 
 theorem twoPeriodSelector_first (h : ∃ w : F, ¬ Good (⊥ : Subgroup F) w) :
     (twoPeriodSelector ⊥ h).val = b := by
@@ -12944,5 +13030,26 @@ theorem guba_second_stage_height_balance
 #print axioms guba_first_stage_all_light_powers
 #print axioms guba_second_stage_height_character
 #print axioms guba_second_stage_height_balance
+
+
+/-- The actual selector used by the one-letter construction now
+obeys the endpoint convention at every active stage, including
+the two explicitly preferred periods. -/
+theorem twoPeriodSelector_ends (N : Subgroup F)
+    (hex : ∃ w : F, ¬ Good N w) :
+    PeriodEnds (twoPeriodSelector N hex).val := by
+  classical
+  have hb : b.toWord = [(1,true)] := by decide
+  have hd : (b*a⁻¹).toWord = [(1,true),(0,false)] := by decide
+  by_cases h : MinBad N b
+  · simp only [twoPeriodSelector,dite_eq_left h]
+    exact ⟨(1,true),(1,true),[],[],hb,hb,by decide,by decide⟩
+  · by_cases h' : MinBad N (b*a⁻¹)
+    · simp only [twoPeriodSelector,dite_eq_right h,dite_eq_left h']
+      exact ⟨(1,true),(0,false),[(0,false)],[(1,true)],hd,hd,by decide,by decide⟩
+    · simp only [twoPeriodSelector,dite_eq_right h,dite_eq_right h']
+      exact endpointWeightedSelector_ends N hex
+
+#print axioms twoPeriodSelector_ends
 
 end QuandleResearch.Issue070
