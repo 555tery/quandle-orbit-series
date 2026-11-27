@@ -9550,4 +9550,148 @@ theorem guba23_regrouped_region_induction
 #print axioms guba23_regrouped_region_induction
 
 
+
+/-- Exact filling of an actual cut component with one peripheral
+cycle and otherwise intact original cells. Unlike the normal-closure
+version of the boundary theorem, this records distinct original cell
+indices, and represents the literal inverse boundary reading by
+exactly those cells. The hypothesis is local to this component:
+other components may have arbitrary split vertices. -/
+theorem guba23_refined_component_exact_occurrences
+    (rows : I → RawWord) (w : F) (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (tau : Equiv.Perm (DiscDarts (markedRows rows w) (boundaryIdentity s))) :
+    let P := boundaryRibbon rows w s hs
+    let Q := P.withRotation tau
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ a, SplitRefinement P.rotation tau →
+      (∀ d, Q.SameComponent a d → ¬ tau.SameCycle a d →
+        idx d ≠ boundaryOccurrence s ∧
+        Q.vertexBoundary d = P.vertexBoundary d) →
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F I),
+        (l.map Prod.fst).Nodup ∧
+        (∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2 ∧
+          ∃ d, Q.SameComponent a d ∧ ¬ tau.SameCycle a d ∧
+            (idx d).val = t.1.val+1) ∧
+        (∀ d, Q.SameComponent a d → ¬ tau.SameCycle a d →
+          ∃ t ∈ l, (idx d).val = t.1.val+1) ∧
+        Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) (l.map Prod.snd) =
+          (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹ := by
+  classical
+  intro P Q read idx a href hint
+  let C := Q.componentRibbon a
+  let D := {d // Q.SameComponent a d}
+  let z : D := ⟨a,Relation.EqvGen.refl a⟩
+  let v : D → F := fun d => FreeGroup.mk [read d.val]
+  have he : ∀ d, v (C.edge d) = (v d)⁻¹ := by
+    intro d
+    change FreeGroup.mk [read (P.edge d.val)] = (FreeGroup.mk [read d.val])⁻¹
+    have hread : read (P.edge d.val) = reverseLetter (read d.val) :=
+      relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+        (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d.val
+    rw [hread]
+    exact signedLetterValue_reverse _
+  have hEQ : Q.EulerEquality :=
+    P.splitRefinement_preserves_euler href (boundaryRibbon_euler rows w s hs)
+  have hEC : C.EulerEquality := by
+    change Fintype.card C.Vertex + Fintype.card C.Face =
+      Fintype.card C.Edge + 2 * Fintype.card C.Component
+    rw [Q.componentRibbon_card_components,mul_one]
+    exact Q.componentRibbon_sphere hEQ a
+  have same (d e : D) : C.rotation.SameCycle d e ↔ tau.SameCycle d.val e.val :=
+    Q.restrict_sameVertex_iff (Q.SameComponent a)
+      (Q.component_membership_edge a) (Q.component_membership_rotation a) d e
+  have hv (d : D) : cycleProduct C.rotation v d =
+      FreeGroup.mk ((Q.vertexBoundary d.val).map read) := by
+    change ((C.vertexBoundary d).map v).prod = _
+    rw [← component_vertex_read Q read a d,rawWord_eval_prod,List.map_map]
+    rfl
+  obtain ⟨f,hf,hsep,hcov,hprod⟩ := guba23_component_exact_vertex_product
+    C v he (Q.componentRibbon_connected a) hEC z
+  let value : F × D → F := fun t =>
+    t.1 * FreeGroup.mk ((Q.vertexBoundary t.2.val).map read) * t.1⁻¹
+  have localHint (d : D) (hd : ¬ C.rotation.SameCycle z d) :
+      idx d.val ≠ boundaryOccurrence s ∧ Q.vertexBoundary d.val = P.vertexBoundary d.val :=
+    hint d.val d.property (fun h => hd ((same z d).mpr h))
+  have build (b : List (F × D))
+      (hb : ∀ t ∈ b, ¬ C.rotation.SameCycle z t.2)
+      (hp : b.Pairwise (fun t u => ¬ C.rotation.SameCycle t.2 u.2)) :
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F I),
+        (l.map Prod.fst).Nodup ∧
+        (∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2 ∧
+          ∃ u ∈ b, (idx u.2.val).val = t.1.val+1) ∧
+        (∀ u ∈ b, ∃ t ∈ l, (idx u.2.val).val = t.1.val+1) ∧
+        Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) (l.map Prod.snd) =
+          (b.map value).prod := by
+    induction b with
+    | nil => exact ⟨[],by simp,by simp,by simp,rfl⟩
+    | cons u us ih =>
+      obtain ⟨hidx,hread⟩ := localHint u.2 (hb u List.mem_cons_self)
+      obtain ⟨i,y,hi,hy,hval⟩ := guba23_vertex_factor_as_occurrence
+        rows w s hs u.2.val u.1 hidx
+      obtain ⟨l,hn,hcover,hsurj,hl⟩ := ih
+        (fun t ht => hb t (List.mem_cons_of_mem _ ht)) (List.pairwise_cons.mp hp).2
+      refine ⟨(i,y)::l,?_,?_,?_,?_⟩
+      · simp only [List.map_cons,List.nodup_cons]
+        refine ⟨?_,hn⟩
+        intro hmem
+        obtain ⟨t,ht,htidx⟩ := List.mem_map.mp hmem
+        obtain ⟨q,hq,hqi⟩ := (hcover t ht).2
+        have hsame : P.rotation.SameCycle u.2.val q.2.val := by
+          change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle
+            u.2.val q.2.val
+          rw [disc_sameCycle_iff]
+          apply Fin.ext
+          rw [hi,hqi,htidx]
+        have hsame' : tau.SameCycle u.2.val q.2.val :=
+          (sameCycle_iff_of_vertexBoundary_eq P Q u.2.val q.2.val hread).mpr hsame
+        exact (List.pairwise_cons.mp hp).1 q hq ((same u.2 q.2).mpr hsame')
+      · intro t ht
+        rcases List.mem_cons.mp ht with ht | ht
+        · subst t
+          exact ⟨hy,u,List.mem_cons_self,hi⟩
+        · obtain ⟨hlabel,q,hq,hqi⟩ := hcover t ht
+          exact ⟨hlabel,q,List.mem_cons_of_mem _ hq,hqi⟩
+      · intro t ht
+        rcases List.mem_cons.mp ht with ht | ht
+        · subst t
+          exact ⟨(i,y),List.mem_cons_self,hi⟩
+        · obtain ⟨q,hq,hqi⟩ := hsurj t ht
+          exact ⟨q,List.mem_cons_of_mem _ hq,hqi⟩
+      · change Peiffer.term (fun i => FreeGroup.mk (rows i)) y *
+          Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) (l.map Prod.snd) =
+          value u * (us.map value).prod
+        rw [hl]
+        have hval' : Peiffer.term (fun i => FreeGroup.mk (rows i)) y = value u := by
+          change _ = u.1 * FreeGroup.mk ((Q.vertexBoundary u.2.val).map read) * u.1⁻¹
+          rw [hread]
+          exact hval
+        rw [hval']
+  obtain ⟨l,hn,hcover,hsurj,hl⟩ := build f hf hsep
+  refine ⟨l,hn,?_,?_,?_⟩
+  · intro t ht
+    obtain ⟨hlabel,u,hu,hi⟩ := hcover t ht
+    exact ⟨hlabel,u.2.val,u.2.property,fun h => hf u hu ((same z u.2).mpr h),hi⟩
+  · intro d hd hn'
+    let e : D := ⟨d,hd⟩
+    obtain ⟨u,hu,hue⟩ := hcov e (fun h => hn' ((same z e).mp h))
+    obtain ⟨t,ht,hi⟩ := hsurj u hu
+    have heq : idx u.2.val = idx d := by
+      have hread := (localHint u.2 (hf u hu)).2
+      have hcyc := (sameCycle_iff_of_vertexBoundary_eq P Q u.2.val d hread).mp
+        ((same u.2 e).mp hue)
+      exact (disc_sameCycle_iff _ _ _ _).mp hcyc
+    exact ⟨t,ht,(congrArg Fin.val heq).symm.trans hi⟩
+  · rw [hl]
+    simp only [hv] at hprod
+    change FreeGroup.mk ((Q.vertexBoundary a).map read) * (f.map value).prod = 1 at hprod
+    calc
+      _ = (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹ *
+          (FreeGroup.mk ((Q.vertexBoundary a).map read) * (f.map value).prod) := by group
+      _ = _ := by rw [hprod,mul_one]
+
+#print axioms guba23_refined_component_exact_occurrences
+
+
 end QuandleResearch.Issue070
