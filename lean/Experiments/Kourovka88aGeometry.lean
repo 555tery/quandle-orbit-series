@@ -7439,8 +7439,12 @@ theorem cycleProduct_cutAt_trivial_insert {D K : Type} [Finite D] [Group K]
     cycleProduct (cutAt sigma x y) v a = cycleProduct sigma v a := by
   let k := (orbitEquiv sigma x).symm ⟨a,hxa⟩
   have hka : sigma^[k.val] x = a := by
-    simpa only [Equiv.Perm.coe_pow] using
-      congrArg Subtype.val ((orbitEquiv sigma x).apply_symm_apply ⟨a,hxa⟩)
+    have h := congrArg Subtype.val ((orbitEquiv sigma x).apply_symm_apply ⟨a,hxa⟩)
+    first
+    | exact h
+    | change (sigma ^ k.val) x = a at h
+      simpa only [Equiv.Perm.coe_pow] using h
+    | simpa [orbitEquiv, k, Equiv.Perm.coe_pow] using h
   let l := List.ofFn (fun i : Fin k.val => sigma^[i.val] x)
   have hw : Walk sigma x a l := by
     rw [← hka]
