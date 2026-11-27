@@ -15909,6 +15909,7 @@ theorem guba23_gubaTypeMinimal_no_same_rank_height_splice
         exact hval
 
 /-- Long-side exclusion for a full-type minimizer, with actual rank labels on both cells. -/
+set_option maxRecDepth 8192 in
 theorem guba23_no_heavy_direct_long_side_walks_full_type
     (pick : WeightedSelector)
     (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
@@ -15958,8 +15959,7 @@ theorem guba23_no_heavy_direct_long_side_walks_full_type
   obtain ⟨hij,hpu,hrv⟩ := activeLongWord_heavy_factor_cut_eq pick i.val j.val hi hj
     p z r u v hfirst hsecond hheavy
   have hij' : i = j := Fin.ext hij
-  have hlabels : s[index.val].1.2.1 = s[index'.val].1.2.1 := by
-    rw [hlabel,hlabel',hij']
+  have hlabels := hlabel.trans (hij'.trans hlabel'.symm)
   clear hlabel'
   subst j
   subst u
@@ -16598,7 +16598,7 @@ theorem guba_four_block_pure_a_short {D : Type} (read : D → Letter)
     omega
   rw [hper]
   rw [hbs] at hb
-  simp only [List.mem_cons,List.mem_singleton] at hb
+  simp only [List.mem_cons,List.not_mem_nil,or_false] at hb
   rcases hb with rfl | rfl | rfl | rfl
   · rw [hU] at hz
     have hw := activeLongWord_signed_pure_a_bound pick i h z hz ha
@@ -16750,7 +16750,9 @@ theorem guba_oneDart_actual_single_block_pair
     have hshort := guba_four_block_pure_a_short read pick s[i.val].1.2.1.val ha'
       s[i.val].1.2.2 bs b ((v++[t]).map read) hread hb hf hlight
     rw [← hbs] at hshort
-    omega
+    change 54*rawWeight ((v++[t]).map read) <
+      rawWeight ((P.vertexBoundary d).map read) at hshort
+    exact (Nat.not_lt_of_ge hLong) hshort
   have hnonpure' : ¬ (∀ x ∈ (((v++[t]).map P.edge).reverse).map read, x.1 = 0) := by
     intro hlight
     have heq := boundaryRibbon_inverse_read rows a s hs (v++[t])
