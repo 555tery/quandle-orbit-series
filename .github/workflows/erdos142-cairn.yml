@@ -1,0 +1,91 @@
+name: Erdős 142 Cairn preflight
+on:
+  push:
+    branches: ['lean/erdos142-leading-constant']
+    paths: ['lean/QuandleResearch/Proofs/Erdos142/**', '.github/workflows/erdos142-cairn.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  repository-toolchain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - run: lake update
+      - run: lake exe cache get
+      - run: lake build QuandleResearch.Proofs.Erdos142.Geometry
+      - name: Replay proof module
+        run: lake env leanchecker QuandleResearch.Proofs.Erdos142.Geometry
+      - name: Audit submission theorem axioms
+        run: |
+          printf '%s\n' 'import QuandleResearch.Proofs.Erdos142.Geometry' '#print axioms QuandleResearch.Erdos142.erdos142_cairn_target' > CairnAudit.lean
+          lake env lean CairnAudit.lean | tee cairn-axioms.txt
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          s = Path("cairn-axioms.txt").read_text()
+          m = re.search(r"depends on axioms:\s*\[([^\]]*)\]", s)
+          assert m, s
+          found = {a.strip() for a in m.group(1).split(",") if a.strip()}
+          assert found <= {"propext", "Classical.choice", "Quot.sound"}, found
+          PY
+  cairn-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: DominikVladar/cairn-commons-verify
+          ref: 062cde97f75cf5e983766f9b871261bb4acefb7f
+          path: cairn-runner
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Set up pinned Cairn environment
+        working-directory: cairn-runner
+        run: bash scripts/setup-lean.sh
+      - name: Run Cairn's official preflight scripts locally in CI
+        working-directory: cairn-runner
+        run: |
+          set -euo pipefail
+          proof=../lean/QuandleResearch/Proofs/Erdos142/Geometry.lean
+          cat > target.txt <<'LEAN'
+          ∀ C : ℝ, 2 * Real.sqrt (Real.log (250 / 73)) < C →
+            ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N →
+              ∃ A : Finset ℕ, A ⊆ Finset.Icc 1 N ∧
+                (∀ x ∈ A, ∀ y ∈ A, ∀ z ∈ A, x + z = y + y → x = z) ∧
+                (N : ℝ) * Real.exp (-C * Real.sqrt (Real.log (N : ℝ))) ≤ (A.card : ℝ)
+          LEAN
+          ARTIFACT_FILE="$proof" node scripts/prepare-lean.mjs
+          bash scripts/lean-elaborate.sh
+          mkdir -p incoming/CairnVerify incoming/.lake/build/lib/lean/CairnVerify
+          cp build-ok.txt incoming/
+          cp CairnVerify/Submission.lean incoming/CairnVerify/
+          cp .lake/build/lib/lean/CairnVerify/Submission.* incoming/.lake/build/lib/lean/CairnVerify/ 2>/dev/null || true
+          rm -rf .lake/build/lib/lean/CairnVerify
+          rm -f CairnVerify/Submission.lean
+          RUN_ID=erdos142-preflight ARTIFACT_SHA256="$(sha256sum "$proof" | cut -d' ' -f1)" THEOREM=QuandleResearch.Erdos142.erdos142_cairn_target TARGET_B64="$(base64 -w0 target.txt)" TARGET_IMPORTS=Mathlib TARGET_MODE=exact ACCEPT_NEGATION=false bash scripts/lean-check.sh incoming
+          cat result.json
+          node -e 'const r=JSON.parse(require("fs").readFileSync("result.json")); if(r.status!=="passed") process.exit(1)'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cairn-preflight-report
+          path: |
+            cairn-runner/result.json
+            cairn-runner/policy.json
+            cairn-runner/inspection.txt
+            cairn-runner/target.txt
+            cairn-runner/build-ok.txt
