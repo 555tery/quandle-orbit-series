@@ -8133,8 +8133,12 @@ theorem good_raw_rotation_iff (N : Subgroup F) (l r : RawWord) :
     Good N (FreeGroup.mk (r ++ l)) ↔ Good N (FreeGroup.mk (l ++ r)) := by
   have he : FreeGroup.mk l * FreeGroup.mk (r ++ l) *
       (FreeGroup.mk l)⁻¹ = FreeGroup.mk (l ++ r) := by
-    rw [← FreeGroup.mul_mk, ← List.append_assoc, ← FreeGroup.mul_mk]
-    simp
+    rw [← FreeGroup.mul_mk]
+    calc
+      FreeGroup.mk (l ++ (r ++ l)) * (FreeGroup.mk l)⁻¹ =
+          FreeGroup.mk (l ++ r) := by
+        rw [← List.append_assoc, ← FreeGroup.mul_mk]
+        group
   simpa only [he] using
     (good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))).symm
 
@@ -8470,7 +8474,7 @@ theorem guba_prefix_zero_factor_bound (m : ℕ) (z : List (Fin 2))
     have h2 : z[i+1] = 0 := ha _ (List.mem_of_getElem (l := z) (i := i+1) rfl)
     rw [h1,h2]
   have h := thueFactor_period_bound (prefixEnd (2*m+1)+1) 1 p z r
-    he (by omega) hper
+    he.symm (by omega) hper
   omega
 
 theorem zero_prefix_repeat_bound (q : List (Fin 2)) (n : ℕ)
@@ -8499,9 +8503,9 @@ theorem zero_factor_repeat_bound (q : List (Fin 2)) (n : ℕ)
     z.length ≤ 4 := by
   induction n generalizing z with
   | zero =>
-    have he := hz.length_le
-    simp at he
-    omega
+    have he : z.length ≤ ([] : List (Fin 2)).length :=
+      hz.sublist.length_le
+    simpa using (le_trans he (by decide : ([] : List (Fin 2)).length ≤ 4))
   | succ n ih =>
     rw [List.replicate_succ,List.flatten_cons] at hz
     rcases List.infix_append_iff.mp hz with h | h | ⟨u,v,rfl,hu,hv⟩
@@ -8540,7 +8544,7 @@ theorem zero_factor_longBlock_bound (q : List (Fin 2)) (n : ℕ)
 theorem zero_prefix_longBlock_empty (q : List (Fin 2)) (n : ℕ)
     (z : List (Fin 2)) (hz : z <+: longBlock q n)
     (ha : ∀ x ∈ z, x = 0) : z = [] := by
-  have h1 : [1 : Fin 2] <+: longBlock q n := by
+  have h1 : [(1 : Fin 2)] <+: longBlock q n := by
     unfold longBlock
     simp [List.replicate_succ]
   rcases List.prefix_or_prefix_of_prefix hz h1 with h | h
@@ -8565,9 +8569,9 @@ theorem guba_longRaw_zero_factor_bound (m n : ℕ)
   have hbound := guba_prefix_zero_factor_bound m
   induction n generalizing z with
   | zero =>
-    have h := hz.length_le
-    simp [longRaw] at h
-    omega
+    have he : z.length ≤ ([] : List (Fin 2)).length :=
+      hz.sublist.length_le
+    simpa using (le_trans he (by decide : ([] : List (Fin 2)).length ≤ 4))
   | succ n ih =>
     rw [longRaw] at hz
     rcases List.infix_append_iff.mp hz with h | h | ⟨u,v,rfl,hu,hv⟩
