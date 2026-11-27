@@ -18940,4 +18940,29 @@ theorem ribbon_retained_low_end_vertex {D : Type} [Fintype D]
 #print axioms ribbon_independent_low_end_bound
 #print axioms ribbon_retained_low_end_vertex
 
+
+/-- Explicit alternative for the rank-compressed geometry:
+either a lower region has at most two essential departures and
+requires elimination/transfer, or a retained non-exterior cell
+has at most eleven. No minimum-degree assumption is hidden. -/
+theorem ribbon_rank_compression_end_dichotomy {D : Type} [Fintype D]
+    (P : RibbonMap D) (z : D) (low : Finset P.Vertex)
+    (hc : P.Connected) (hE : P.EulerEquality)
+    (hmono : ∀ d, P.face d ≠ d)
+    (hind : ∀ d, P.vertexOf d ∈ low → P.vertexOf (P.edge d) ∉ low)
+    (hroot : P.vertexOf z ∉ low) :
+    (∃ v ∈ low, ribbonVertexEndCount P v ≤ 2) ∨
+      (∃ v : P.Vertex, v ∉ low ∧ v ≠ P.vertexOf z ∧
+        ribbonVertexEndCount P v ≤ 11) := by
+  classical
+  by_cases h : ∃ v ∈ low, ribbonVertexEndCount P v ≤ 2
+  · exact Or.inl h
+  · right
+    apply ribbon_retained_low_end_vertex P z low hc hE hmono hind hroot
+    intro v hv
+    by_contra! hn
+    exact h ⟨v,hv,by omega⟩
+
+#print axioms ribbon_rank_compression_end_dichotomy
+
 end QuandleResearch.Issue070
