@@ -18471,4 +18471,129 @@ theorem exists_guba_first_power_failure (pick : WeightedSelector)
 #print axioms gubaPowerBoundary_failure_iff
 #print axioms exists_guba_first_power_failure
 
+
+/-- A periodic factor of the long word gives a shifted self-overlap
+after removing one period. In particular the exceptional initial
+period is paid for only ONCE, not once per repetition. -/
+theorem activeLongWord_periodic_prefix_bound (pick : WeightedSelector)
+    (i : ℕ) (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v z : RawWord) (hv : v ≠ [])
+    (hp : v <+: z) (hper : z.HasPeriod v.length)
+    (hz : z <:+: (activeLongWord pick i hi).map (fun x => (x,true))) :
+    240*10^17*(rawWeight z - rawWeight v) ≤
+      positiveWeight (activeLongWord pick i hi) := by
+  obtain ⟨t,ht⟩ := List.prefix_iff_exists_append_eq.mp hp
+  have htake : z.take v.length = v := by
+    rw [← ht]
+    simp
+  have hstep : z <+: v++z := by
+    change z <+: z.take v.length ++ z at hper
+    rwa [htake] at hper
+  have htpre : t <+: z := by
+    apply (List.prefix_append_right_inj v).mp
+    rw [ht]
+    exact hstep
+  obtain ⟨q,hq⟩ := List.prefix_iff_exists_append_eq.mp htpre
+  obtain ⟨p,r,hpr⟩ := hz
+  have hfirst : (activeLongWord pick i hi).map (fun x => (x,true)) =
+      p++t++(q++r) := by
+    rw [← hpr,← hq]
+    simp only [List.append_assoc]
+  have hsecond : (activeLongWord pick i hi).map (fun x => (x,true)) =
+      (p++v)++t++r := by
+    rw [← hpr,← ht]
+    simp only [List.append_assoc]
+  obtain ⟨p₁,t₁,r₁,h₁,hp₁,ht₁,hr₁⟩ :=
+    read_factor_lift (fun x : Fin 2 => (x,true)) (activeLongWord pick i hi)
+      p t (q++r) hfirst
+  obtain ⟨p₂,t₂,r₂,h₂,hp₂,ht₂,hr₂⟩ :=
+    read_factor_lift (fun x : Fin 2 => (x,true)) (activeLongWord pick i hi)
+      (p++v) t r hsecond
+  have htt : t₁ = t₂ := by
+    have he := congrArg (List.map (Prod.fst : Letter → Fin 2)) (ht₁.trans ht₂.symm)
+    simp only [List.map_map] at he
+    change t₁.map (fun x => x) = t₂.map (fun x => x) at he
+    simpa only [List.map_id'] using he
+  subst t₂
+  have hp₁len : p₁.length = p.length := by
+    simpa only [List.length_map] using congrArg List.length hp₁
+  have hp₂len : p₂.length = p.length+v.length := by
+    simpa only [List.length_map,List.length_append] using congrArg List.length hp₂
+  have hvlen : v.length ≠ 0 := fun he => hv (List.length_eq_zero_iff.mp he)
+  have hdiff : p₁.length ≠ p₂.length := by omega
+  have hb := activeLongWord_overlap_bound pick i i hi hi
+    p₁ t₁ r₁ p₂ r₂ h₁ h₂ (Or.inr hdiff)
+  rw [positiveWeight_eq_rawWeight_map,ht₁] at hb
+  have hweight : rawWeight z = rawWeight v + rawWeight t := by
+    rw [← ht,rawWeight_append]
+  omega
+
+/-- Offset-independent mixed overlap bound. No assumption about
+the signs, primitivity or minimality of the repeated base is
+needed. The base can be any raw word. -/
+theorem activeLongWord_arbitrary_period_factor_bound (pick : WeightedSelector)
+    (i : ℕ) (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v z : RawWord) (m : ℕ)
+    (hz : z <:+: (activeLongWord pick i hi).map (fun x => (x,true)))
+    (hpow : z <:+: rawNatPow v m) :
+    240*10^17*(rawWeight z - rawWeight v) ≤
+      positiveWeight (activeLongWord pick i hi) := by
+  by_cases hv : v = []
+  · subst v
+    have he : rawNatPow [] m = [] := by
+      induction m with
+      | zero => rfl
+      | succ m ih => simp only [rawNatPow,ih,List.append_nil]
+    rw [he] at hpow
+    have hlen := hpow.sublist.length_le
+    have hz' : z = [] := List.length_eq_zero_iff.mp (by simpa using hlen)
+    simp [hz',rawWeight]
+  rcases rawNatPow_factor_short_or_period v m z hpow with hshort | ⟨l,t,he,hp,hper⟩
+  · rw [Nat.sub_eq_zero_of_le hshort,Nat.mul_zero]
+    exact Nat.zero_le _
+  · have hne : t++l ≠ [] := by
+      intro hh
+      apply hv
+      have hlen := congrArg List.length hh
+      rw [he]
+      apply List.length_eq_zero_iff.mp
+      simp only [List.length_append,List.length_nil] at hlen ⊢
+      omega
+    have hw : rawWeight (t++l) = rawWeight v := by
+      rw [he,rawWeight_append,rawWeight_append,Nat.add_comm]
+    have hb := activeLongWord_periodic_prefix_bound pick i hi (t++l) z hne hp hper hz
+    rwa [hw] at hb
+
+/-- For a periodic base no heavier than the selected period of
+the long-side cell, a mixed overlap cannot be heavy at that cell.
+In particular this applies to its own period and all earlier
+selected periods once their weights are compared. -/
+theorem guba_long_period_factor_not_heavy (pick : WeightedSelector)
+    (i : ℕ) (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v z : RawWord) (m : ℕ) (k : ℤ)
+    (hv : rawWeight v ≤ weightedLength (pick (gubaState pick i).1 hi).val)
+    (hz : z <:+: (activeLongWord pick i hi).map (fun x => (x,true)))
+    (hpow : z <:+: rawNatPow v m) :
+    54*rawWeight z <
+      2*positiveWeight (activeLongWord pick i hi) +
+        k.natAbs*weightedLength (pick (gubaState pick i).1 hi).val + k.natAbs := by
+  let C := (pick (gubaState pick i).1 hi).val
+  let L := positiveWeight (activeLongWord pick i hi)
+  have hb := activeLongWord_arbitrary_period_factor_bound pick i hi v z m hz hpow
+  change 240*10^17*(rawWeight z-rawWeight v) ≤ L at hb
+  change rawWeight v ≤ weightedLength C at hv
+  change 54*rawWeight z < 2*L+k.natAbs*weightedLength C+k.natAbs
+  have hpre := chooseEvenPrefixIndex_spec C (gubaState pick i).2
+  have hpre' : 10^70*weightedLength C < positiveWeight (activePrefix pick i hi) :=
+    (le_max_left _ _).trans_lt hpre
+  have hlong := weightedLength_longRaw_twice (activePrefix pick i hi) (10^20)
+  change 2*L = 6*(10^20 : ℕ)*10^80 +
+      10^20*(10^20+1)*positiveWeight (activePrefix pick i hi) at hlong
+  norm_num at hb hlong hpre'
+  omega
+
+#print axioms activeLongWord_periodic_prefix_bound
+#print axioms activeLongWord_arbitrary_period_factor_bound
+#print axioms guba_long_period_factor_not_heavy
+
 end QuandleResearch.Issue070
