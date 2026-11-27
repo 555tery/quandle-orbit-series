@@ -100,7 +100,7 @@ jobs:
       - name: Compile imported geometry and local prerequisites
         run: |
           set -o pipefail
-          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity SmallPresentation.SmallCancellationGeometryIdentityVertexWords SmallPresentation.SmallCancellationGeometryBoundaryTheorem SmallPresentation.SmallCancellationGeometryRelativeRestriction SmallPresentation.SmallCancellationGeometryCorridorCuts QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
+          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity SmallPresentation.SmallCancellationGeometryIdentityVertexWords SmallPresentation.SmallCancellationGeometryBoundaryTheorem SmallPresentation.SmallCancellationGeometryRelativeRestriction SmallPresentation.SmallCancellationGeometryCorridorCuts SmallPresentation.SmallCancellationGeometryEdgeContractionTopology QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
       - name: Verify marked identity and ribbon bridge
         run: |
           set -o pipefail
@@ -134,7 +134,8 @@ jobs:
                    "rankCount_singleton", "rankMinimal_no_separated_merge_mod_lower",
                    "signedLetterValue_reverse", "rawWord_eval_prod", "ribbon_boundary_mem_normal", "rotated_word_mem_normal", "lowerRank_rotated_row_mem", "lowerRank_region_boundary_mem", "activePeriod_region_quadrilateral_weight",
                    "component_vertex_read", "component_boundary_mem_normal", "boundaryComponent_read",
-                   "vertexCut_interval_read", "vertexCut_comm", "vertexCut_separated_boundary_mem"]
+                   "vertexCut_interval_read", "vertexCut_comm", "vertexCut_separated_boundary_mem",
+                   "edgeSplice_vertex_read", "edgeSplice_boundary_mem_normal", "refined_two_boundary_region_mem"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
