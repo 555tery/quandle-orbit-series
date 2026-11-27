@@ -12027,4 +12027,173 @@ theorem two_period_noncollapse (N : Subgroup F) [N.Normal]
 #print axioms twoPeriodSelector_second
 #print axioms two_period_noncollapse
 
+
+/-- Every actual long conjugating word begins with the four-letter
+prefix needed by the independent affine base-case certificate. -/
+theorem guba_longRaw_bbba (m : ℕ) :
+    ∃ xs : List (Fin 2), longRaw (gubaEvenPrefix m) (10^20) =
+      1::1::1::0::xs := by
+  let q := gubaEvenPrefix m
+  have hhead : q[0]? = some 0 := gubaPrefix_head_zero (2*m+1)
+  obtain ⟨u,hu⟩ : ∃ u, q = 0::u := by
+    cases hq : q with
+    | nil => simp [hq] at hhead
+    | cons i is =>
+      have hi : i = 0 := by simpa only [hq,List.getElem?_cons_zero,Option.some.injEq] using hhead
+      exact ⟨is,by rw [hi]⟩
+  obtain ⟨v,hv⟩ := List.prefix_iff_exists_append_eq.mp
+    (longRaw_prefix q (show 1 ≤ (10^20 : ℕ) by norm_num))
+  refine ⟨u++v,?_⟩
+  rw [← hv]
+  change longRaw q 1 ++ v = _
+  simp [longRaw,longBlock,hu]
+
+/-- In the specialized greedy chain the first stage is exactly the
+positive single-relator presentation; its two-letter difference
+survives by the affine certificate. -/
+theorem guba_twoPeriod_first_stage :
+    let pick := twoPeriodSelector
+    let X := gubaConjugatorChoice pick
+    let u := X 0 ⊥ b
+    weightedStages pick X 1 = adjoin ⊥ (u*b*u⁻¹*a⁻¹) ∧
+      b*a⁻¹ ∉ weightedStages pick X 1 := by
+  intro pick X u
+  have h0 : ∃ w : F, ¬ Good (⊥ : Subgroup F) w := ⟨b,heavy_not_good_bot⟩
+  have hfirst : (pick ⊥ h0).val = b := twoPeriodSelector_first h0
+  have hstage : weightedStages pick X 1 = adjoin ⊥ (u*b*u⁻¹*a⁻¹) := by
+    change adjoin ⊥ (weightedRelator pick X 0 ⊥) = _
+    rw [weightedRelator_eq pick X 0 ⊥ h0,hfirst,heightRelator_one]
+  refine ⟨hstage,?_⟩
+  rw [hstage]
+  obtain ⟨xs,hxs⟩ := guba_longRaw_bbba (chooseEvenPrefixIndex b (gubaState pick 0).2)
+  have hu : u = positiveWord (1::1::1::0::xs) := by
+    change positiveWord (longRaw
+      (gubaEvenPrefix (chooseEvenPrefixIndex b (gubaState pick 0).2)) (10^20)) = _
+    rw [hxs]
+  rw [hu]
+  exact first_positive_relator_survival xs
+
+/-- The actual first two defining relations with the prescribed
+selector, not arbitrary additional relations inserted into the
+recursive process. -/
+theorem guba_twoPeriod_relations (n : ℕ) (hn : 2 ≤ n) :
+    let pick := twoPeriodSelector
+    let X := gubaConjugatorChoice pick
+    let N := weightedStages pick X n
+    let u := X 0 ⊥ b
+    let v := X 1 (weightedStages pick X 1) (b*a⁻¹)
+    u*b*u⁻¹*a⁻¹ ∈ N ∧ v*(b*a⁻¹)*v⁻¹*a⁻¹ ∈ N := by
+  intro pick X N u v
+  obtain ⟨hstage,hsurv⟩ := guba_twoPeriod_first_stage
+  change weightedStages pick X 1 = adjoin ⊥ (u*b*u⁻¹*a⁻¹) at hstage
+  change b*a⁻¹ ∉ weightedStages pick X 1 at hsurv
+  have hmin : MinBad (weightedStages pick X 1) (b*a⁻¹) := by
+    rw [hstage]
+    exact first_positive_second_minBad u (by rw [← hstage]; exact hsurv)
+  have hex : ∃ w : F, ¬ Good (weightedStages pick X 1) w := ⟨_,hmin.1⟩
+  have hchoose : (pick (weightedStages pick X 1) hex).val = b*a⁻¹ := by
+    -- Avoid transporting dependent witnesses across subgroup equalities.
+    have hb : Good (weightedStages pick X 1) b := by
+      rw [hstage]
+      refine ⟨u,1,?_⟩
+      rw [zpow_one]
+      exact relator_mem_adjoin _ _
+    have hnb : ¬ MinBad (weightedStages pick X 1) b := fun h => h.1 hb
+    change (twoPeriodSelector (weightedStages pick X 1) hex).val = _
+    simp only [twoPeriodSelector,dite_eq_right hnb,dite_eq_left hmin]
+  constructor
+  · apply weightedStages_mono pick X (show 1 ≤ n by omega)
+    rw [hstage]
+    exact relator_mem_adjoin _ _
+  · apply weightedStages_mono pick X hn
+    change v*(b*a⁻¹)*v⁻¹*a⁻¹ ∈ adjoin (weightedStages pick X 1)
+      (weightedRelator pick X 1 (weightedStages pick X 1))
+    rw [weightedRelator_eq pick X 1 _ hex,hchoose,heightRelator_one]
+    exact relator_mem_adjoin _ _
+
+/-- It suffices to exclude the disappearance of the single letter a
+from the actual specialized greedy presentation. -/
+theorem answer_of_guba_one_letter_survival
+    (hsurv : ∀ n, a ∉ weightedHeightStage twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) n) : answer := by
+  let pick := twoPeriodSelector
+  let X := gubaConjugatorChoice pick
+  apply answer_of_weightedStages pick X
+  intro n hc
+  let N := weightedStages pick X (max 2 n)
+  let : N.Normal := weightedStages_normal pick X (max 2 n)
+  obtain ⟨h1,h2⟩ := guba_twoPeriod_relations (max 2 n) (le_max_left _ _)
+  have ha : a ∉ N := by
+    change a ∉ weightedStages pick X (max 2 n)
+    rw [← weightedHeightStage_eq]
+    exact hsurv _
+  exact (two_period_noncollapse N _ _ h1 h2 ha)
+    (weightedStages_mono pick X (le_max_right _ _) hc)
+
+/-- The geometric obligation is now an actual connected marked
+ribbon with exactly one outer dart, with positive rank-minimal
+interior occurrences. No uniform perimeter hypothesis is used. -/
+theorem answer_of_guba_one_dart_step
+    (step : ∀ j (s : Peiffer.Sequence F (RankHeight (j+1)))
+      (hs : Peiffer.evaluation
+        (fun i => FreeGroup.mk (rankHeightRows twoPeriodSelector
+          (gubaConjugatorChoice twoPeriodSelector) (j+1) i)) s = a),
+      a ∉ weightedHeightStage twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) j →
+      RankMinimalExpression twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1) a s →
+      (∀ x ∈ s, x.2 = true) →
+      let rows := rankHeightRows twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1)
+      let P := boundaryRibbon rows a s hs
+      let z := boundaryDart rows a s (show a ≠ 1 by
+        intro h
+        have hw : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+        rw [h] at hw
+        have hz := (weightedLength_eq_zero_iff (1 : F)).mpr rfl
+        omega)
+      P.Connected → P.EulerEquality → P.vertexBoundary z = [z] → False) :
+    answer := by
+  have ha : a ≠ 1 := by
+    intro h
+    have hw : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+    rw [h] at hw
+    have hz := (weightedLength_eq_zero_iff (1 : F)).mpr rfl
+    omega
+  apply answer_of_guba_one_letter_survival
+  intro n
+  induction n with
+  | zero =>
+    intro h
+    rw [weightedHeightStage_eq] at h
+    exact ha h
+  | succ j ih =>
+    intro h
+    let pick := twoPeriodSelector
+    let X := gubaConjugatorChoice pick
+    obtain ⟨s,hm,hpos,hs,hE⟩ := exists_rankMinimal_ribbon_expression pick X (j+1) a h
+    let rows := rankHeightRows pick X (j+1)
+    let P := boundaryRibbon rows a s hs
+    let z := boundaryDart rows a s ha
+    have hc : P.Connected := guba23_rankMinimal_ribbon_connected pick X (j+1) a s hm ha hs
+    have hr := boundaryRibbon_read rows a s hs ha
+    have haWord : a.toWord = ([(0,true)] : RawWord) := by decide
+    rw [haWord] at hr
+    have hlen := congrArg List.length hr
+    rw [List.length_map,FreeGroup.invRev_length] at hlen
+    obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation z
+    change P.vertexBoundary z = z::l at hl
+    have hnil : l = [] := by
+      apply List.length_eq_zero_iff.mp
+      rw [hl,List.length_cons] at hlen
+      simp only [List.length_singleton] at hlen
+      omega
+    exact step j s hs ih hm hpos hc hE (by rw [hl,hnil])
+
+#print axioms guba_longRaw_bbba
+#print axioms guba_twoPeriod_first_stage
+#print axioms guba_twoPeriod_relations
+#print axioms answer_of_guba_one_letter_survival
+#print axioms answer_of_guba_one_dart_step
+
 end QuandleResearch.Issue070
