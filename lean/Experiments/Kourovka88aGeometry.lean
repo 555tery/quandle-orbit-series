@@ -2064,7 +2064,7 @@ theorem lowerRankDart_sameCycle (pick : WeightedSelector) (X : ConjugatorChoice)
     (boundaryIdentity s)).SameCycle d e at h
   rw [disc_sameCycle_iff] at h
   unfold lowerRankDart
-  rw [h]
+  simp only [h]
 
 #print axioms vertexCut_rotation_eq_on_protected
 #print axioms vertexCut_protected_invariant
@@ -2164,6 +2164,7 @@ theorem coefficientRegions_no_unique_outlet {D : Type} [Fintype D]
       have hk : keep e := by
         obtain ⟨m, hm⟩ := hde.exists_nat_pow_eq
         rw [← hm]
+        clear hm hde
         induction m with
         | zero => exact hd
         | succ m ih =>
