@@ -647,6 +647,186 @@ lemma normalized_modular_AP {p : ℕ} (hp : 0 < p) {x y z : ℤ}
   linarith
 
 
+
+/-! Inject the product of the inner-cell index with two finite offset
+ranges into the actual finite torus, including wraparound of signed
+horizontal coordinates. -/
+
+lemma innerCellCoords_injective : Function.Injective innerCellCoords := by
+  intro e f h
+  rcases e with ⟨i, k⟩ | ⟨j, l, k⟩ <;>
+    rcases f with ⟨i', k'⟩ | ⟨j', l', k'⟩
+  · have hr := congrArg Prod.fst h
+    change (i.val : ℤ) = (i'.val : ℤ) at hr
+    have hi : i = i' := Fin.ext (by omega)
+    subst i'
+    have hc := congrArg Prod.snd h
+    change (k.val : ℤ) - (lowerRadiusUnits i.val : ℤ) =
+      (k'.val : ℤ) - (lowerRadiusUnits i.val : ℤ) at hc
+    have hk : k = k' := Fin.ext (by omega)
+    subst k'
+    rfl
+  · have hr := congrArg Prod.fst h
+    change (i.val : ℤ) = (j'.val : ℤ) + 242 at hr
+    have hi := i.isLt
+    omega
+  · have hr := congrArg Prod.fst h
+    change (j.val : ℤ) + 242 = (i'.val : ℤ) at hr
+    have hi := i'.isLt
+    omega
+  · have hr := congrArg Prod.fst h
+    change (j.val : ℤ) + 242 = (j'.val : ℤ) + 242 at hr
+    have hj : j = j' := Fin.ext (by omega)
+    subst j'
+    have hc := congrArg Prod.snd h
+    change 600 + 1200 * (l.val : ℤ) + (k.val : ℤ) -
+      (upperRadiusUnits (j.val + 2) : ℤ) =
+      600 + 1200 * (l'.val : ℤ) + (k'.val : ℤ) -
+      (upperRadiusUnits (j.val + 2) : ℤ) at hc
+    have hR : upperRadiusUnits (j.val + 2) ≤ 300 := min_le_left _ _
+    have hk := k.isLt
+    have hk' := k'.isLt
+    have hl : l = l' := Fin.ext (by omega)
+    subst l'
+    have he : k = k' := Fin.ext (by omega)
+    subst k'
+    rfl
+
+/-- The horizontal lifts are unique modulo one for a fixed vertical
+coordinate.  The union of all bands need not fit in one length-one
+interval, so the equal-row hypothesis is essential. -/
+lemma block_horizontal_close {s a b : ℝ}
+    (ha : InBlock s a) (hb : InBlock s b) :
+    a - b < 1 ∧ b - a < 1 := by
+  rcases ha with ha | ha | ha <;> rcases hb with hb | hb | hb
+  · have h₁ := abs_lt.mp ha.2.2.1
+    have h₂ := abs_lt.mp hb.2.2.1
+    constructor <;> linarith [h₁.1, h₁.2, h₂.1, h₂.2]
+  · linarith [ha.2.1, hb.1]
+  · linarith [ha.2.1, hb.1]
+  · linarith [ha.1, hb.2.1]
+  · have h₁ := abs_lt.mp ha.2.2.1
+    have h₂ := abs_lt.mp hb.2.2.1
+    constructor <;> linarith [h₁.1, h₁.2, h₂.1, h₂.2]
+  · have h₁ := abs_lt.mp ha.2.2.1
+    have h₂ := abs_lt.mp hb.2.2.1
+    constructor <;> linarith [h₁.1, h₁.2, h₂.1, h₂.2]
+  · linarith [ha.1, hb.2.1]
+  · have h₁ := abs_lt.mp ha.2.2.1
+    have h₂ := abs_lt.mp hb.2.2.1
+    constructor <;> linarith [h₁.1, h₁.2, h₂.1, h₂.2]
+  · have h₁ := abs_lt.mp ha.2.2.1
+    have h₂ := abs_lt.mp hb.2.2.1
+    constructor <;> linarith [h₁.1, h₁.2, h₂.1, h₂.2]
+
+lemma int_close_of_normalized_close {p : ℕ} (hp : 0 < p) {a b : ℤ}
+    (h₁ : (a : ℝ) / (p : ℝ) - (b : ℝ) / (p : ℝ) < 1)
+    (h₂ : (b : ℝ) / (p : ℝ) - (a : ℝ) / (p : ℝ) < 1) :
+    a - b < (p : ℤ) ∧ b - a < (p : ℤ) := by
+  have hp' : 0 < (p : ℝ) := by exact_mod_cast hp
+  rw [← sub_div] at h₁ h₂
+  have h₁' := (div_lt_iff₀ hp').mp h₁
+  have h₂' := (div_lt_iff₀ hp').mp h₂
+  rw [one_mul] at h₁' h₂'
+  exact ⟨by exact_mod_cast h₁', by exact_mod_cast h₂'⟩
+
+def innerPointLifts (p : ℕ)
+    (e : (Σ i : Fin 240, Fin (2 * lowerRadiusUnits i.val)) ⊕
+      (Σ j : Fin 158, Fin 2 × Fin (2 * upperRadiusUnits (j.val + 2))))
+    (t u : ℕ) : ℤ × ℤ :=
+  (cellLift (innerCellCoords e).1 ((p : ℝ) / 480) t,
+    cellLift (innerCellCoords e).2 ((p : ℝ) / 2400) u)
+
+lemma innerPoint_mem (p : ℕ) (hp : 0 < p)
+    (e : (Σ i : Fin 240, Fin (2 * lowerRadiusUnits i.val)) ⊕
+      (Σ j : Fin 158, Fin 2 × Fin (2 * upperRadiusUnits (j.val + 2))))
+    (t u : ℕ) (ht : (t + 1) * 480 < p) (hu : (u + 1) * 2400 < p) :
+    InBlock ((innerPointLifts p e t u).1 / (p : ℝ))
+      ((innerPointLifts p e t u).2 / (p : ℝ)) := by
+  have hp' : 0 < (p : ℝ) := by exact_mod_cast hp
+  have ht' : ((t : ℝ) + 1) * 480 < (p : ℝ) := by exact_mod_cast ht
+  have hu' : ((u : ℝ) + 1) * 2400 < (p : ℝ) := by exact_mod_cast hu
+  have h₁ := normalized_cellLift_mem (i := (innerCellCoords e).1)
+    hp' (show (0 : ℝ) < 480 by norm_num) ht'
+  have h₂ := normalized_cellLift_mem (i := (innerCellCoords e).2)
+    hp' (show (0 : ℝ) < 2400 by norm_num) hu'
+  exact inner_cell_mem e h₁.1 h₁.2 h₂.1 h₂.2
+
+/-- The finite block is defined by existence of genuine lifts in InBlock,
+rather than by a separately postulated density. -/
+def finiteBlock (p : ℕ) [NeZero p] : Finset (ZMod p × ZMod p) := by
+  classical
+  exact Finset.univ.filter fun v => ∃ x y : ℤ,
+    (x : ZMod p) = v.1 ∧ (y : ZMod p) = v.2 ∧
+      InBlock ((x : ℝ) / (p : ℝ)) ((y : ℝ) / (p : ℝ))
+
+theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
+    (hq : q * 480 < p) (hr : r * 2400 < p) :
+    (lowerAreaUnits + upperAreaUnits) * q * r ≤ (finiteBlock p).card := by
+  classical
+  have hp : 0 < p := by omega
+  have hp' : 0 < (p : ℝ) := by exact_mod_cast hp
+  let E := (Σ i : Fin 240, Fin (2 * lowerRadiusUnits i.val)) ⊕
+      (Σ j : Fin 158, Fin 2 × Fin (2 * upperRadiusUnits (j.val + 2)))
+  let g : E × Fin q × Fin r → ZMod p × ZMod p := fun e =>
+    ((innerPointLifts p e.1 e.2.1.val e.2.2.val).1,
+      (innerPointLifts p e.1 e.2.1.val e.2.2.val).2)
+  have hm (e : E × Fin q × Fin r) :
+      InBlock ((innerPointLifts p e.1 e.2.1.val e.2.2.val).1 / (p : ℝ))
+        ((innerPointLifts p e.1 e.2.1.val e.2.2.val).2 / (p : ℝ)) := by
+    apply innerPoint_mem p hp
+    · have := e.2.1.isLt
+      omega
+    · have := e.2.2.isLt
+      omega
+  have hg (e : E × Fin q × Fin r) : g e ∈ finiteBlock p := by
+    unfold finiteBlock
+    apply Finset.mem_filter.mpr
+    exact ⟨Finset.mem_univ _, _, _, rfl, rfl, hm e⟩
+  have hinj : Function.Injective g := by
+    rintro ⟨e, t, u⟩ ⟨f, t', u'⟩ he
+    let x := innerPointLifts p e t.val u.val
+    let y := innerPointLifts p f t'.val u'.val
+    have hx : InBlock ((x.1 : ℝ) / p) ((x.2 : ℝ) / p) := hm (e, t, u)
+    have hy : InBlock ((y.1 : ℝ) / p) ((y.2 : ℝ) / p) := hm (f, t', u')
+    have hsx := block_s_bounds hx
+    have hsy := block_s_bounds hy
+    have hs := int_close_of_normalized_close hp (a := x.1) (b := y.1)
+      (by linarith [hsx.2, hsy.1]) (by linarith [hsy.2, hsx.1])
+    have hxs : x.1 = y.1 := intCast_injective_close hs.1 hs.2 (congrArg Prod.fst he)
+    have hy' : InBlock ((x.1 : ℝ) / p) ((y.2 : ℝ) / p) := by
+      rw [hxs]
+      exact hy
+    have ha := block_horizontal_close hx hy'
+    have ha' := int_close_of_normalized_close hp ha.1 ha.2
+    have hxa : x.2 = y.2 := intCast_injective_close ha'.1 ha'.2 (congrArg Prod.snd he)
+    have ht : (t.val : ℝ) + 1 < (p : ℝ) / 480 := by
+      apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 480)).2
+      exact_mod_cast (show (t.val + 1) * 480 < p by have := t.isLt; omega)
+    have ht' : (t'.val : ℝ) + 1 < (p : ℝ) / 480 := by
+      apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 480)).2
+      exact_mod_cast (show (t'.val + 1) * 480 < p by have := t'.isLt; omega)
+    have hu : (u.val : ℝ) + 1 < (p : ℝ) / 2400 := by
+      apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 2400)).2
+      exact_mod_cast (show (u.val + 1) * 2400 < p by have := u.isLt; omega)
+    have hu' : (u'.val : ℝ) + 1 < (p : ℝ) / 2400 := by
+      apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 2400)).2
+      exact_mod_cast (show (u'.val + 1) * 2400 < p by have := u'.isLt; omega)
+    have hrow := cellLift_injective (by positivity : 0 < (p : ℝ) / 480) ht ht' hxs
+    have hcol := cellLift_injective (by positivity : 0 < (p : ℝ) / 2400) hu hu' hxa
+    have hef : e = f := innerCellCoords_injective (Prod.ext hrow.1 hcol.1)
+    have htt : t = t' := Fin.ext hrow.2
+    have huu : u = u' := Fin.ext hcol.2
+    subst f
+    subst t'
+    subst u'
+    rfl
+  let emb : E × Fin q × Fin r → ↥(finiteBlock p) := fun e => ⟨g e, hg e⟩
+  have hc := Fintype.card_le_of_injective emb
+    (show Function.Injective emb from fun _ _ he => hinj (congrArg Subtype.val he))
+  simpa [E, Fintype.card_prod, inner_cell_index_card, Nat.mul_assoc] using hc
+
+
 end
 
 end QuandleResearch.Erdos142
