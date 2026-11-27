@@ -3930,8 +3930,9 @@ theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
   obtain ⟨g,hg⟩ := component_two_boundary_inverse_conjugacy T read N he hET a b hab hne hinside
   obtain ⟨u,rfl⟩ := QuotientGroup.mk'_surjective N g
   refine ⟨u,(QuotientGroup.eq_one_iff _).mp ?_⟩
-  simp only [map_mul, map_inv]
-  exact hg
+  change QuotientGroup.mk' N (FreeGroup.mk ((T.vertexBoundary a).map read) * u *
+    FreeGroup.mk ((T.vertexBoundary b).map read) * u⁻¹) = 1
+  simpa only [map_mul, map_inv] using hg
 
 #print axioms component_two_boundary_inverse_conjugacy
 #print axioms rankRibbon_protected_two_arc_conjugacy
@@ -4219,7 +4220,7 @@ theorem exists_interior_edge_compression {D : Type} [Fintype D]
           T.rotation.SameCycle d (T.edge d)) := by
     intro n
     induction n using Nat.strong_induction_on with
-    | h n ih =>
+    | ind n ih =>
       intro A inst R interior hcard hinv heuler
       by_cases hex : ∃ a, interior a ∧ interior (R.edge a) ∧
           ¬ R.rotation.SameCycle a (R.edge a)
