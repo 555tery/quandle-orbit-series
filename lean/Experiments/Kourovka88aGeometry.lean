@@ -6242,4 +6242,117 @@ theorem vertex_partition_splitRefinement {D : Type} [Fintype D]
 #print axioms vertex_partition_splitRefinement
 
 
+
+/-- If a complete based reading is unchanged then so is membership
+in its vertex cycle. This is useful when transporting the
+disjointness hypotheses through successive refinements. -/
+theorem sameCycle_iff_of_vertexBoundary_eq {D : Type} [Fintype D]
+    (P Q : RibbonMap D) (a d : D)
+    (h : Q.vertexBoundary a = P.vertexBoundary a) :
+    Q.rotation.SameCycle a d ↔ P.rotation.SameCycle a d := by
+  rw [← Q.mem_vertexBoundary_iff,← P.mem_vertexBoundary_iff,h]
+
+/-- Simultaneously realize prescribed literal partitions of any
+finite list of distinct original vertices. No unselected vertex
+changes its based reading. In particular this permits all
+lower-rank relations to remain literally unchanged. -/
+theorem simultaneous_vertex_partition_splitRefinement {D : Type} [Fintype D]
+    (P : RibbonMap D) (reps : List D) (blocks : D → List (D × List D))
+    (hsep : reps.Pairwise (fun a b => ¬ P.rotation.SameCycle a b))
+    (hpart : ∀ a ∈ reps,
+      P.vertexBoundary a = (blocks a).flatMap (fun b => b.1 :: b.2)) :
+    ∃ tau : Equiv.Perm D, SplitRefinement P.rotation tau ∧
+      (∀ a ∈ reps, ∀ b ∈ blocks a,
+        (P.withRotation tau).vertexBoundary b.1 = b.1 :: b.2) ∧
+      (∀ d, (∀ a ∈ reps, ¬ P.rotation.SameCycle a d) →
+        (P.withRotation tau).vertexBoundary d = P.vertexBoundary d) := by
+  classical
+  induction reps generalizing P with
+  | nil =>
+    refine ⟨P.rotation,.refl _,?_,?_⟩
+    · intro a ha
+      exact (List.not_mem_nil ha).elim
+    · intro d _
+      rw [RibbonMap.withRotation_self]
+  | cons a as ih =>
+    obtain ⟨hhead,htail⟩ := List.pairwise_cons.mp hsep
+    obtain ⟨sigma,href,hblocks,hother⟩ :=
+      vertex_partition_splitRefinement P a (blocks a) (hpart a (by simp))
+    let S := P.withRotation sigma
+    have hread (c : D) (hc : c ∈ as) : S.vertexBoundary c = P.vertexBoundary c :=
+      hother c (hhead c hc)
+    have htailS : as.Pairwise (fun c d => ¬ S.rotation.SameCycle c d) := by
+      have aux : ∀ xs : List D, xs.Pairwise (fun c d => ¬ P.rotation.SameCycle c d) →
+          (∀ c ∈ xs, S.vertexBoundary c = P.vertexBoundary c) →
+          xs.Pairwise (fun c d => ¬ S.rotation.SameCycle c d) := by
+        intro xs
+        induction xs with
+        | nil => intro _ _; exact .nil
+        | cons c cs ih' =>
+          intro hp hr
+          obtain ⟨hh,ht⟩ := List.pairwise_cons.mp hp
+          apply List.pairwise_cons.mpr
+          refine ⟨?_,ih' ht (fun d hd => hr d (List.mem_cons_of_mem _ hd))⟩
+          intro d hd hs
+          exact hh d hd ((sameCycle_iff_of_vertexBoundary_eq P S c d (hr c (by simp))).mp hs)
+      exact aux as htail hread
+    have hpartS (c : D) (hc : c ∈ as) :
+        S.vertexBoundary c = (blocks c).flatMap (fun b => b.1 :: b.2) :=
+      (hread c hc).trans (hpart c (List.mem_cons_of_mem _ hc))
+    obtain ⟨tau,hrefS,htblocks,htother⟩ := ih S htailS hpartS
+    have hmap : P.withRotation tau = S.withRotation tau := by
+      apply RibbonMap.ext <;> rfl
+    refine ⟨tau,href.trans hrefS,?_,?_⟩
+    · intro c hc b hb
+      rw [hmap]
+      rcases List.mem_cons.mp hc with he | he
+      · subst c
+        have hba : P.rotation.SameCycle a b.1 := by
+          apply (P.mem_vertexBoundary_iff a b.1).mp
+          rw [hpart a (by simp)]
+          exact List.mem_flatMap.mpr ⟨b,hb,by simp⟩
+        have hprotect (d : D) (hd : d ∈ as) : ¬ S.rotation.SameCycle d b.1 := by
+          intro h
+          have hold := (sameCycle_iff_of_vertexBoundary_eq P S d b.1 (hread d hd)).mp h
+          exact hhead d hd (hba.trans hold.symm)
+        exact (htother b.1 hprotect).trans (hblocks b hb)
+      · exact htblocks c he b hb
+    · intro d hd
+      have hr : S.vertexBoundary d = P.vertexBoundary d := hother d (hd a (by simp))
+      have hprotect (c : D) (hc : c ∈ as) : ¬ S.rotation.SameCycle c d := by
+        intro h
+        exact hd c (List.mem_cons_of_mem _ hc)
+          ((sameCycle_iff_of_vertexBoundary_eq P S c d (hread c hc)).mp h)
+      rw [hmap,htother d hprotect,hr]
+
+/-- If every selected vertex is outside a cycle-invariant protected
+set, all protected vertex readings remain unchanged by the simultaneous
+refinement. The sphere Euler equality is inherited from the original. -/
+theorem protected_simultaneous_vertex_partitions {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop) (reps : List D)
+    (blocks : D → List (D × List D))
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hselected : ∀ a ∈ reps, ¬ keep a)
+    (hsep : reps.Pairwise (fun a b => ¬ P.rotation.SameCycle a b))
+    (hpart : ∀ a ∈ reps,
+      P.vertexBoundary a = (blocks a).flatMap (fun b => b.1 :: b.2))
+    (hE : P.EulerEquality) :
+    ∃ tau : Equiv.Perm D, SplitRefinement P.rotation tau ∧
+      (P.withRotation tau).EulerEquality ∧
+      (∀ a ∈ reps, ∀ b ∈ blocks a,
+        (P.withRotation tau).vertexBoundary b.1 = b.1 :: b.2) ∧
+      (∀ d, keep d → (P.withRotation tau).vertexBoundary d = P.vertexBoundary d) := by
+  obtain ⟨tau,href,hreads,hother⟩ :=
+    simultaneous_vertex_partition_splitRefinement P reps blocks hsep hpart
+  refine ⟨tau,href,P.splitRefinement_preserves_euler href hE,hreads,?_⟩
+  intro d hd
+  apply hother d
+  intro a ha h
+  exact hselected a ha ((hkeep a d h).mpr hd)
+
+#print axioms sameCycle_iff_of_vertexBoundary_eq
+#print axioms simultaneous_vertex_partition_splitRefinement
+#print axioms protected_simultaneous_vertex_partitions
+
+
 end QuandleResearch.Issue070
