@@ -3,6 +3,7 @@ module
 public import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 public import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 public import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
+public import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -187,5 +188,96 @@ theorem rankHeightRibbon_euler (pick : WeightedSelector)
 
 #print axioms boundaryRibbon_euler
 #print axioms rankHeightRibbon_euler
+
+
+/-! ## The connected component of the unique marked boundary
+
+For a nonidentity boundary the initial marked row is nonempty. The
+upstream occurrence/vertex equivalence makes it a genuine vertex,
+and restriction preserves its entire cyclic reading.
+-/
+
+def boundaryOccurrence (s : Peiffer.Sequence F I) :
+    Fin (boundaryIdentity s).length := ⟨0, by simp [boundaryIdentity]⟩
+
+theorem boundaryOccurrence_pos (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I) (hw : w ≠ 1) :
+    0 < (orientedWord
+      (markedRows rows w (boundaryIdentity s)[boundaryOccurrence s].1.2)
+      (boundaryIdentity s)[boundaryOccurrence s].2).length := by
+  change 0 < (orientedWord w.toWord false).length
+  rw [orientedWord_length]
+  by_contra! hn
+  have hnil : w.toWord = [] := List.length_eq_zero_iff.mp (by omega)
+  exact hw (FreeGroup.toWord_eq_nil_iff.mp hnil)
+
+def boundaryDart (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I) (hw : w ≠ 1) :
+    DiscDarts (markedRows rows w) (boundaryIdentity s) :=
+  discAt (markedRows rows w) (boundaryIdentity s) (boundaryOccurrence s)
+    ⟨0, boundaryOccurrence_pos rows w s hw⟩
+
+theorem boundaryDart_occurrence (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I) (hw : w ≠ 1) :
+    discOccurrence (markedRows rows w) (boundaryIdentity s)
+      (boundaryDart rows w s hw) = boundaryOccurrence s :=
+  discOccurrence_at _ _ _ _
+
+/-- The vertex of the marked dart is precisely the original boundary
+occurrence, not any interior occurrence with the same group value. -/
+theorem boundaryDart_sameVertex_iff (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) (d : DiscDarts (markedRows rows w) (boundaryIdentity s)) :
+    (boundaryRibbon rows w s hs).rotation.SameCycle (boundaryDart rows w s hw) d ↔
+      discOccurrence (markedRows rows w) (boundaryIdentity s) d =
+        boundaryOccurrence s := by
+  change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle
+    (boundaryDart rows w s hw) d ↔ _
+  rw [disc_sameCycle_iff, boundaryDart_occurrence, eq_comm]
+
+/-- Reading the original zero corner gives the inverse of the entire
+boundary word, not merely a group element or an unspecified rotation. -/
+theorem boundaryRibbon_read (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    ((boundaryRibbon rows w s hs).vertexBoundary (boundaryDart rows w s hw)).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) =
+      FreeGroup.invRev w.toWord := by
+  exact vertex_read_at_zero (chosenSection (Fin 2)) (markedRows rows w)
+    (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)
+    (boundaryOccurrence s) (boundaryOccurrence_pos rows w s hw)
+
+noncomputable def boundaryComponent (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :=
+  (boundaryRibbon rows w s hs).componentRibbon (boundaryDart rows w s hw)
+
+theorem boundaryComponent_connected (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    (boundaryComponent rows w s hs hw).Connected :=
+  (boundaryRibbon rows w s hs).componentRibbon_connected _
+
+theorem boundaryComponent_sphere (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    Fintype.card (boundaryComponent rows w s hs hw).Vertex +
+      Fintype.card (boundaryComponent rows w s hs hw).Face =
+    Fintype.card (boundaryComponent rows w s hs hw).Edge + 2 :=
+  (boundaryRibbon rows w s hs).componentRibbon_sphere
+    (boundaryRibbon_euler rows w s hs) _
+
+#print axioms boundaryOccurrence_pos
+#print axioms boundaryDart_occurrence
+#print axioms boundaryDart_sameVertex_iff
+#print axioms boundaryRibbon_read
+#print axioms boundaryComponent
+#print axioms boundaryComponent_connected
+#print axioms boundaryComponent_sphere
 
 end QuandleResearch.Issue070
