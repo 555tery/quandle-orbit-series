@@ -5641,7 +5641,7 @@ theorem connected_coefficient_outlet_equation {D K : Type}
         (fun d => keep (f d)) hcycles hleafQ hno hw hrel (Q.edge a) h
       exact ⟨l,hnd,fun b => (hm b).trans (and_iff_right (hco _ _)),hprod⟩
     · refine ⟨[a,Q.edge a],?_,?_,?_⟩
-      · simp [Q.edge_ne a,Ne.symm (Q.edge_ne a)]
+      · simp [Ne.symm (Q.edge_ne a)]
       · intro b
         have hh := peripheral_edge_component Q a b (hleafQ a hka)
           (hleafQ _ h)
@@ -5745,7 +5745,9 @@ theorem component_coefficient_outlet_equation {D K : Type}
     · rintro ⟨hc,hk⟩
       exact List.mem_map.mpr ⟨⟨d,hc⟩,(hm ⟨d,hc⟩).mpr hk,rfl⟩
   · rw [List.map_map]
-    simpa only [Function.comp_apply,hG] using hprod
+    change (l.map (fun d : A => (G d.val * v d.val * (G d.val)⁻¹)⁻¹)).prod = 1
+    simp only [hG]
+    exact hprod
 
 #print axioms component_coefficient_outlet_equation
 
@@ -5848,6 +5850,123 @@ theorem rankRibbon_coefficient_outlet_equation (pick : WeightedSelector)
 
 #print axioms coefficientRegions_original_outlet_equation
 #print axioms rankRibbon_coefficient_outlet_equation
+
+
+
+/-! ## Literal runs of outlets along an original vertex
+
+Connectivity of the coefficient ribbon alone does not imply that its
+outlets occupy a single interval on an original relator. The following
+construction cuts a based traversal into maximal consecutive runs of
+one coefficient component, without losing or reordering incidences.
+In particular it does not assume the desired Guba contiguity coverage.
+-/
+
+/-- Extract the maximal initial run of the chosen coefficient
+component. If a suffix remains, its first dart lies outside it. -/
+theorem coefficient_component_prefix {D : Type} (S : RibbonMap D)
+    (a : D) (l : List D) :
+    ∃ p q : List D, l = p ++ q ∧
+      (∀ d ∈ p, S.SameComponent a d) ∧
+      (∀ b r, q = b :: r → ¬ S.SameComponent a b) := by
+  classical
+  induction l with
+  | nil => exact ⟨[],[],rfl,by simp,by simp⟩
+  | cons d ds ih =>
+    by_cases h : S.SameComponent a d
+    · obtain ⟨p,q,he,hp,hq⟩ := ih
+      refine ⟨d::p,q,?_,?_,hq⟩
+      · rw [List.cons_append,← he]
+      · intro e he'
+        rcases List.mem_cons.mp he' with he' | he'
+        · rw [he']
+          exact h
+        · exact hp e he'
+    · refine ⟨[],d::ds,rfl,by simp,?_⟩
+      intro b r he
+      have hb : d = b := (List.cons.inj he).1
+      rw [← hb]
+      exact h
+
+/-- Partition a based list of darts into nonempty consecutive runs,
+each contained in one actual coefficient component. The first dart
+of each run is its representative. Adjacent runs are in different
+components, though nonadjacent runs may belong to the same one. -/
+theorem coefficient_component_runs {D : Type} (S : RibbonMap D) (l : List D) :
+    ∃ runs : List (D × List D),
+      l = runs.flatMap (fun b => b.1 :: b.2) ∧
+      (∀ b ∈ runs, ∀ d ∈ b.2, S.SameComponent b.1 d) ∧
+      (∀ (p : List (D × List D)) (a b : D × List D) t,
+        runs = p ++ a :: b :: t → ¬ S.SameComponent a.1 b.1) := by
+  classical
+  have main : ∀ n : ℕ, ∀ l : List D, l.length = n →
+      ∃ runs : List (D × List D),
+        l = runs.flatMap (fun b => b.1 :: b.2) ∧
+        (∀ b ∈ runs, ∀ d ∈ b.2, S.SameComponent b.1 d) ∧
+        (∀ (p : List (D × List D)) (a b : D × List D) t,
+          runs = p ++ a :: b :: t → ¬ S.SameComponent a.1 b.1) := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | ind n ih =>
+      intro l hlen
+      cases l with
+      | nil =>
+        refine ⟨[],rfl,by simp,?_⟩
+        intro p a b t h
+        have hlen' := congrArg List.length h
+        simp at hlen'
+      | cons a ds =>
+        obtain ⟨p,q,he,hp,hq⟩ := coefficient_component_prefix S a ds
+        have hlen' := congrArg List.length he
+        simp only [List.length_append] at hlen'
+        simp only [List.length_cons] at hlen
+        have hlt : q.length < n := by omega
+        obtain ⟨runs,hr,hs,ha⟩ := ih q.length hlt q rfl
+        refine ⟨(a,p)::runs,?_,?_,?_⟩
+        · simp only [List.flatMap_cons]
+          rw [← hr,← List.cons_append,← he]
+        · intro b hb d hd
+          rcases List.mem_cons.mp hb with hb | hb
+          · subst b
+            exact hp d hd
+          · exact hs b hb d hd
+        · intro pre b c t h
+          cases pre with
+          | nil =>
+            change (a,p)::runs = b::c::t at h
+            obtain ⟨hb,ht⟩ := List.cons.inj h
+            subst b
+            have hqr : q = c.1 :: (c.2 ++ t.flatMap (fun b => b.1 :: b.2)) := by
+              rw [hr,ht,List.flatMap_cons,List.cons_append]
+            exact hq c.1 _ hqr
+          | cons x xs =>
+            change (a,p)::runs = x::(xs ++ b::c::t) at h
+            exact ha xs b c t (List.cons.inj h).2
+  exact main l.length l rfl
+
+/-- The run partition is a literal spelling certificate: the total
+weight of all the runs is exactly the weight of the original list. -/
+theorem coefficient_runs_weight {D : Type} (S : RibbonMap D)
+    (read : D → Letter) (l : List D) :
+    ∃ runs : List (D × List D),
+      l = runs.flatMap (fun b => b.1 :: b.2) ∧
+      (∀ b ∈ runs, ∀ d ∈ b.2, S.SameComponent b.1 d) ∧
+      (∀ (p : List (D × List D)) (a b : D × List D) t,
+        runs = p ++ a :: b :: t → ¬ S.SameComponent a.1 b.1) ∧
+      (runs.map (fun b => rawWeight ((b.1 :: b.2).map read))).sum =
+        rawWeight (l.map read) := by
+  obtain ⟨runs,hr,hs,ha⟩ := coefficient_component_runs S l
+  refine ⟨runs,hr,hs,ha,?_⟩
+  rw [hr]
+  induction runs with
+  | nil => rfl
+  | cons b bs ih =>
+    simp only [List.map_cons,List.sum_cons,List.flatMap_cons,List.map_append,
+      rawWeight_append,ih]
+
+#print axioms coefficient_component_prefix
+#print axioms coefficient_component_runs
+#print axioms coefficient_runs_weight
 
 
 end QuandleResearch.Issue070
