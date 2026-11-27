@@ -485,4 +485,83 @@ theorem boundaryRibbon_direct_long_overlap (pick : WeightedSelector)
 #print axioms boundaryRibbon_paired_positive_eq
 #print axioms boundaryRibbon_direct_long_overlap
 
+
+/-! ## Perimeter and the final survival threshold
+
+Only the literal perimeters are used here. A large-cell perimeter
+estimate for nontrivial kernel words must still be proved by the
+graded-diagram induction; it is not supplied by Euler equality alone.
+-/
+
+/-- Every nonempty active height row has two long sides and the two
+power sides, with their exact weights before any seam reductions. -/
+theorem guba_rankHeightRows_weight (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n)
+    (h : ∃ w : F, ¬ Good (gubaState pick i.1.val).1 w)
+    (hk : i.2 ≠ 0) :
+    rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) =
+      2 * positiveWeight (activeLongWord pick i.1.val h) +
+      i.2.natAbs * weightedLength (pick (gubaState pick i.1.val).1 h).val +
+      i.2.natAbs := by
+  rw [guba_rankHeightRows_active pick n i h hk]
+  simp only [rawWeight_append, rawWeight_invRev, ← positiveWeight_eq_rawWeight_map]
+  have hc := minBad_intPow_weight (pick (gubaState pick i.1.val).1 h).property i.2
+  unfold weightedLength at hc
+  rw [minBad_intPow_toWord (pick (gubaState pick i.1.val).1 h).property] at hc
+  have ha : rawWeight (rawIntPow a.toWord i.2) = i.2.natAbs := by
+    cases i with
+    | mk j k =>
+      change rawWeight (rawIntPow a.toWord k) = k.natAbs
+      have h1 : rawWeight a.toWord = 1 := by
+        change weightedLength a = 1
+        simpa only [zpow_one] using weightedLength_a_zpow 1
+      cases k with
+      | ofNat m =>
+        change rawWeight (rawNatPow a.toWord m) = m
+        rw [rawWeight_rawNatPow, h1, mul_one]
+      | negSucc m =>
+        change rawWeight (FreeGroup.invRev (rawNatPow a.toWord (m+1))) = m+1
+        rw [rawWeight_invRev, rawWeight_rawNatPow, h1, mul_one]
+  rw [hc, ha]
+  omega
+
+/-- The first term of the exact long-word formula already makes every
+nonempty row much longer than the boundary of the commutator. -/
+theorem guba_rankHeightRows_large (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n)
+    (hne : rankHeightRows pick (gubaConjugatorChoice pick) n i ≠ []) :
+    5 * (2 + 2 * 10^80) <
+      4 * rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) := by
+  obtain ⟨h,hk⟩ := guba_rankHeightRows_nonempty pick n i hne
+  rw [guba_rankHeightRows_weight pick n i h hk]
+  have hs := weightedLength_longRaw_twice (activePrefix pick i.1.val h) (10^20)
+  change 2 * positiveWeight (activeLongWord pick i.1.val h) =
+    6 * (10^20 : ℕ) * 10^80 +
+      10^20 * (10^20+1) * positiveWeight (activePrefix pick i.1.val h) at hs
+  norm_num at hs ⊢
+  omega
+
+/-- The remaining large-cell estimate suffices for the exact target.
+Its premise is a statement about the actual recursively chosen
+all-height rows, not about an arbitrary presentation. No such estimate
+is assumed anywhere in the construction or in its earlier lemmas. -/
+theorem answer_of_guba_large_cell (pick : WeightedSelector)
+    (hcell : ∀ n (w : F),
+      w ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n →
+      w ≠ 1 → ∃ i : RankHeight n,
+        rankHeightRows pick (gubaConjugatorChoice pick) n i ≠ [] ∧
+        4 * rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) <
+          5 * weightedLength w) :
+    answer := by
+  apply answer_of_heightStages_short pick (gubaConjugatorChoice pick)
+  intro n w hw hlen
+  by_contra hne
+  obtain ⟨i,hi,hl⟩ := hcell n w hw hne
+  have hlarge := guba_rankHeightRows_large pick n i hi
+  omega
+
+#print axioms guba_rankHeightRows_weight
+#print axioms guba_rankHeightRows_large
+#print axioms answer_of_guba_large_cell
+
 end QuandleResearch.Issue070
