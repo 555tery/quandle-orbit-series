@@ -4,6 +4,7 @@ import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
 import SmallPresentation.SmallCancellationGeometryBoundaryTheorem
 import SmallPresentation.SmallCancellationGeometryRelativeRestriction
+import SmallPresentation.SmallCancellationGeometryCorridorCuts
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -1445,5 +1446,103 @@ theorem boundaryComponent_read (rows : I → RawWord) (w : F)
 #print axioms component_vertex_read
 #print axioms component_boundary_mem_normal
 #print axioms boundaryComponent_read
+
+
+/-! ## Cutting a vertex along two actual intervals
+
+A vertex cut switches the incoming arrows at two distinct corners.
+The upstream theorem proves that it preserves spherical Euler equality.
+The following lemmas retain the literal words and apply the boundary
+theorem to a component separated by this actual permutation surgery.
+-/
+
+/-- An interval ending at the predecessor of the other cut corner
+becomes a closed cycle, retaining its departure list in order. -/
+theorem vertexCut_interval_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b c : D) (l : List D)
+    (hw : SmallPresentationStatements.PermutationCycles.Walk P.rotation a c l)
+    (hc : P.rotation c = b)
+    (havoid : ∀ e ∈ l, P.rotation e ≠ a ∧ P.rotation e ≠ b)
+    (hnd : (l ++ [c]).Nodup) :
+    (P.vertexCut a b).vertexBoundary a = l ++ [c] := by
+  classical
+  have hw' : SmallPresentationStatements.PermutationCycles.Walk (P.vertexCut a b).rotation a c l := by
+    apply hw.changePerm
+    intro e he
+    rw [P.vertexCut_rotation, SmallPresentationStatements.PermutationCycles.cutAt_apply]
+    exact Equiv.swap_apply_of_ne_of_ne (havoid e he).1 (havoid e he).2
+  have hlast : (P.vertexCut a b).rotation c = a := by
+    rw [P.vertexCut_rotation, SmallPresentationStatements.PermutationCycles.cutAt_apply,
+      hc, Equiv.swap_apply_right]
+  have hclose : SmallPresentationStatements.PermutationCycles.Walk
+      (P.vertexCut a b).rotation c a [c] := by
+    apply SmallPresentationStatements.PermutationCycles.Walk.cons
+    rw [hlast]
+    exact SmallPresentationStatements.PermutationCycles.Walk.nil _
+  have hcycle := (hw'.append hclose).eq_cycleBoundary (by simp) hnd
+  exact hcycle.symm
+
+theorem vertexCut_comm {D : Type} (P : RibbonMap D) (a b : D) :
+    P.vertexCut a b = P.vertexCut b a := by
+  classical
+  apply RibbonMap.ext
+  · rfl
+  · simp only [RibbonMap.vertexCut_rotation,
+      SmallPresentationStatements.PermutationCycles.cutAt, Equiv.swap_comm a b]
+
+/-- If a cut separates its two new vertices into different components,
+the part incident to the first corner has a boundary relation in N
+whenever every other original vertex in that part reads a relation
+in N. The complete old vertex is split into the two specified intervals. -/
+theorem vertexCut_separated_boundary_mem {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (a b : D) (l r : List D)
+    (hne : a ≠ b) (hsame : P.rotation.SameCycle a b)
+    (hE : P.EulerEquality)
+    (he : ∀ e, read (P.edge e) = reverseLetter (read e))
+    (hold : P.vertexBoundary a = l ++ r)
+    (hl : (P.vertexCut a b).vertexBoundary a = l)
+    (hr : (P.vertexCut a b).vertexBoundary b = r)
+    (hsep : ¬ (P.vertexCut a b).SameComponent a b)
+    (hint : ∀ e, (P.vertexCut a b).SameComponent a e →
+      ¬ P.rotation.SameCycle a e →
+      FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N) :
+    FreeGroup.mk (l.map read) ∈ N := by
+  classical
+  let S := P.vertexCut a b
+  have hES : S.EulerEquality := P.vertexCut_preserves_euler a b hne hsame hE
+  have hb := component_boundary_mem_normal S read N
+    (fun e => he e) hES a (by
+      intro e hcomp hnot
+      have hnotold : ¬ P.rotation.SameCycle a e := by
+        intro hh
+        have hm := (P.mem_vertexBoundary_iff a e).mpr hh
+        rw [hold, List.mem_append] at hm
+        rcases hm with hm | hm
+        · have hm' : e ∈ S.vertexBoundary a := by
+            simpa only [S, hl] using hm
+          exact hnot ((S.mem_vertexBoundary_iff a e).mp hm')
+        · have hm' : e ∈ S.vertexBoundary b := by
+            simpa only [S, hr] using hm
+          have hbe := S.component_of_vertexCycle ((S.mem_vertexBoundary_iff b e).mp hm')
+          exact hsep (Relation.EqvGen.trans _ _ _ hcomp
+            (Relation.EqvGen.symm _ _ hbe))
+      have hnotb : ¬ P.rotation.SameCycle e b := by
+        intro hh
+        exact hnotold (hsame.trans hh.symm)
+      have hnot_a : ¬ P.rotation.SameCycle e a :=
+        fun hh => hnotold hh.symm
+      have hword : S.vertexBoundary e = P.vertexBoundary e :=
+        SmallPresentationStatements.PermutationCycles.cycleBoundary_cutAt_unchanged
+          P.rotation a b e hnot_a hnotb
+      rw [hword]
+      exact hint e hcomp hnotold)
+  change FreeGroup.mk (((P.vertexCut a b).vertexBoundary a).map read) ∈ N at hb
+  rw [hl] at hb
+  exact hb
+
+#print axioms vertexCut_interval_read
+#print axioms vertexCut_comm
+#print axioms vertexCut_separated_boundary_mem
 
 end QuandleResearch.Issue070
