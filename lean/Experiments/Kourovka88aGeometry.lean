@@ -8693,4 +8693,68 @@ theorem activeLongWord_either_side_pure_a_bound (pick : WeightedSelector) (i : �
 #print axioms activeLongWord_either_side_pure_a_bound
 
 
+
+/-! ## Lemma 23: removing the designated cell (algebraic part)
+
+Guba, pp. 258--259, removes a cell and invokes induction on a
+strictly smaller type. The Peiffer expression of the remaining
+filling is minimal for its based boundary product. Prove that
+fact together with strict type descent and the exact boundary
+equation. A regular annular geometric realization, with the
+designated two boundary cycles, is a separate obligation.
+-/
+
+theorem guba23_delete_cell_minimal_type
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ [x] ++ r)) :
+    let rel := rankHeightRel pick X n
+    let y := shiftOccurrence (Peiffer.evaluation rel p) x
+    let v := Peiffer.evaluation rel (p ++ r)
+    Peiffer.term rel y * v = w ∧
+      RankMinimalExpression pick X n v (p ++ r) ∧
+      descendingCountLT n rankCount (p ++ r) (p ++ [x] ++ r) := by
+  dsimp only
+  let rel := rankHeightRel pick X n
+  let y := shiftOccurrence (Peiffer.evaluation rel p) x
+  have hterm : Peiffer.evaluation rel [y] = Peiffer.term rel y := by
+    simp [Peiffer.evaluation]
+  have he : Peiffer.evaluation rel (p ++ [x] ++ r) =
+      Peiffer.evaluation rel ([y] ++ (p ++ r)) := by
+    rw [peiffer_evaluation_append, peiffer_move_occurrence rel p x]
+    simp only [peiffer_evaluation_append]
+    group
+  have hc (j : ℕ) : rankCount ([y] ++ (p ++ r)) j =
+      rankCount (p ++ [x] ++ r) j := by
+    simp only [rankCount_append,rankCount_singleton,y,shiftOccurrence]
+    omega
+  have hmin : RankMinimalExpression pick X n w ([y] ++ (p ++ r)) := by
+    refine ⟨he.symm.trans hs.1,?_⟩
+    intro t ht j hj habove
+    rw [hc j]
+    exact hs.2 t ht j hj (fun k hjk hkn => (hc k).symm.trans (habove k hjk hkn))
+  refine ⟨?_,⟨rfl,?_⟩,?_⟩
+  · have h := hmin.1
+    change Peiffer.evaluation rel ([y] ++ (p ++ r)) = w at h
+    rw [peiffer_evaluation_append,hterm] at h
+    exact h
+  · intro t ht j hj habove
+    have ht' : Peiffer.evaluation rel ([y] ++ t) = w := by
+      rw [peiffer_evaluation_append, ht]
+      have hh := hmin.1
+      simpa only [peiffer_evaluation_append] using hh
+    have hcounts : ∀ k, j < k → k < n →
+        rankCount ([y] ++ (p ++ r)) k = rankCount ([y] ++ t) k := by
+      intro k hjk hkn
+      rw [rankCount_append,rankCount_append,habove k hjk hkn]
+    have hle := hmin.2 ([y] ++ t) ht' j hj hcounts
+    simp only [rankCount_append] at hle
+    omega
+  · exact rank_type_lt_of_omitted_occurrence p r x (p ++ r) (List.Sublist.refl _)
+
+#print axioms guba23_delete_cell_minimal_type
+
+
 end QuandleResearch.Issue070
