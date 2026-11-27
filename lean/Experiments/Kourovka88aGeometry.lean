@@ -4077,4 +4077,106 @@ theorem guba19_total_vertex_edge_weight {D : Type} [Fintype D]
 #print axioms guba19_total_vertex_edge_weight
 
 
+/-! ## Contraction inside a coefficient region
+
+Contract an actual edge whose two vertices are interior (below the
+chosen rank). The surviving peripheral vertices must retain not
+just their degree but their full ordered words. This is the local
+surgery for compressing coefficient regions, with no assumption
+about an abstract graph of contiguities.
+-/
+
+/-- A contraction between two distinct interior vertices cannot
+identify a peripheral vertex with any other surviving vertex. -/
+theorem contractEdge_peripheral_sameVertex {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (a : D) (ha : keep a) (ha' : keep (P.edge a))
+    (hn : ¬ P.rotation.SameCycle a (P.edge a))
+    (d e : P.ContractDart a) (hd : ¬ keep d.val) :
+    (P.contractEdge a).rotation.SameCycle d e ↔ P.rotation.SameCycle d.val e.val := by
+  rw [P.contractEdge_sameVertex_iff, P.edgeSplice_sameVertex_iff a hn]
+  constructor
+  · rintro (h | h)
+    · exact h
+    · rcases h.1 with hda | hda
+      · exact (hd ((hkeep _ _ hda).mpr ha)).elim
+      · exact (hd ((hkeep _ _ hda).mpr ha')).elim
+  · exact Or.inl
+
+/-- Contracting an interior edge preserves the exact cyclic list
+of every peripheral vertex. The equality is of literal dart lists
+under the canonical inclusion, not only of lengths or group values. -/
+theorem contractEdge_peripheral_boundary {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (a : D) (ha : keep a) (ha' : keep (P.edge a))
+    (d : P.ContractDart a) (hd : ¬ keep d.val) :
+    ((P.contractEdge a).vertexBoundary d).map Subtype.val =
+      P.vertexBoundary d.val := by
+  classical
+  have h1 : ¬ P.rotation.SameCycle d.val (P.rotation a) := by
+    intro h
+    have hda : P.rotation.SameCycle d.val a :=
+      (Equiv.Perm.sameCycle_apply_right).mp h
+    exact hd ((hkeep _ _ hda).mpr ha)
+  have h2 : ¬ P.rotation.SameCycle d.val (P.edge a) :=
+    fun h => hd ((hkeep _ _ h).mpr ha')
+  have hs : (P.edgeSplice a).vertexBoundary d.val = P.vertexBoundary d.val :=
+    cycleBoundary_cutAt_unchanged P.rotation (P.rotation a) (P.edge a) d.val h1 h2
+  have hfilter := (P.spliceCancellation a).vertexBoundary_filter d
+  change ((P.contractEdge a).vertexBoundary d).map Subtype.val =
+    ((P.edgeSplice a).vertexBoundary d.val).filter
+      (fun x => decide (x ≠ a ∧ x ≠ P.edge a)) at hfilter
+  rw [hs] at hfilter
+  rw [hfilter]
+  apply List.filter_eq_self.mpr
+  intro x hx
+  have hxk : ¬ keep x := by
+    intro hk
+    exact hd ((hkeep _ _ ((P.mem_vertexBoundary_iff d.val x).mp hx)).mpr hk)
+  exact decide_eq_true ⟨fun h => hxk (h ▸ ha), fun h => hxk (h ▸ ha')⟩
+
+/-- The same operation preserves every peripheral word under any
+letter labelling, hence also its raw and normalized weights. -/
+theorem contractEdge_peripheral_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (a : D) (ha : keep a) (ha' : keep (P.edge a))
+    (d : P.ContractDart a) (hd : ¬ keep d.val) :
+    ((P.contractEdge a).vertexBoundary d).map (fun e => read e.val) =
+      (P.vertexBoundary d.val).map read := by
+  rw [← contractEdge_peripheral_boundary P keep hkeep a ha ha' d hd, List.map_map]
+  rfl
+
+/-- The transferred interior predicate is constant on contracted
+vertices. Consequently the local surgery can be iterated without
+losing the distinction between interior and peripheral vertices. -/
+theorem contractEdge_keep_sameVertex {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (a : D) (ha : keep a) (ha' : keep (P.edge a))
+    (hn : ¬ P.rotation.SameCycle a (P.edge a))
+    (d e : P.ContractDart a)
+    (h : (P.contractEdge a).rotation.SameCycle d e) :
+    keep d.val ↔ keep e.val := by
+  rw [P.contractEdge_sameVertex_iff, P.edgeSplice_sameVertex_iff a hn] at h
+  rcases h with h | ⟨hd,he⟩
+  · exact hkeep _ _ h
+  · have hkd : keep d.val := by
+      rcases hd with hd | hd
+      · exact (hkeep _ _ hd).mpr ha
+      · exact (hkeep _ _ hd).mpr ha'
+    have hke : keep e.val := by
+      rcases he with he | he
+      · exact (hkeep _ _ he).mpr ha
+      · exact (hkeep _ _ he).mpr ha'
+    exact iff_of_true hkd hke
+
+#print axioms contractEdge_peripheral_sameVertex
+#print axioms contractEdge_peripheral_boundary
+#print axioms contractEdge_peripheral_read
+#print axioms contractEdge_keep_sameVertex
+
+
 end QuandleResearch.Issue070
