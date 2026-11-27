@@ -689,4 +689,115 @@ theorem minimal_rankHeight_no_merge_pair (pick : WeightedSelector)
 #print axioms exists_minimal_rankHeight_expression
 #print axioms minimal_rankHeight_no_merge_pair
 
+
+/-! ## Absorb orientation into signed heights
+
+The all-height family is closed under inversion up to a based change
+of conjugator. Thus choosing a minimal expression does not require
+positive and negative orientations as separate algebraic cases.
+-/
+
+theorem rankHeightRel_neg (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (j : Fin n) (k : ℤ) :
+    rankHeightRel pick X n (j,-k) =
+      (a^k)⁻¹ * (rankHeightRel pick X n (j,k))⁻¹ * a^k := by
+  classical
+  by_cases h : ∃ w : F, ¬ Good (weightedStages pick X j.val) w
+  · simp only [rankHeightRel, weightedRankHeightRelator, dite_eq_left h]
+    exact heightRelator_neg _ _ k
+  · simp [rankHeightRel, weightedRankHeightRelator, h]
+
+/-- Replace a negatively oriented occurrence by the opposite height,
+with the basepoint adjusted along the a-side. -/
+def positiveHeightOccurrence (n : ℕ) :
+    Peiffer.Occurrence F (RankHeight n) → Peiffer.Occurrence F (RankHeight n)
+  | ((u,(j,k)),true) => ((u,(j,k)),true)
+  | ((u,(j,k)),false) => ((u*a^k,(j,-k)),true)
+
+theorem positiveHeightOccurrence_term (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ)
+    (x : Peiffer.Occurrence F (RankHeight n)) :
+    Peiffer.term (rankHeightRel pick X n) (positiveHeightOccurrence n x) =
+      Peiffer.term (rankHeightRel pick X n) x := by
+  rcases x with ⟨⟨u,⟨j,k⟩⟩,b⟩
+  cases b
+  · change (u*a^k) * rankHeightRel pick X n (j,-k) * (u*a^k)⁻¹ =
+        (u * rankHeightRel pick X n (j,k) * u⁻¹)⁻¹
+    rw [rankHeightRel_neg]
+    group
+  · rfl
+
+theorem positiveHeightOccurrence_sign (n : ℕ)
+    (x : Peiffer.Occurrence F (RankHeight n)) :
+    (positiveHeightOccurrence n x).2 = true := by
+  rcases x with ⟨⟨u,⟨j,k⟩⟩,b⟩
+  cases b <;> rfl
+
+theorem positiveHeightOccurrence_rank (n : ℕ)
+    (x : Peiffer.Occurrence F (RankHeight n)) :
+    (positiveHeightOccurrence n x).1.2.1 = x.1.2.1 := by
+  rcases x with ⟨⟨u,⟨j,k⟩⟩,b⟩
+  cases b <;> rfl
+
+theorem positiveHeightOccurrence_evaluation (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ)
+    (s : Peiffer.Sequence F (RankHeight n)) :
+    Peiffer.evaluation (rankHeightRel pick X n) (s.map (positiveHeightOccurrence n)) =
+      Peiffer.evaluation (rankHeightRel pick X n) s := by
+  induction s with
+  | nil => rfl
+  | cons x xs ih =>
+    change Peiffer.term (rankHeightRel pick X n) (positiveHeightOccurrence n x) *
+        Peiffer.evaluation (rankHeightRel pick X n) (xs.map (positiveHeightOccurrence n)) =
+      Peiffer.term (rankHeightRel pick X n) x *
+        Peiffer.evaluation (rankHeightRel pick X n) xs
+    rw [positiveHeightOccurrence_term, ih]
+
+/-- Every finite-stage kernel member admits a minimal expression
+whose occurrences have positive orientation and signed heights. -/
+theorem exists_positive_minimal_rankHeight_expression (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      MinimalExpression (rankHeightRel pick X n) w s ∧
+      ∀ x ∈ s, x.2 = true := by
+  obtain ⟨s,hs⟩ := exists_minimal_rankHeight_expression pick X n w hw
+  refine ⟨s.map (positiveHeightOccurrence n), ⟨?_,?_⟩, ?_⟩
+  · rw [positiveHeightOccurrence_evaluation]
+    exact hs.1
+  · intro t ht
+    rw [List.length_map]
+    exact hs.2 t ht
+  · intro x hx
+    obtain ⟨y,_,rfl⟩ := List.mem_map.mp hx
+    exact positiveHeightOccurrence_sign n y
+
+/-- No zero-height occurrence can occur anywhere in a minimal
+expression. The proof does not require a chosen cyclic cut. -/
+theorem minimal_rankHeight_nonzero_height (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : MinimalExpression (rankHeightRel pick X n) w s)
+    (x : Peiffer.Occurrence F (RankHeight n)) (hx : x ∈ s) :
+    x.1.2.2 ≠ 0 := by
+  obtain ⟨p,r,he⟩ := List.append_cons_of_mem hx
+  have hsplit : s = p ++ [x] ++ r := by simpa using he
+  have hm : MinimalExpression (rankHeightRel pick X n) w (p ++ [x] ++ r) :=
+    hsplit ▸ hs
+  intro hz
+  apply minimalExpression_no_trivial_term _ w p r x hm
+  rcases x with ⟨⟨u,⟨j,k⟩⟩,b⟩
+  change k = 0 at hz
+  subst k
+  cases b <;> simp [Peiffer.term, rankHeightRel, weightedRankHeightRelator_zero]
+
+#print axioms rankHeightRel_neg
+#print axioms positiveHeightOccurrence
+#print axioms positiveHeightOccurrence_term
+#print axioms positiveHeightOccurrence_sign
+#print axioms positiveHeightOccurrence_rank
+#print axioms positiveHeightOccurrence_evaluation
+#print axioms exists_positive_minimal_rankHeight_expression
+#print axioms minimal_rankHeight_nonzero_height
+
 end QuandleResearch.Issue070
