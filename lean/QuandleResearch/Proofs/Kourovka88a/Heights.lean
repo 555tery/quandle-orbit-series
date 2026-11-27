@@ -154,4 +154,48 @@ theorem heightRelator_merge_cancel (X C u : F) (k : ℤ) :
   rw [heightRelator_merge, add_neg_cancel, heightRelator_zero]
   simp
 
+
+/-! ## Exact positive conjugating sides of literal height rows
+
+The two long sides are opposite signed readings of the same positive
+word. These statements concern the displayed spelling before possible
+cancellation across its four seams.
+-/
+
+theorem rawWeight_invRev (w : RawWord) :
+    rawWeight (FreeGroup.invRev w) = rawWeight w := by
+  induction w with
+  | nil => rfl
+  | cons x xs ih =>
+    rw [FreeGroup.invRev_cons, rawWeight_append, ih]
+    rcases x with ⟨i,s⟩
+    simp [FreeGroup.invRev, rawWeight, letterWeight, Nat.add_comm]
+
+theorem literalHeightWord_positive_sides (q : List (Fin 2)) (C : F) (k : ℤ)
+    (hk : k ≠ 0) :
+    literalHeightWord (positiveWord q) C k =
+      q.map (fun x => (x,true)) ++ rawIntPow C.toWord k ++
+      FreeGroup.invRev (q.map (fun x => (x,true))) ++
+      FreeGroup.invRev (rawIntPow a.toWord k) := by
+  simp only [literalHeightWord, ite_eq_right hk, toWord_positiveWord]
+
+theorem literalHeightWord_weight (X C : F) (k : ℤ) (hk : k ≠ 0) :
+    rawWeight (literalHeightWord X C k) =
+      2*weightedLength X + rawWeight (rawIntPow C.toWord k) +
+        rawWeight (rawIntPow a.toWord k) := by
+  rw [literalHeightWord, ite_eq_right hk]
+  simp only [rawWeight_append, rawWeight_invRev, weightedLength]
+  omega
+
+theorem positiveWeight_eq_rawWeight_map (q : List (Fin 2)) :
+    positiveWeight q = rawWeight (q.map (fun x => (x,true))) := by
+  change weightedLength (positiveWord q) = _
+  rw [weightedLength, toWord_positiveWord]
+
+/-- Inverse reading does not change the length of the long side. -/
+theorem positive_side_inverse_weight (q : List (Fin 2)) :
+    rawWeight (FreeGroup.invRev (q.map (fun x => (x,true)))) =
+      positiveWeight q := by
+  rw [rawWeight_invRev, positiveWeight_eq_rawWeight_map]
+
 end QuandleResearch.Issue070
