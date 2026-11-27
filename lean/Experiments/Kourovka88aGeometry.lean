@@ -1750,4 +1750,65 @@ theorem exists_two_vertex_cut_refinement {D : Type} [Fintype D]
 #print axioms vertexCut_other_vertex_read
 #print axioms exists_two_vertex_cut_refinement
 
+
+/-- Cutting after a prescribed positive number k+1 of darts, strictly
+shorter than the full cycle, isolates exactly those first k+1 darts.
+The distinctness and no-premature-return hypotheses are derived from
+the minimal period of the rotation. -/
+theorem vertexCut_prescribed_interval {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D) (k : ℕ)
+    (hk : k + 1 < Function.minimalPeriod P.rotation a) :
+    (P.vertexCut a (P.rotation^[k+1] a)).vertexBoundary a =
+      List.ofFn (fun i : Fin k => P.rotation^[i.val] a) ++
+        [P.rotation^[k] a] := by
+  classical
+  let c := P.rotation^[k] a
+  let b := P.rotation^[k+1] a
+  let l := List.ofFn (fun i : Fin k => P.rotation^[i.val] a)
+  have hw : SmallPresentationStatements.PermutationCycles.Walk
+      P.rotation a c l :=
+    SmallPresentationStatements.PermutationCycles.Walk.of_iterate P.rotation k a
+  have hc : P.rotation c = b := by
+    dsimp only [c,b]
+    rw [Function.iterate_succ_apply']
+  have hinj : ∀ i j : ℕ, i < Function.minimalPeriod P.rotation a →
+      j < Function.minimalPeriod P.rotation a →
+      P.rotation^[i] a = P.rotation^[j] a → i = j := by
+    intro i j hi hj he
+    exact Function.iterate_injOn_Iio_minimalPeriod hi hj he
+  have hav : ∀ e ∈ l, P.rotation e ≠ a ∧ P.rotation e ≠ b := by
+    intro e he
+    obtain ⟨i,hi⟩ := List.mem_ofFn.mp he
+    rw [← hi]
+    constructor
+    · intro hh
+      have hh' : P.rotation^[i.val+1] a = P.rotation^[0] a := by
+        rw [Function.iterate_succ_apply', Function.iterate_zero_apply]
+        exact hh
+      have h := hinj (i.val+1) 0 (by omega) (by omega) hh'
+      omega
+    · intro hh
+      have hh' : P.rotation^[i.val+1] a = P.rotation^[k+1] a := by
+        rw [Function.iterate_succ_apply']
+        exact hh
+      have h := hinj (i.val+1) (k+1) (by omega) hk hh'
+      omega
+  have hnd : (l ++ [c]).Nodup := by
+    apply List.nodup_append.mpr
+    refine ⟨?_, by simp, ?_⟩
+    · apply List.nodup_ofFn.mpr
+      intro i j he
+      apply Fin.ext
+      exact hinj i.val j.val (by omega) (by omega) he
+    · intro e he z hz hez
+      obtain ⟨i,hi⟩ := List.mem_ofFn.mp he
+      have hzc : z = c := List.mem_singleton.mp hz
+      have hh : P.rotation^[i.val] a = P.rotation^[k] a :=
+        hi.trans (hez.trans hzc)
+      have h := hinj i.val k (by omega) (by omega) hh
+      omega
+  exact vertexCut_interval_read P a b c l hw hc hav hnd
+
+#print axioms vertexCut_prescribed_interval
+
 end QuandleResearch.Issue070
