@@ -129,7 +129,8 @@ jobs:
                    "MinimalExpression", "exists_minimalExpression", "peiffer_evaluation_append", "minimalExpression_block_length", "minimalExpression_no_cancel_pair", "minimalExpression_no_trivial_term", "exists_minimal_rankHeight_expression", "minimal_rankHeight_no_merge_pair",
                    "rankHeightRel_neg", "positiveHeightOccurrence", "positiveHeightOccurrence_term", "positiveHeightOccurrence_sign", "positiveHeightOccurrence_rank", "positiveHeightOccurrence_evaluation", "exists_positive_minimal_rankHeight_expression", "minimal_rankHeight_nonzero_height",
                    "shiftOccurrence", "shiftOccurrence_term", "peiffer_move_occurrence", "minimalExpression_of_equal_value_length", "minimalExpression_move_pair", "minimal_rankHeight_no_separated_merge_pair",
-                   "exists_descending_count_min", "rankCount", "rankCount_append", "RankMinimalExpression", "exists_rankMinimalExpression", "rankMinimal_block_no_reduction", "rankCount_positiveHeightOccurrence", "exists_positive_rankMinimalExpression"]
+                   "exists_descending_count_min", "rankCount", "rankCount_append", "RankMinimalExpression", "exists_rankMinimalExpression", "rankMinimal_block_no_reduction", "rankCount_positiveHeightOccurrence", "exists_positive_rankMinimalExpression",
+                   "liftRankOccurrence", "liftRankOccurrence_term", "liftRankOccurrence_evaluation", "rankCount_liftRankOccurrence_zero", "exists_lowerRank_filling", "rankMinimal_block_no_reduction_mod_lower", "exists_rankMinimal_ribbon_expression"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
