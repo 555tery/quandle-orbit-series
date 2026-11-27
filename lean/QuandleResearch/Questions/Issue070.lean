@@ -87,7 +87,7 @@ theorem answer_of_chain (N : ℕ → Subgroup F) (hN : Monotone N)
     (hsurvive : ∀ n, commWord ∉ N n)
     (hcover : ∀ w : F, ∃ n, Good (N n) w) : answer := by
   let L : Subgroup F := ⨆ n, N n
-  letI : L.Normal := limit_normal N hN hn
+  let _ : L.Normal := limit_normal N hN hn
   let q := QuotientGroup.mk' L
   have hcomm : q commWord ≠ 1 := by
     intro he
@@ -96,8 +96,8 @@ theorem answer_of_chain (N : ℕ → Subgroup F) (hN : Monotone N)
     exact hsurvive i hi
   refine ⟨F ⧸ L, inferInstance, ?_, inferInstance, q a, ?_⟩
   · intro hc
-    letI : IsCyclic (F ⧸ L) := hc
-    letI : CommGroup (F ⧸ L) := IsCyclic.commGroup
+    let _ : IsCyclic (F ⧸ L) := hc
+    let _ : CommGroup (F ⧸ L) := IsCyclic.commGroup
     apply hcomm
     change q (a * b * a⁻¹ * b⁻¹) = 1
     simp only [map_mul, map_inv]
