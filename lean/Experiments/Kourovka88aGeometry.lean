@@ -16149,6 +16149,7 @@ theorem ribbon_walk_inside_block {D : Type} [Fintype D]
   have hm : x ∈ P.vertexBoundary a := (P.mem_vertexBoundary_iff a x).mpr hx
   rw [hbs] at hm
   obtain ⟨b,hb,hxb⟩ := List.mem_flatMap.mp hm
+  change x ∈ b at hxb
   obtain ⟨A,B,hAB⟩ := List.mem_iff_append.mp hb
   obtain ⟨p,q,hpq⟩ := List.mem_iff_append.mp hxb
   have hfull : P.vertexBoundary a = (A.flatMap id++p) ++ (x::q) ++ B.flatMap id := by
@@ -16444,6 +16445,184 @@ theorem guba_positive_cell_four_blocks
 #print axioms guba_positive_cell_four_blocks
 
 
+
+/-! ## Exclude the light block on either side of the extracted pair
+
+The available 1/54 bound is relative to just ONE cell. Exclude a
+light block on the opposite cell by proving that every pure-a
+factor of every block of the first cell is short. In particular,
+periodic factors are bounded by one period regardless of height.
+-/
+
+theorem rawNatPow_hasPeriod (w : RawWord) (m : ℕ) :
+    (rawNatPow w m).HasPeriod w.length := by
+  cases m with
+  | zero => simp [rawNatPow]
+  | succ m =>
+    rw [rawNatPow_eq_flatten_replicate,List.HasPeriod]
+    have htake : ((List.replicate (m+1) w).flatten).take w.length = w := by
+      rw [List.replicate_succ,List.flatten_cons,List.take_append_length]
+    rw [htake]
+    apply List.prefix_iff_exists_append_eq.mpr
+    refine ⟨w,?_⟩
+    symm
+    calc
+      w ++ (List.replicate (m+1) w).flatten =
+          (List.replicate ((m+1)+1) w).flatten := by rfl
+      _ = (List.replicate (m+1) w).flatten ++ w := by
+        rw [List.replicate_succ',List.flatten_concat]
+
+theorem rawNatPow_pure_a_factor_bound {N : Subgroup F} {C : F}
+    (hbad : ¬ Good N C) (m : ℕ) (z : RawWord)
+    (hz : z <:+: rawNatPow C.toWord m)
+    (ha : ∀ x ∈ z, x.1 = 0) :
+    rawWeight z < weightedLength C := by
+  cases m with
+  | zero =>
+    have hlen := hz.sublist.length_le
+    change z.length ≤ 0 at hlen
+    have hnil : z = [] := List.length_eq_zero_iff.mp (by omega)
+    rw [hnil]
+    have hC := weight_ge_of_bad N C hbad
+    change 0 < weightedLength C
+    omega
+  | succ m =>
+    obtain ⟨p,r,hpr⟩ := hz
+    apply bad_period_pure_a_factor_bound hbad p z r
+    · rw [hpr,rawNatPow_eq_flatten_replicate,List.replicate_succ,List.flatten_cons]
+      exact List.prefix_append _ _
+    · rw [hpr]
+      exact rawNatPow_hasPeriod _ _
+    · exact ha
+
+theorem rawIntPow_pure_a_factor_bound {N : Subgroup F} {C : F}
+    (hbad : ¬ Good N C) (k : ℤ) (z : RawWord)
+    (hz : z <:+: rawIntPow C.toWord k)
+    (ha : ∀ x ∈ z, x.1 = 0) :
+    rawWeight z < weightedLength C := by
+  cases k with
+  | ofNat m =>
+    exact rawNatPow_pure_a_factor_bound hbad m z hz ha
+  | negSucc m =>
+    change z <:+: FreeGroup.invRev (rawNatPow C.toWord (m+1)) at hz
+    have h := invRev_infix_of_infix hz
+    rw [FreeGroup.invRev_invRev] at h
+    have hw := rawNatPow_pure_a_factor_bound hbad (m+1)
+      (FreeGroup.invRev z) h (invRev_pure_a ha)
+    rwa [rawWeight_invRev] at hw
+
+theorem rawIntPow_weight_exact (w : RawWord) (k : ℤ) :
+    rawWeight (rawIntPow w k) = k.natAbs * rawWeight w := by
+  cases k with
+  | ofNat m => exact rawWeight_rawNatPow w m
+  | negSucc m =>
+    change rawWeight (FreeGroup.invRev (rawNatPow w (m+1))) = (m+1)*rawWeight w
+    rw [rawWeight_invRev,rawWeight_rawNatPow]
+
+theorem rawNatPow_pure_a {w : RawWord} (h : ∀ x ∈ w, x.1 = 0) (m : ℕ) :
+    ∀ x ∈ rawNatPow w m, x.1 = 0 := by
+  induction m with
+  | zero => simp [rawNatPow]
+  | succ m ih =>
+    intro x hx
+    rw [rawNatPow,List.mem_append] at hx
+    exact hx.elim (ih x) (h x)
+
+theorem light_block_pure_a (k : ℤ) :
+    ∀ x ∈ FreeGroup.invRev (rawIntPow a.toWord k), x.1 = 0 := by
+  have ha : ∀ x ∈ a.toWord, x.1 = 0 := by
+    have h : a.toWord = [(0,true)] := by decide
+    rw [h]
+    intro x hx
+    rw [List.mem_singleton.mp hx]
+  cases k with
+  | ofNat m => exact invRev_pure_a (rawNatPow_pure_a ha m)
+  | negSucc m =>
+    change ∀ x ∈ FreeGroup.invRev (FreeGroup.invRev (rawNatPow a.toWord (m+1))), x.1 = 0
+    rw [FreeGroup.invRev_invRev]
+    exact rawNatPow_pure_a ha (m+1)
+
+/-- All three possible pure-a bounds are tiny relative to the
+actual perimeter, including when the height is arbitrarily large. -/
+theorem guba_active_perimeter_dominates_light (pick : WeightedSelector)
+    (i : ℕ) (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) (k : ℤ) :
+    let C := (pick (gubaState pick i).1 h).val
+    let L := positiveWeight (activeLongWord pick i h)
+    let P := 2*L + k.natAbs * weightedLength C + k.natAbs
+    54*4 < P ∧ 54*weightedLength C < P ∧ 54*k.natAbs < P := by
+  intro C L P
+  have hc := weight_ge_of_bad (gubaState pick i).1 C
+    (pick (gubaState pick i).1 h).property.1
+  have hpre := chooseEvenPrefixIndex_spec C (gubaState pick i).2
+  have hpre' : 10^70 * weightedLength C < positiveWeight (activePrefix pick i h) :=
+    (le_max_left _ _).trans_lt hpre
+  have hlong := weightedLength_longRaw_twice (activePrefix pick i h) (10^20)
+  change 2*L = 6*(10^20 : ℕ)*10^80 +
+      10^20*(10^20+1)*positiveWeight (activePrefix pick i h) at hlong
+  have hmul := Nat.mul_le_mul_left k.natAbs hc
+  rw [Nat.mul_comm k.natAbs (10^80 : ℕ)] at hmul
+  dsimp only [P]
+  norm_num at hlong hpre' hc hmul ⊢
+  omega
+
+/-- The bound holds for a factor of ANY of the four actual blocks.
+We use the full perimeter of its own cell, not that of its partner. -/
+theorem guba_four_block_pure_a_short {D : Type} (read : D → Letter)
+    (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) (k : ℤ)
+    (bs : List (List D)) (b : List D) (z : RawWord)
+    (hread : GubaFourBlockRead read bs (activeLongWord pick i h)
+      (pick (gubaState pick i).1 h).val k)
+    (hb : b ∈ bs) (hz : z <:+: b.map read)
+    (ha : ∀ x ∈ z, x.1 = 0) :
+    54*rawWeight z < rawWeight ((bs.flatMap id).map read) := by
+  let C := (pick (gubaState pick i).1 h).val
+  let L := positiveWeight (activeLongWord pick i h)
+  let P := 2*L + k.natAbs*weightedLength C + k.natAbs
+  obtain ⟨h4,hC,hk⟩ := guba_active_perimeter_dominates_light pick i h k
+  change 54*4 < P at h4
+  change 54*weightedLength C < P at hC
+  change 54*k.natAbs < P at hk
+  obtain ⟨U,V,W,A,hbs,hU,hV,hW,hA⟩ := hread
+  have haweight : rawWeight a.toWord = 1 := by
+    change weightedLength a = 1
+    simpa using weightedLength_a_zpow 1
+  have hper : rawWeight ((bs.flatMap id).map read) = P := by
+    rw [hbs]
+    simp only [List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil,List.map_append,
+      rawWeight_append,hU,hV,hW,hA,rawWeight_invRev,rawIntPow_weight_exact,
+      ← positiveWeight_eq_rawWeight_map,haweight,mul_one]
+    change L + k.natAbs*weightedLength C + L + k.natAbs = P
+    dsimp only [P]
+    omega
+  rw [hper]
+  rw [hbs] at hb
+  simp only [List.mem_cons,List.mem_singleton] at hb
+  rcases hb with rfl | rfl | rfl | rfl
+  · rw [hU] at hz
+    have hw := activeLongWord_signed_pure_a_bound pick i h z hz ha
+    omega
+  · rw [hV] at hz
+    have hw := rawIntPow_pure_a_factor_bound
+      (pick (gubaState pick i).1 h).property.1 k z hz ha
+    change rawWeight z < weightedLength C at hw
+    omega
+  · rw [hW] at hz
+    have hw := activeLongWord_either_side_pure_a_bound pick i h z (Or.inr hz) ha
+    omega
+  · have hw := rawWeight_le_of_sublist hz.sublist
+    rw [hA,rawWeight_invRev,rawIntPow_weight_exact,haweight,mul_one] at hw
+    omega
+
+#print axioms rawNatPow_hasPeriod
+#print axioms rawNatPow_pure_a_factor_bound
+#print axioms rawIntPow_pure_a_factor_bound
+#print axioms rawIntPow_weight_exact
+#print axioms rawNatPow_pure_a
+#print axioms light_block_pure_a
+#print axioms guba_active_perimeter_dominates_light
+#print axioms guba_four_block_pure_a_short
+
 /-- On the actual one-letter spherical ribbon, there is a direct
 paired factor wholly within a single block on each of two indexed
 interior cells (which may coincide). Its weight is at least 1/54
@@ -16478,7 +16657,9 @@ theorem guba_oneDart_actual_single_block_pair
       (∃ p q : List _, b = p ++ (v++[t]) ++ q) ∧
       (∃ p q : List _, c = p ++ (((v++[t]).map P.edge).reverse) ++ q) ∧
       (∀ x ∈ v, P.face (P.face x) = x) ∧
-      rawWeight ((P.vertexBoundary d).map read) ≤ 54 * rawWeight ((v++[t]).map read) := by
+      rawWeight ((P.vertexBoundary d).map read) ≤ 54 * rawWeight ((v++[t]).map read) ∧
+      ¬ (∀ x ∈ (v++[t]).map read, x.1 = 0) ∧
+      ¬ (∀ x ∈ (((v++[t]).map P.edge).reverse).map read, x.1 = 0) := by
   classical
   intro pick rows P root read idx hc hE hz
   have hmono : ∀ d, P.face d ≠ d := guba_oneDart_no_monogons n s hs hpos
@@ -16552,8 +16733,31 @@ theorem guba_oneDart_actual_single_block_pair
     obtain ⟨h,hh⟩ := hjRead
     exact GubaFourBlockRead_length _ _ _ _ _ hh
   rw [hblen,hclen] at hW
-  refine ⟨d,e,i,j,bs,cs,v,t,b,c,hi,hj,hbs,hcs,hiRead,hjRead,hb,hc',hp,hq,hbig',?_⟩
-  omega
+  have hLong : rawWeight ((P.vertexBoundary d).map read) ≤
+      54 * rawWeight ((v++[t]).map read) := by omega
+  have hnonpure : ¬ (∀ x ∈ (v++[t]).map read, x.1 = 0) := by
+    intro hlight
+    obtain ⟨ha',hread⟩ := hiRead
+    obtain ⟨l,r,hr⟩ := hp
+    have hf : (v++[t]).map read <:+: b.map read := by
+      refine ⟨l.map read,r.map read,?_⟩
+      rw [hr]
+      simp only [List.map_append]
+    have hshort := guba_four_block_pure_a_short read pick s[i.val].1.2.1.val ha'
+      s[i.val].1.2.2 bs b ((v++[t]).map read) hread hb hf hlight
+    rw [← hbs] at hshort
+    omega
+  have hnonpure' : ¬ (∀ x ∈ (((v++[t]).map P.edge).reverse).map read, x.1 = 0) := by
+    intro hlight
+    have heq := boundaryRibbon_inverse_read rows a s hs (v++[t])
+    change (((v++[t]).map P.edge).reverse).map read =
+      FreeGroup.invRev ((v++[t]).map read) at heq
+    rw [heq] at hlight
+    have h' := invRev_pure_a hlight
+    rw [FreeGroup.invRev_invRev] at h'
+    exact hnonpure h'
+  exact ⟨d,e,i,j,bs,cs,v,t,b,c,hi,hj,hbs,hcs,hiRead,hjRead,hb,hc',hp,hq,hbig',
+    hLong,hnonpure,hnonpure'⟩
 
 #print axioms guba_oneDart_actual_single_block_pair
 
