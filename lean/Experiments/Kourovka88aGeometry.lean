@@ -16592,8 +16592,7 @@ theorem guba_four_block_pure_a_short {D : Type} (read : D → Letter)
     simp only [List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil,List.map_append,
       rawWeight_append,hU,hV,hW,hA,rawWeight_invRev,rawIntPow_weight_exact,
       ← positiveWeight_eq_rawWeight_map,haweight,mul_one]
-    change L + k.natAbs*weightedLength C + L + k.natAbs = P
-    dsimp only [P]
+    dsimp only [P,L,C,weightedLength]
     omega
   rw [hper]
   rw [hbs] at hb
@@ -16760,5 +16759,123 @@ theorem guba_oneDart_actual_single_block_pair
     hLong,hnonpure,hnonpure'⟩
 
 #print axioms guba_oneDart_actual_single_block_pair
+
+
+/-- Both orientations are handled by one signed-word statement.
+A heavy long/long paired factor forces the same rank and exact
+same cut in the two underlying positive words. Only the first
+side needs to be heavy; the second perimeter is irrelevant. -/
+theorem activeLongWord_paired_signed_factor_alignment
+    (pick : WeightedSelector) (i j : ℕ)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (si sj : Bool) (z : RawWord)
+    (hfirst : z <:+: (if si then
+      (activeLongWord pick i hi).map (fun x => (x,true))
+      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true)))))
+    (hsecond : FreeGroup.invRev z <:+: (if sj then
+      (activeLongWord pick j hj).map (fun x => (x,true))
+      else FreeGroup.invRev ((activeLongWord pick j hj).map (fun x => (x,true)))))
+    (hlarge : positiveWeight (activeLongWord pick i hi) <
+      240*10^17*rawWeight z) :
+    si ≠ sj ∧ i = j ∧
+      ∃ p u r : List (Fin 2),
+        activeLongWord pick i hi = p++u++r ∧
+        activeLongWord pick j hj = p++u++r ∧
+        z = (if si then u.map (fun x => (x,true))
+          else FreeGroup.invRev (u.map (fun x => (x,true)))) := by
+  have sign_of_factor (X : List (Fin 2)) (sg : Bool) (w : RawWord)
+      (hw : w <:+: (if sg then X.map (fun x => (x,true))
+        else FreeGroup.invRev (X.map (fun x => (x,true))))) :
+      ∀ x ∈ w, x.2 = sg := by
+    cases sg with
+    | false =>
+      intro x hx
+      have hm := hw.sublist.subset hx
+      change x ∈ FreeGroup.invRev (X.map (fun x => (x,true))) at hm
+      rw [FreeGroup.invRev,List.mem_reverse] at hm
+      obtain ⟨y,hy,rfl⟩ := List.mem_map.mp hm
+      obtain ⟨a,ha,rfl⟩ := List.mem_map.mp hy
+      rfl
+    | true =>
+      intro x hx
+      have hm := hw.sublist.subset hx
+      change x ∈ X.map (fun x => (x,true)) at hm
+      obtain ⟨a,ha,rfl⟩ := List.mem_map.mp hm
+      rfl
+  have hsign : si ≠ sj := by
+    have h₁ := sign_of_factor _ _ _ hfirst
+    have h₂ := sign_of_factor _ _ _ hsecond
+    intro he
+    cases z with
+    | nil => simp [rawWeight] at hlarge
+    | cons x xs =>
+      have hx := h₁ x List.mem_cons_self
+      have hm : reverseLetter x ∈ FreeGroup.invRev (x::xs) := by
+        rw [FreeGroup.invRev,List.mem_reverse]
+        exact List.mem_map.mpr ⟨x,List.mem_cons_self,rfl⟩
+      have hy := h₂ _ hm
+      rcases x with ⟨a,sg⟩
+      cases sg <;> cases si <;> cases sj <;> simp_all [reverseLetter]
+  let w := if si then z else FreeGroup.invRev z
+  have h₁ : w <:+: (activeLongWord pick i hi).map (fun x => (x,true)) := by
+    cases si with
+    | false =>
+      change z <:+: FreeGroup.invRev ((activeLongWord pick i hi).map
+        (fun x => (x,true))) at hfirst
+      have h := invRev_infix_of_infix hfirst
+      rw [FreeGroup.invRev_invRev] at h
+      exact h
+    | true => exact hfirst
+  have h₂ : w <:+: (activeLongWord pick j hj).map (fun x => (x,true)) := by
+    cases si with
+    | false =>
+      have hsj : sj = true := by
+        cases sj <;> simp_all
+      rw [hsj] at hsecond
+      exact hsecond
+    | true =>
+      have hsj : sj = false := by
+        cases sj <;> simp_all
+      rw [hsj] at hsecond
+      change FreeGroup.invRev z <:+:
+        FreeGroup.invRev ((activeLongWord pick j hj).map (fun x => (x,true))) at hsecond
+      have h := invRev_infix_of_infix hsecond
+      rw [FreeGroup.invRev_invRev,FreeGroup.invRev_invRev] at h
+      exact h
+  obtain ⟨p₁,r₁,hp₁⟩ := h₁
+  obtain ⟨p,u,r,hword,hp,hu,hr⟩ :=
+    read_factor_lift (fun x : Fin 2 => (x,true)) (activeLongWord pick i hi)
+      p₁ w r₁ hp₁.symm
+  obtain ⟨p₂,r₂,hp₂⟩ := h₂
+  obtain ⟨p',u',r',hword',hp',hu',hr'⟩ :=
+    read_factor_lift (fun x : Fin 2 => (x,true)) (activeLongWord pick j hj)
+      p₂ w r₂ hp₂.symm
+  have huu : u = u' := by
+    have he := congrArg (List.map (Prod.fst : Letter → Fin 2)) (hu.trans hu'.symm)
+    simp only [List.map_map] at he
+    change u.map (fun x => x) = u'.map (fun x => x) at he
+    simpa only [List.map_id'] using he
+  subst u'
+  have hweight : positiveWeight u = rawWeight z := by
+    rw [positiveWeight_eq_rawWeight_map,hu]
+    cases si <;> simp [w,rawWeight_invRev]
+  have hheavy : min (positiveWeight (activeLongWord pick i hi))
+      (positiveWeight (activeLongWord pick j hj)) <
+      240*10^17*positiveWeight u := by
+    rw [hweight]
+    exact (min_le_left _ _).trans_lt hlarge
+  obtain ⟨hrank,hpp,hrr⟩ := activeLongWord_heavy_factor_cut_eq pick i j hi hj
+    p u r p' r' hword hword' hheavy
+  refine ⟨hsign,hrank,p,u,r,hword,?_,?_⟩
+  · simpa only [← hpp,← hrr] using hword'
+  · cases si with
+    | false =>
+      change u.map (fun x => (x,true)) = FreeGroup.invRev z at hu
+      change z = FreeGroup.invRev (u.map (fun x => (x,true)))
+      rw [hu,FreeGroup.invRev_invRev]
+    | true => exact hu.symm
+
+#print axioms activeLongWord_paired_signed_factor_alignment
 
 end QuandleResearch.Issue070
