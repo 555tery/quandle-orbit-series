@@ -10573,7 +10573,7 @@ theorem answer_of_guba_based_nonseparating_step
   obtain ⟨x,hx⟩ := List.length_pos_iff_exists_mem.mp (List.length_pos_iff.mpr hne)
   have hper := guba23_perimeter_reduce_to_based_nonseparating
     pick (gubaConjugatorChoice pick) n (step n) w s hm x hx
-  obtain ⟨p,r,he⟩ := List.append_of_mem hx
+  obtain ⟨p,r,he⟩ := List.mem_iff_append.mp hx
   have hnon : rankHeightRows pick (gubaConjugatorChoice pick) n x.1.2 ≠ [] := by
     apply rankMinimal_designated_row_nonempty pick (gubaConjugatorChoice pick) n w p r x
     simpa only [he,List.append_assoc] using hm
