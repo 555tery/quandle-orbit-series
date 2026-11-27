@@ -191,4 +191,8 @@ example : answer ↔
 #print axioms gubaEvenPrefix_resolvent_eq
 #print axioms gubaEvenPrefix_resolvent_occurrence
 
+#print axioms guba_long_overlap_alignment
+#print axioms guba_long_overlap_bound
+#print axioms guba_chosen_overlap_bound
+
 end QuandleResearch.Issue070
