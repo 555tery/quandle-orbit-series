@@ -963,8 +963,8 @@ theorem thueFactor_period_bound (n d : ℕ) (p v r : List (Fin 2))
     rw [hshift j (by omega), show p.length+j+d = p.length+(j+d) by omega,
       hshift (j+d) (by omega)]
     exact hper
-  rw [List.getElem?_pos (by rw [thuePrefix_length]; omega),
-    List.getElem?_pos (by rw [thuePrefix_length]; omega)] at heq
+  rw [getElem?_pos (by rw [thuePrefix_length]; omega),
+    getElem?_pos (by rw [thuePrefix_length]; omega)] at heq
   exact Option.some.inj heq
 
 /-- If two periods of such a factor satisfy the Fine–Wilf threshold,
@@ -1074,7 +1074,7 @@ theorem thuePrefix_no_tripleB (n i : ℕ) :
     (show i+j ≤ i+2 by omega)
   have h2 := tripleBAt_letter ht (show i ≤ i+j+1 by omega)
     (show i+j+1 ≤ i+2 by omega)
-  rw [List.getElem?_pos (by rw [thuePrefix_length]; omega)] at h1 h2
+  rw [getElem?_pos (by rw [thuePrefix_length]; omega)] at h1 h2
   exact (Option.some.inj h1).trans (Option.some.inj h2).symm
 
 theorem gubaPrefix_no_tripleB (m i : ℕ) :
@@ -1083,7 +1083,7 @@ theorem gubaPrefix_no_tripleB (m i : ℕ) :
 
 theorem gubaPrefix_head_zero (m : ℕ) :
     (gubaPrefix m)[0]? = some 0 := by
-  rw [List.getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
+  rw [getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
   exact congrArg some (gubaPrefix_first m)
 
 theorem gubaPrefix_last_zero (m : ℕ) :
@@ -1091,7 +1091,7 @@ theorem gubaPrefix_last_zero (m : ℕ) :
   have he : (gubaPrefix m).length-1 = prefixEnd m := by
     rw [gubaPrefix, thuePrefix_length]
     omega
-  rw [he, List.getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
+  rw [he, getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
   exact congrArg some (gubaPrefix_last m)
 
 /-- Repeated copies of a word with a protected last letter introduce
@@ -1191,8 +1191,7 @@ theorem longRaw_tripleB_iff (q : List (Fin 2))
   | succ h ih =>
     cases h with
     | zero =>
-      simpa only [longRaw, List.nil_append, List.length_nil, Nat.lt_one_iff,
-        exists_eq_left] using longBlock_tripleB_iff q hq hhead hlast 0 i
+      simpa [longRaw] using longBlock_tripleB_iff q hq hhead hlast 0 i
     | succ h =>
       rw [longRaw, tripleBAt_guarded_append _ _ i
         (Or.inl (longRaw_last_zero q hlast h))]
