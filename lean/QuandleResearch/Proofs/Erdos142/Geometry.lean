@@ -33,6 +33,24 @@ lemma no_integer_between (k m : ℤ) (h₁ : (m : ℝ) < (k : ℝ))
   have h₄ : k < m + 1 := by exact_mod_cast h₂
   omega
 
+lemma no_int_neg_one_zero (j : ℤ) (hl : -(1 : ℝ) < (j : ℝ))
+    (hr : (j : ℝ) < 0) : False := by
+  have hl' : (-1 : ℤ) < j := by exact_mod_cast hl
+  have hr' : j < 0 := by exact_mod_cast hr
+  omega
+
+lemma no_int_neg_two_neg_one (j : ℤ) (hl : -(2 : ℝ) < (j : ℝ))
+    (hr : (j : ℝ) < -1) : False := by
+  have hl' : (-2 : ℤ) < j := by exact_mod_cast hl
+  have hr' : j < -1 := by exact_mod_cast hr
+  omega
+
+lemma no_int_zero_one (j : ℤ) (hl : (0 : ℝ) < (j : ℝ))
+    (hr : (j : ℝ) < 1) : False := by
+  have hl' : 0 < j := by exact_mod_cast hl
+  have hr' : j < 1 := by exact_mod_cast hr
+  omega
+
 lemma no_up_LL {sx sy sz ax ay az cy : ℝ} {j : ℤ}
     (hx : Lower sx ax) (hz : Lower sz az) (hy : Upper sy (ay - cy))
     (hc : cy = 1 / 4 ∨ cy = 3 / 4)
@@ -46,16 +64,8 @@ lemma no_up_LL {sx sy sz ax ay az cy : ℝ} {j : ℤ}
   have h₂ : ax + az - 2 * (ay - cy) < (1 / 2 : ℝ) := by
     linarith [bx.2, bz.2, by'.1]
   rcases hc with hc | hc
-  · apply no_integer_between j (-1)
-    · norm_num
-      linarith
-    · norm_num
-      linarith
-  · apply no_integer_between j (-2)
-    · norm_num
-      linarith
-    · norm_num
-      linarith
+  · exact no_int_neg_one_zero j (by linarith) (by linarith)
+  · exact no_int_neg_two_neg_one j (by linarith) (by linarith)
 
 lemma no_up_LH {sx sy sz ax ay az cy cz : ℝ} {j : ℤ}
     (hx : Lower sx ax) (hz : Upper sz (az - cz))
@@ -72,10 +82,10 @@ lemma no_up_LH {sx sy sz ax ay az cy cz : ℝ} {j : ℤ}
   have h₂ : ax + (az - cz) - 2 * (ay - cy) < (1 / 4 : ℝ) := by
     linarith [bx.2, bz.2, by'.1]
   rcases hc with hc | hc <;> rcases hd with hd | hd
-  · apply no_integer_between j (-1) <;> norm_num <;> linarith
-  · apply no_integer_between j 0 <;> norm_num <;> linarith
-  · apply no_integer_between j (-2) <;> norm_num <;> linarith
-  · apply no_integer_between j (-1) <;> norm_num <;> linarith
+  · exact no_int_neg_one_zero j (by linarith) (by linarith)
+  · exact no_int_zero_one j (by linarith) (by linarith)
+  · exact no_int_neg_two_neg_one j (by linarith) (by linarith)
+  · exact no_int_neg_one_zero j (by linarith) (by linarith)
 
 lemma no_up_HH {sx sy sz ux uy uz : ℝ}
     (hx : Upper sx ux) (hz : Upper sz uz) (hy : Upper sy uy)
