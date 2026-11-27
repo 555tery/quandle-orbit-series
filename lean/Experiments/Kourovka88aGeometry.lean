@@ -15039,7 +15039,10 @@ theorem gubaTypeMinimal_no_coefficient_pair_replacement
     · have hlt : j.val < k/2 := by omega
       have hne : j.val ≠ k/2 := ne_of_lt hlt
       simp [gubaTypeCoordinate,h,rankHeightSum,hne]
-    · simp [gubaTypeCoordinate,h,rankCount]
+    · simp only [gubaTypeCoordinate,h,ite_false]
+      change rankCount ([((a₁,(j,d)),true)]++[((a₂,(j,-f)),true)]) (k/2) =
+        rankCount ([((b₁,(j,u)),true)]++[((b₂,(j,v)),true)]) (k/2)
+      simp only [rankCount_append,rankCount_singleton]
   · rw [gubaTypeCoordinate_height,gubaTypeCoordinate_height]
     simpa [rankHeightSum,Int.natAbs_neg] using hstrict
 
@@ -15118,8 +15121,11 @@ theorem gubaTypeMinimal_no_separated_coefficient_pair
     by_cases h : k%2 = 0
     · have hne : j.val ≠ k/2 := ne_of_lt (by omega)
       simp [b,t,gubaTypeCoordinate,h,rankHeightSum_append,rankHeightSum,hne]
-    · simp [b,t,gubaTypeCoordinate,h,rankCount_append,rankCount,Nat.add_assoc,
-        Nat.add_comm,Nat.add_left_comm]
+    · simp only [gubaTypeCoordinate,h,ite_false,b,t]
+      change rankCount ([((a₁,(j,d)),true)]++m++[((a₂,(j,-f)),true)]) (k/2) =
+        rankCount (([((b₁,(j,u)),true)]++[((b₂,(j,v)),true)])++m) (k/2)
+      simp only [rankCount_append,rankCount_singleton]
+      omega
   · rw [gubaTypeCoordinate_height,gubaTypeCoordinate_height]
     simp only [b,t,rankHeightSum_append]
     have ha : rankHeightSum [((a₁,(j,d)),true)] j.val = d.natAbs := by
@@ -15196,7 +15202,8 @@ theorem gubaTypeMinimal_no_compatible_coefficient_cuts
     q (Peiffer.evaluation rel m*a₂) = q (g*(L*t₂)⁻¹) →
     u+v = d-f →
     u.natAbs+v.natAbs < d.natAbs+f.natAbs → False := by
-  intro X L C N hN q rel hm h₁ h₂ hu hv ha₁ ha₂ hsum hstrict
+  intro X L C N q rel hm h₁ h₂ hu hv ha₁ ha₂ hsum hstrict
+  letI : N.Normal := weightedStages_normal pick X j.val
   let b₁ := g*(L*t₂)⁻¹
   let b₂ := b₁*a^(u-d)
   apply gubaTypeMinimal_no_separated_coefficient_pair pick X n w j p m r
