@@ -13754,7 +13754,8 @@ theorem ribbon_nonbigon_dart_bound {D : Type} [Fintype D]
     have hcard : S.card = (P.faceBoundary a).length := by
       rw [← P.face_incidenceDegree]
       unfold incidenceDegree S
-      rfl
+      congr 1
+      ext d <;> simp only [Finset.mem_filter]
     by_cases ha : P.face (P.face a) = a
     · have hdeg := ribbon_face_length_ge_two P a (h1 a)
       have he : (∑ d ∈ S, weight d) = 3 * S.card := by
@@ -14671,8 +14672,10 @@ theorem distinct_rank_signed_period_overlap (pick : WeightedSelector)
       (selected_period_good_next pick X i hi)
   have hgc : Good M c := by
     cases si
-    · simpa only [zpow_neg_one] using good_integer_power M hg (-1)
-    · exact hg
+    · change Good M (pick N hi).val⁻¹
+      simpa only [zpow_neg_one] using good_integer_power M hg (-1)
+    · change Good M (pick N hi).val
+      exact hg
   have hg' : Good M (FreeGroup.mk (l ++ r)) := by
     rw [← hc,FreeGroup.mk_toWord]
     exact hgc
@@ -14688,7 +14691,7 @@ theorem periodic_prefix_two_weight (v z : RawWord)
     rawWeight z ≤ 2*rawWeight v := by
   have htake : z.take v.length = v := by
     obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp hp
-    rw [hr]
+    rw [← hr]
     simp
   have hstep : z <+: v ++ z := by
     change z <+: z.take v.length ++ z at hper
@@ -14729,13 +14732,15 @@ theorem distinct_rank_signed_period_overlap_weight (pick : WeightedSelector)
       weightedLength (pick (weightedStages pick X i) hi).val := by
     rw [rawWeight_append,Nat.add_comm,← rawWeight_append,← hc]
     cases si
-    · simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+    · change weightedLength ((pick (weightedStages pick X i) hi).val⁻¹) = _
+      simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
     · rfl
   have hwd : rawWeight (q++p) =
       weightedLength (pick (weightedStages pick X j) hj).val := by
     rw [rawWeight_append,Nat.add_comm,← rawWeight_append,← hd]
     cases sj
-    · simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+    · change weightedLength ((pick (weightedStages pick X j) hj).val⁻¹) = _
+      simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
     · rfl
   by_cases hle : (r++l).length ≤ (q++p).length
   · have hw := periodic_prefix_two_weight (q++p) z hq hperQ (by omega)
