@@ -3514,7 +3514,8 @@ theorem rankRibbon_outer_region_has_top_outlet (pick : WeightedSelector)
     have hlabel := congrArg (fun k : Fin (boundaryIdentity s).length =>
       (boundaryIdentity s)[k].1.2) hidx
     have hnone : (boundaryIdentity s)[boundaryOccurrence s].1.2 = none := rfl
-    exact Option.noConfusion (hi.symm.trans (hlabel.trans hnone))
+    have habs : some i = none := hi.symm.trans (hlabel.trans hnone)
+    cases habs
   obtain ⟨b,i,hc,hn,hi,hj⟩ := rankRibbon_boundary_component_has_high_cell
     pick X (j+1) j w s hs hw hnew
   have hb : ¬ keep b := by
@@ -3694,7 +3695,7 @@ theorem guba19Weight_total (u : RawWord) :
   · have hp : 0 < (rawWeight u : ℝ) := by exact_mod_cast Nat.pos_of_ne_zero h
     calc
       _ = (rawWeight u : ℝ) ^ (1 : ℝ) /
-          (rawWeight u : ℝ) ^ (1/3 : ℝ) := by rw [Real.rpow_one]
+          (rawWeight u : ℝ) ^ (1/3 : ℝ) := by rw [Real.rpow_one]; rfl
       _ = (rawWeight u : ℝ) ^ (1 - 1/3 : ℝ) :=
         (Real.rpow_sub hp 1 (1/3)).symm
       _ = _ := by congr 1; norm_num
@@ -3746,6 +3747,57 @@ theorem guba19_normalized_transfer (P Q c : ℝ) (u v : RawWord)
 #print axioms guba19Weight_total
 #print axioms guba19_vertex_weight
 #print axioms guba19_normalized_transfer
+
+
+/-! ## Numerical conclusion of Lemma 19
+
+The nine-category accounting in Guba gives the single inequality
+haccount below (Math. USSR Izvestiya 29 (1987), p. 253).
+The following theorem proves its exact numerical consequence with
+the original constants. It does not assert that arbitrary ribbons
+satisfy haccount; that is the remaining geometric obligation.
+-/
+
+theorem guba19_outer_weight_arithmetic (V M N : ℝ)
+    (hM : 0 ≤ M) (hN : 0 ≤ N) (htotal : V = M + N)
+    (haccount : M ≤ V * (1 - 99/100 + 400*(1/10^7) +
+      450*(1/10^17 : ℝ)^(1/2 : ℝ) +
+      300*(1/10^11 : ℝ)^(1/2 : ℝ)) +
+      (8/15 + 2*(1/10^7 : ℝ)^(1/2 : ℝ))*M) :
+    (95/100 + 300*(1/10^7 : ℝ)^(3/2 : ℝ))*V ≤ N := by
+  have root_bound (x y : ℝ) (hx : 0 ≤ x) (hy : 0 ≤ y)
+      (hxy : x ≤ y^2) : x^(1/2 : ℝ) ≤ y := by
+    have h := Real.rpow_le_rpow hx hxy (by norm_num : 0 ≤ (1/2 : ℝ))
+    rw [← Real.rpow_natCast_mul hy 2 (1/2 : ℝ)] at h
+    norm_num at h
+    exact h
+  have hw : (1/10^7 : ℝ)^(1/2 : ℝ) ≤ 1/1000 :=
+    root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
+  have hb : (1/10^17 : ℝ)^(1/2 : ℝ) ≤ 1/10^8 :=
+    root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
+  have ht : (1/10^11 : ℝ)^(1/2 : ℝ) ≤ 1/100000 :=
+    root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
+  have hV : 0 ≤ V := by linarith
+  have hc : 1 - 99/100 + 400*(1/10^7) +
+      450*(1/10^17 : ℝ)^(1/2 : ℝ) +
+      300*(1/10^11 : ℝ)^(1/2 : ℝ) ≤ (1/75 : ℝ) := by
+    linarith only [hb,ht]
+  have hd : 8/15 + 2*(1/10^7 : ℝ)^(1/2 : ℝ) ≤ (2/3 : ℝ) := by
+    linarith only [hw]
+  have he : M ≤ V*(1/75) + (2/3)*M :=
+    haccount.trans (add_le_add (mul_le_mul_of_nonneg_left hc hV)
+      (mul_le_mul_of_nonneg_right hd hM))
+  have houter : (96/100 : ℝ)*V ≤ N := by linarith only [he,htotal]
+  have hpow : (1/10^7 : ℝ)^(3/2 : ℝ) =
+      (1/10^7 : ℝ) * (1/10^7 : ℝ)^(1/2 : ℝ) := by
+    rw [show (3/2 : ℝ) = 1 + 1/2 by norm_num,
+      Real.rpow_add (by norm_num : 0 < (1/10^7 : ℝ)), Real.rpow_one]
+  have htarget : (95/100 + 300*(1/10^7 : ℝ)^(3/2 : ℝ)) ≤ 96/100 := by
+    rw [hpow]
+    linarith only [hw]
+  exact (mul_le_mul_of_nonneg_right htarget hV).trans houter
+
+#print axioms guba19_outer_weight_arithmetic
 
 
 end QuandleResearch.Issue070
