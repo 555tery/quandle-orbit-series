@@ -1,0 +1,45 @@
+name: Kourovka 8.8(a) reduction
+on:
+  push:
+    branches: ['lean/kourovka-8-8a']
+    paths: ['lean/**', '.github/workflows/kourovka-8-8a.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lean
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - run: lake update
+      - run: lake exe cache get
+      - name: Compile exact target and conditional reduction
+        run: |
+          lake build QuandleResearch.Questions.Issue070
+          lake env lean -DwarningAsError=true QuandleResearch/Questions/Issue070.lean
+      - name: Statement and axiom audit of conditional theorems
+        run: |
+          set -o pipefail
+          lake env lean -DwarningAsError=true QuandleResearch/Checks/Kourovka88aAudit.lean | tee kourovka-axioms.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          log = Path("kourovka-axioms.log").read_text()
+          allowed = {"propext", "Classical.choice", "Quot.sound"}
+          for name in ["good_iff_quotient", "mem_limit_iff", "limit_normal",
+                       "answer_of_chain", "greedy_cover", "answer_of_greedy_relators"]:
+              match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", log)
+              if match:
+                  used = {a.strip() for a in match.group(1).split(",") if a.strip()}
+                  assert used <= allowed, (name, used - allowed)
+              else:
+                  assert re.search(r"'[^']*\." + name + r"' does not depend on any axioms", log), name
+          PY
