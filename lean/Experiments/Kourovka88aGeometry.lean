@@ -9178,11 +9178,11 @@ theorem rankMinimal_no_omitted_indices
   classical
   intro i
   by_contra hi
-  have hsub : l <+~ List.finRange s.length :=
+  have hsub : List.Subperm l (List.finRange s.length) :=
     hl.subperm (fun x _ => List.mem_finRange x)
   obtain ⟨u,hu,hlsub⟩ := List.subperm_iff.mp hsub
   obtain ⟨r,hr⟩ := hlsub.exists_perm_append
-  have hp : List.finRange s.length ~ l ++ r := hu.symm.trans hr
+  have hp : List.Perm (List.finRange s.length) (l ++ r) := hu.symm.trans hr
   have hir : i ∈ r := by
     have hm := hp.mem_iff.mp (List.mem_finRange i)
     exact (List.mem_append.mp hm).resolve_left hi
@@ -9190,7 +9190,7 @@ theorem rankMinimal_no_omitted_indices
   have hall : (List.finRange s.length).map get = s := by
     rw [← List.ofFn_eq_map]
     exact List.ofFn_getElem
-  have hperm : s ~ l.map get ++ r.map get := by
+  have hperm : List.Perm s (l.map get ++ r.map get) := by
     have h := hp.map get
     rw [hall,List.map_append] at h
     exact h
@@ -9304,6 +9304,89 @@ theorem guba23_vertex_factor_as_occurrence (rows : I → RawWord) (w : F)
       group
 
 #print axioms guba23_vertex_factor_as_occurrence
+
+
+
+/-- A nontrivial boundary with a rank-minimal filling has a connected
+marked ribbon. Otherwise exact factorization of the marked component
+would yield a filling using only a proper subset of the original
+occurrence indices, contradicting descending rank minimality. -/
+theorem guba23_rankMinimal_ribbon_connected
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    (boundaryRibbon (rankHeightRows pick X n) w s hs).Connected := by
+  classical
+  let rows := rankHeightRows pick X n
+  let P := boundaryRibbon rows w s hs
+  let z := boundaryDart rows w s hw
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+  let D := {d // P.SameComponent z d}
+  let factor : F × D → F := fun t =>
+    t.1 * FreeGroup.mk ((P.vertexBoundary t.2.val).map read) * t.1⁻¹
+  obtain ⟨l,hl,hsep,_,hprod⟩ :=
+    guba23_boundary_component_exact_factors rows w s hs hw
+  have build (a : List (F × D))
+      (ha : ∀ t ∈ a, idx t.2.val ≠ boundaryOccurrence s)
+      (hpair : a.Pairwise (fun t u => idx t.2.val ≠ idx u.2.val)) :
+      ∃ (ids : List (Fin s.length)) (t : Peiffer.Sequence F (RankHeight n)),
+        ids.Nodup ∧
+        (∀ i ∈ ids, ∃ b ∈ a, (idx b.2.val).val = i.val+1) ∧
+        (∀ j, rankCount t j = rankCount (ids.map (fun i => s[i.val])) j) ∧
+        Peiffer.evaluation (rankHeightRel pick X n) t = (a.map factor).prod := by
+    induction a with
+    | nil =>
+      exact ⟨[],[],by simp,by simp,fun _ => rfl,rfl⟩
+    | cons b bs ih =>
+      obtain ⟨i,y,hi,hy,hval⟩ := guba23_vertex_factor_as_occurrence rows w s hs
+        b.2.val b.1 (ha b List.mem_cons_self)
+      obtain ⟨ids,t,hn,hcover,hcount,ht⟩ := ih
+        (fun u hu => ha u (List.mem_cons_of_mem _ hu))
+        (List.pairwise_cons.mp hpair).2
+      refine ⟨i::ids,y::t,?_,?_,?_,?_⟩
+      · apply List.nodup_cons.mpr
+        refine ⟨?_,hn⟩
+        intro hmem
+        obtain ⟨u,hu,he⟩ := hcover i hmem
+        exact (List.pairwise_cons.mp hpair).1 u hu (Fin.ext (hi.trans he.symm))
+      · intro j hj
+        rcases List.mem_cons.mp hj with h | h
+        · subst j
+          exact ⟨b,List.mem_cons_self,hi⟩
+        · obtain ⟨u,hu,he⟩ := hcover j h
+          exact ⟨u,List.mem_cons_of_mem _ hu,he⟩
+      · intro j
+        change rankCount ([y] ++ t) j =
+          rankCount ([s[i.val]] ++ ids.map (fun i => s[i.val])) j
+        simp only [rankCount_append,rankCount_singleton,hy,hcount]
+      · have hval' : Peiffer.term (rankHeightRel pick X n) y = factor b := by
+          simpa only [rows,rankHeightRows_eval] using hval
+        change Peiffer.term (rankHeightRel pick X n) y *
+          Peiffer.evaluation (rankHeightRel pick X n) t =
+            factor b * (bs.map factor).prod
+        rw [hval',ht]
+  obtain ⟨ids,t,hn,hcover,hcount,ht⟩ := build l hl hsep
+  have hall := rankMinimal_no_omitted_indices pick X n w s t hm
+    (ht.trans hprod) ids hn hcount
+  have hconn (d : DiscDarts (markedRows rows w) (boundaryIdentity s)) :
+      P.SameComponent z d := by
+    by_cases h : idx d = boundaryOccurrence s
+    · exact P.component_of_vertexCycle ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr h)
+    · obtain ⟨i,y,hi,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs d 1 h
+      obtain ⟨b,_,hb⟩ := hcover i (hall i)
+      have hcycle : P.rotation.SameCycle b.2.val d := by
+        change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle b.2.val d
+        rw [disc_sameCycle_iff]
+        exact Fin.ext (hb.trans hi.symm)
+      exact Relation.EqvGen.trans _ _ _ b.2.property (P.component_of_vertexCycle hcycle)
+  intro d e
+  exact Relation.EqvGen.trans _ _ _
+    (Relation.EqvGen.symm _ _ (hconn d)) (hconn e)
+
+#print axioms guba23_rankMinimal_ribbon_connected
 
 
 end QuandleResearch.Issue070
