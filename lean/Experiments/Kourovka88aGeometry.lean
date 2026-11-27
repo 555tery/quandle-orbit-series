@@ -6856,4 +6856,128 @@ theorem guba22_relaxed_pruning_budget (B total bad good : ℚ)
 #print axioms guba22_relaxed_pruning_budget
 
 
+
+/-! ## Final perimeter transfer using actual dart supports
+
+For the numerical estimate in Lemma 23 the outer arcs need not be
+provided in a common boundary order. Disjointness of their actual
+dart supports, together with membership in the marked boundary
+cycle, suffices. Repeated letters do not identify distinct darts.
+The number of corridors and the local transfer bounds remain
+geometric obligations.
+-/
+
+theorem dart_read_weight_sum {D : Type} [DecidableEq D]
+    (read : D → Letter) (l : List D) (hnd : l.Nodup) :
+    rawWeight (l.map read) = ∑ d ∈ l.toFinset, letterWeight (read d) := by
+  have eval (ds : List D) :
+      rawWeight (ds.map read) = (ds.map (fun d => letterWeight (read d))).sum := by
+    induction ds with
+    | nil => rfl
+    | cons d ds ih =>
+      change letterWeight (read d) + rawWeight (ds.map read) =
+        letterWeight (read d) + (ds.map (fun d => letterWeight (read d))).sum
+      rw [ih]
+  rw [eval, List.sum_toFinset _ hnd]
+
+/-- Disjoint actual dart lists in a single vertex can be summed in
+any order. This replaces the stronger literal-sublist certificate. -/
+theorem guba23_disjoint_dart_arcs_weight {A D : Type} [Fintype D] [DecidableEq D]
+    (P : RibbonMap D) (read : D → Letter) (z : D)
+    (arcs : Finset A) (outer : A → List D)
+    (hnd : ∀ a ∈ arcs, (outer a).Nodup)
+    (hdis : Set.PairwiseDisjoint (↑arcs : Set A) (fun a => (outer a).toFinset))
+    (hcycle : ∀ a ∈ arcs, ∀ d ∈ outer a, P.rotation.SameCycle z d) :
+    (∑ a ∈ arcs, rawWeight ((outer a).map read)) ≤
+      rawWeight ((P.vertexBoundary z).map read) := by
+  classical
+  have hs : arcs.biUnion (fun a => (outer a).toFinset) ⊆
+      (P.vertexBoundary z).toFinset := by
+    intro d hd
+    obtain ⟨a,ha,hd'⟩ := Finset.mem_biUnion.mp hd
+    exact List.mem_toFinset.mpr ((P.mem_vertexBoundary_iff z d).mpr
+      (hcycle a ha d (List.mem_toFinset.mp hd')))
+  calc
+    _ = ∑ a ∈ arcs, ∑ d ∈ (outer a).toFinset, letterWeight (read d) := by
+      apply Finset.sum_congr rfl
+      intro a ha
+      exact dart_read_weight_sum read (outer a) (hnd a ha)
+    _ = ∑ d ∈ arcs.biUnion (fun a => (outer a).toFinset), letterWeight (read d) := by
+      rw [Finset.sum_biUnion hdis]
+    _ ≤ ∑ d ∈ (P.vertexBoundary z).toFinset, letterWeight (read d) :=
+      Finset.sum_le_sum_of_subset_of_nonneg hs (fun _ _ _ => Nat.zero_le _)
+    _ = _ := (dart_read_weight_sum read _ (P.vertexBoundary_nodup z)).symm
+
+/-- The six-corridor version of the final transfer estimate.
+The left lengths are kept independently of the right dart lists;
+their identification with the inner arc readings is a local
+geometric obligation. -/
+theorem guba23_dart_boundary_transfer {A D : Type} [Fintype D] [DecidableEq D]
+    (P : RibbonMap D) (read : D → Letter) (z : D)
+    (arcs : Finset A) (inner : A → ℕ) (outer : A → List D)
+    (L : ℚ) (hL : 0 ≤ L) (hcount : arcs.card ≤ 6)
+    (hnd : ∀ a ∈ arcs, (outer a).Nodup)
+    (hdis : Set.PairwiseDisjoint (↑arcs : Set A) (fun a => (outer a).toFinset))
+    (hcycle : ∀ a ∈ arcs, ∀ d ∈ outer a, P.rotation.SameCycle z d)
+    (hlocal : ∀ a ∈ arcs, (9/10 : ℚ) * (inner a : ℚ) -
+      (2/10^19 : ℚ) * L ≤ (rawWeight ((outer a).map read) : ℚ)) :
+    (9/10 : ℚ) * (∑ a ∈ arcs, (inner a : ℚ)) -
+      (12/10^19 : ℚ) * L ≤ (rawWeight ((P.vertexBoundary z).map read) : ℚ) := by
+  have ht : (∑ a ∈ arcs, ((9/10 : ℚ) * (inner a : ℚ) -
+        (2/10^19 : ℚ) * L)) ≤
+      ∑ a ∈ arcs, (rawWeight ((outer a).map read) : ℚ) :=
+    Finset.sum_le_sum hlocal
+  rw [Finset.sum_sub_distrib, ← Finset.mul_sum, Finset.sum_const, nsmul_eq_mul] at ht
+  have hb := guba23_disjoint_dart_arcs_weight P read z arcs outer hnd hdis hcycle
+  have hbQ : (∑ a ∈ arcs, (rawWeight ((outer a).map read) : ℚ)) ≤
+      (rawWeight ((P.vertexBoundary z).map read) : ℚ) := by exact_mod_cast hb
+  have hc : (arcs.card : ℚ) ≤ 6 := by exact_mod_cast hcount
+  have he : 0 ≤ (2/10^19 : ℚ) * L := mul_nonneg (by norm_num) hL
+  have herr := mul_le_mul_of_nonneg_right hc he
+  linarith only [ht,hbQ,herr]
+
+/-- Strictness of the final perimeter estimate follows from the
+numerical margin even with non-strict retained coverage. -/
+theorem guba23_perimeter_arithmetic_six (P D C B : ℚ)
+    (hP : 0 < P)
+    (hD : (1 - 1 / 10^80) * P ≤ D)
+    (hcover : (95/100 - 18/10^11) * D ≤ C)
+    (htransfer : (9/10) * C - (12/10^19) * P ≤ B) :
+    (4/5) * P < B := by
+  norm_num at hD hcover htransfer ⊢
+  linarith
+
+/-- The weight of the marked boundary is the actual weighted length
+of the boundary element; no cyclic-order certificate for the outer
+arcs is needed. -/
+theorem guba23_marked_boundary_transfer_darts {A : Type}
+    (rows : I → RawWord) (w : F) (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) (arcs : Finset A) (inner : A → ℕ)
+    [DecidableEq (DiscDarts (markedRows rows w) (boundaryIdentity s))]
+    (outer : A → List (DiscDarts (markedRows rows w) (boundaryIdentity s)))
+    (L : ℚ) (hL : 0 ≤ L) (hcount : arcs.card ≤ 6)
+    (hnd : ∀ a ∈ arcs, (outer a).Nodup)
+    (hdis : Set.PairwiseDisjoint (↑arcs : Set A) (fun a => (outer a).toFinset))
+    (hcycle : ∀ a ∈ arcs, ∀ d ∈ outer a,
+      (boundaryRibbon rows w s hs).rotation.SameCycle (boundaryDart rows w s hw) d)
+    (hlocal : ∀ a ∈ arcs, (9/10 : ℚ) * (inner a : ℚ) -
+      (2/10^19 : ℚ) * L ≤ (rawWeight ((outer a).map
+        (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) : ℚ)) :
+    (9/10 : ℚ) * (∑ a ∈ arcs, (inner a : ℚ)) -
+      (12/10^19 : ℚ) * L ≤ (weightedLength w : ℚ) := by
+  classical
+  have h := guba23_dart_boundary_transfer (boundaryRibbon rows w s hs)
+    (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))
+    (boundaryDart rows w s hw) arcs inner outer L hL hcount hnd hdis hcycle hlocal
+  rw [boundaryRibbon_read rows w s hs hw,rawWeight_invRev] at h
+  exact h
+
+#print axioms dart_read_weight_sum
+#print axioms guba23_disjoint_dart_arcs_weight
+#print axioms guba23_dart_boundary_transfer
+#print axioms guba23_perimeter_arithmetic_six
+#print axioms guba23_marked_boundary_transfer_darts
+
+
 end QuandleResearch.Issue070
