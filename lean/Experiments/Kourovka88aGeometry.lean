@@ -9221,4 +9221,89 @@ theorem rankMinimal_no_omitted_indices
 #print axioms rankMinimal_no_omitted_indices
 
 
+
+/-- A factor belonging to a nonboundary vertex can be replaced by
+a single actual Peiffer occurrence of the original rank and height.
+Only the conjugating base is changed, to account for the corner
+and for the conjugator supplied by spherical factorization. -/
+theorem guba23_vertex_factor_as_occurrence (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (d : DiscDarts (markedRows rows w) (boundaryIdentity s))
+    (g : F)
+    (hd : discOccurrence (markedRows rows w) (boundaryIdentity s) d ≠
+      boundaryOccurrence s) :
+    ∃ (j : Fin s.length) (y : Peiffer.Occurrence F I),
+      (discOccurrence (markedRows rows w) (boundaryIdentity s) d).val = j.val+1 ∧
+      y.1.2 = s[j.val].1.2 ∧
+      Peiffer.term (fun i => FreeGroup.mk (rows i)) y =
+        g * FreeGroup.mk (((boundaryRibbon rows w s hs).vertexBoundary d).map
+          (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) * g⁻¹ := by
+  classical
+  let P := boundaryRibbon rows w s hs
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
+  rw [discOccurrence_at] at hd
+  have hpos : 0 < idx.val := by
+    by_contra! h
+    apply hd
+    apply Fin.ext
+    change idx.val = 0
+    omega
+  have hi : idx.val < s.length+1 := by
+    simpa [boundaryIdentity] using idx.isLt
+  let j : Fin s.length := ⟨idx.val-1,by omega⟩
+  have hj : idx.val = j.val+1 := by dsimp [j]; omega
+  have hidx : (boundaryIdentity s)[idx] = markOccurrence s[j.val] := by
+    have hopt : (boundaryIdentity s)[idx.val]? = some (markOccurrence s[j.val]) := by
+      rw [hj]
+      change (s.map markOccurrence)[j.val]? = _
+      rw [List.getElem?_map, getElem?_pos s j.val j.isLt]
+      rfl
+    obtain ⟨h,hread⟩ := List.getElem?_eq_some_iff.mp hopt
+    exact hread
+  let z := discAt (markedRows rows w) (boundaryIdentity s) idx
+    ⟨0,Nat.zero_lt_of_lt k.isLt⟩
+  have hcyc : P.rotation.SameCycle z
+      (discAt (markedRows rows w) (boundaryIdentity s) idx k) := by
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle z _
+    rw [disc_sameCycle_iff]
+    simp only [z,discOccurrence_at]
+  let v : _ → F := fun e => FreeGroup.mk [read e]
+  obtain ⟨u,hu⟩ := guba22_cycleProduct_conjugator P.rotation v z _ hcyc
+  have hv (e : DiscDarts (markedRows rows w) (boundaryIdentity s)) :
+      cycleProduct P.rotation v e = FreeGroup.mk ((P.vertexBoundary e).map read) := by
+    change ((P.vertexBoundary e).map v).prod = _
+    rw [rawWord_eval_prod,List.map_map]
+    rfl
+  have hlabel : (boundaryIdentity s)[idx].1.2 = some s[j.val].1.2 := by
+    rw [hidx]
+    rfl
+  have hsign : (boundaryIdentity s)[idx].2 = s[j.val].2 := by
+    rw [hidx]
+    rfl
+  have hz : (P.vertexBoundary z).map read =
+      orientedWord (rows s[j.val].1.2) s[j.val].2 := by
+    have h := boundaryRibbon_interior_read rows w s hs idx s[j.val].1.2
+      hlabel (Nat.zero_lt_of_lt k.isLt)
+    rw [hsign] at h
+    exact h
+  refine ⟨j,((g*u,s[j.val].1.2),s[j.val].2),?_,rfl,?_⟩
+  · rw [discOccurrence_at]
+    exact hj
+  · rw [hv,hv,hz] at hu
+    change Peiffer.term (fun i => FreeGroup.mk (rows i))
+      ((g*u,s[j.val].1.2),s[j.val].2) =
+      g * FreeGroup.mk ((P.vertexBoundary
+        (discAt (markedRows rows w) (boundaryIdentity s) idx k)).map read) * g⁻¹
+    rw [hu]
+    cases h : s[j.val].2
+    · simp only [Peiffer.term,h,Bool.cond_false,orientedWord,← FreeGroup.inv_mk]
+      group
+    · simp only [Peiffer.term,h,Bool.cond_true,orientedWord]
+      group
+
+#print axioms guba23_vertex_factor_as_occurrence
+
+
 end QuandleResearch.Issue070
