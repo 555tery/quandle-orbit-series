@@ -162,7 +162,7 @@ theorem rawWeight_le_of_sublist {u v : RawWord} (h : u.Sublist v) :
 theorem weightedLength_mk_le (w : RawWord) :
     weightedLength (FreeGroup.mk w) ≤ rawWeight w := by
   rw [weightedLength, FreeGroup.toWord_mk]
-  exact rawWeight_le_of_sublist FreeGroup.reduce.red.sublist
+  exact rawWeight_le_of_sublist (FreeGroup.Red.sublist FreeGroup.reduce.red)
 
 theorem weightedLength_mul_le (u v : F) :
     weightedLength (u * v) ≤ weightedLength u + weightedLength v := by
@@ -200,7 +200,7 @@ theorem weightedLength_positive_mul (p q : List (Fin 2)) :
 theorem rawWeight_replicate (n : ℕ) (x : Letter) :
     rawWeight (List.replicate n x) = n * letterWeight x := by
   induction n with
-  | zero => rfl
+  | zero => simp [rawWeight]
   | succ n ih =>
     rw [List.replicate_succ, rawWeight, ih, Nat.succ_mul, Nat.add_comm]
 
