@@ -12280,9 +12280,10 @@ theorem oneDart_defect_generated_by_other_cells {D : Type} [Fintype D]
 
 /-- The defect obtained by merging the single outer dart into its
 adjacent cell has a filling of strictly smaller rank type. Every
-remaining factor has a distinct original occurrence index; mere
-normal-closure membership would not be enough for this conclusion. -/
-theorem oneDart_rankMinimal_defect_smaller_type
+remaining factor has a distinct original occurrence index. Reinsert the
+omitted cell to recover the original boundary and exact rank profile;
+for a minimal parent, the actual remaining expression is minimal. -/
+theorem oneDart_rankMinimal_defect_exact_type
     (pick : WeightedSelector) (X : ConjugatorChoice)
     (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
     (hs : Peiffer.evaluation
@@ -12294,9 +12295,16 @@ theorem oneDart_rankMinimal_defect_smaller_type
     let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
     P.Connected → P.vertexBoundary z = [z] →
     ∃ l : List _, P.vertexBoundary (P.edge z) = P.edge z::l ∧
-      ∃ t : Peiffer.Sequence F (RankHeight n),
-        RankMinimalExpression pick X n (FreeGroup.mk (l.map read))⁻¹ t ∧
-        descendingCountLT n rankCount t s := by
+      ∃ (i : Fin s.length) (y : Peiffer.Occurrence F (RankHeight n))
+        (t : Peiffer.Sequence F (RankHeight n)),
+        y.1.2 = s[i.val].1.2 ∧
+        Peiffer.evaluation (rankHeightRel pick X n) t =
+          (FreeGroup.mk (l.map read))⁻¹ ∧
+        Peiffer.evaluation (rankHeightRel pick X n) (y::t) = w ∧
+        descendingCountLT n rankCount t s ∧
+        (RankMinimalExpression pick X n w s →
+          RankMinimalExpression pick X n (FreeGroup.mk (l.map read))⁻¹ t ∧
+          ∀ j, rankCount s j = rankCount [y] j + rankCount t j) := by
   classical
   intro rows P z read hc hz
   obtain ⟨hfix,hcycle,hn⟩ := oneDart_leaf P z hz
@@ -12338,7 +12346,7 @@ theorem oneDart_rankMinimal_defect_smaller_type
   have heidx : idx e ≠ boundaryOccurrence s := by
     intro h
     exact hn ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
-  obtain ⟨omit,y,homit,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
+  obtain ⟨omit,y,homit,hylabel,hy⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
   obtain ⟨f,hf,hsep,_,hprod⟩ :=
     guba23_component_exact_vertex_product S v he hCS hES z
   let value : F × _ → F := fun t => t.1 * cycleProduct S.rotation v t.2 * t.1⁻¹
@@ -12425,8 +12433,89 @@ theorem oneDart_rankMinimal_defect_smaller_type
           (FreeGroup.mk (tail.map read) * (f.map value).prod) := by group
         _ = _ := by rw [hp,mul_one]
     simpa only [rows,rankHeightRows_eval] using hev.trans hv'
-  exact ⟨tail,htail,rankMinimal_exists_below_type pick X n _ s _ heval hlt⟩
+  have hzval : FreeGroup.mk [read z] = w⁻¹ := by
+    have h := boundaryRibbon_read rows w s hs hw
+    change (P.vertexBoundary z).map read = FreeGroup.invRev w.toWord at h
+    rw [hz] at h
+    change [read z] = FreeGroup.invRev w.toWord at h
+    rw [h,← FreeGroup.inv_mk,FreeGroup.mk_toWord]
+  have hevalEdge : FreeGroup.mk [read e] = w := by
+    have h := he z
+    change FreeGroup.mk [read e] = (FreeGroup.mk [read z])⁻¹ at h
+    rw [h,hzval,inv_inv]
+  have hyval : Peiffer.term (rankHeightRel pick X n) y =
+      w * FreeGroup.mk (tail.map read) := by
+    change Peiffer.term (fun i => FreeGroup.mk (rows i)) y =
+      (1 : F) * FreeGroup.mk ((P.vertexBoundary e).map read) * (1 : F)⁻¹ at hy
+    simp only [one_mul,inv_one,mul_one,htail,List.map_cons] at hy
+    change Peiffer.term (fun i => FreeGroup.mk (rows i)) y =
+      FreeGroup.mk ([read e] ++ tail.map read) at hy
+    rw [← FreeGroup.mul_mk,hevalEdge] at hy
+    simpa only [rows,rankHeightRows_eval] using hy
+  have hfull : Peiffer.evaluation (rankHeightRel pick X n)
+      (y :: l.map Prod.snd) = w := by
+    change Peiffer.term (rankHeightRel pick X n) y *
+      Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) = w
+    rw [hyval,heval]
+    group
+  refine ⟨tail,htail,omit,y,l.map Prod.snd,hylabel,heval,hfull,hlt,?_⟩
+  intro hm
+  let L := (omit,y)::l
+  have hnd : (L.map Prod.fst).Nodup := by
+    change (omit :: l.map Prod.fst).Nodup
+    exact List.nodup_cons.mpr ⟨hnot,hl⟩
+  have hlabels (x : Fin s.length × Peiffer.Occurrence F (RankHeight n))
+      (hx : x ∈ L) : x.2.1.2 = s[x.1.val].1.2 := by
+    change x ∈ (omit,y)::l at hx
+    rcases List.mem_cons.mp hx with hx | hx
+    · subst x
+      exact hylabel
+    · exact (hcover x hx).1
+  obtain ⟨hmin,hprofile⟩ :=
+    rankMinimal_indexed_reassembly pick X n w s hm L hnd hlabels hfull
+  have hm' : RankMinimalExpression pick X n w
+      ([y] ++ l.map Prod.snd ++ []) := by
+    simpa [L] using hmin
+  have ht := rankMinimal_subfilling_minimal pick X n w [y] (l.map Prod.snd) [] hm'
+  rw [heval] at ht
+  refine ⟨ht,?_⟩
+  intro j
+  have h := hprofile j
+  change rankCount s j = rankCount ([y] ++ l.map Prod.snd) j at h
+  rw [rankCount_append] at h
+  exact h
+
+#print axioms oneDart_rankMinimal_defect_exact_type
+
+/-- Boundary-value consequence, without assuming the parent is minimal. -/
+theorem oneDart_rankMinimal_defect_smaller_type
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    P.Connected → P.vertexBoundary z = [z] →
+    ∃ l : List _, P.vertexBoundary (P.edge z) = P.edge z::l ∧
+      ∃ t : Peiffer.Sequence F (RankHeight n),
+        RankMinimalExpression pick X n (FreeGroup.mk (l.map read))⁻¹ t ∧
+        descendingCountLT n rankCount t s := by
+  intro rows P z read hc hz
+  obtain ⟨l,hl,_,_,t,_,he,_,hlt,_⟩ :=
+    oneDart_rankMinimal_defect_exact_type pick X n w s hs hw hc hz
+  exact ⟨l,hl,rankMinimal_exists_below_type pick X n _ s t he hlt⟩
 
 #print axioms oneDart_rankMinimal_defect_smaller_type
+
+#print axioms topRankFilling
+#print axioms topHeightProduct
+#print axioms initialWeightedPeriod
+#print axioms affineFixedPolynomial
+#print axioms affinePerm
+#print axioms affineFreeMap
+#print axioms twoPeriodSelector
 
 end QuandleResearch.Issue070
