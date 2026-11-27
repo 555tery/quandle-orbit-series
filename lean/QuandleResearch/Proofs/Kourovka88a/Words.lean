@@ -1367,8 +1367,8 @@ theorem gubaEvenPrefix_dividing_period (m d : ℕ)
   · simp at hk
     omega
   · simpa using hk.symm
-  · rw [hk, Nat.mul_comm d 2] at ho
-    omega
+  · rw [hk, Nat.mul_mod_left] at ho
+    contradiction
 
 theorem repeat_take_base (q : List (Fin 2)) (k : ℕ) :
     ((List.replicate (k+1) q).flatten).take q.length = q := by
@@ -1386,7 +1386,7 @@ theorem repeat_hasPeriod (q : List (Fin 2)) (k : ℕ) :
     calc
       q ++ (List.replicate (k+1) q).flatten =
           (List.replicate ((k+1)+1) q).flatten := by
-            rw [List.replicate_succ, List.flatten_cons]
+            rfl
       _ = (List.replicate (k+1) q).flatten ++ q := by
             rw [List.replicate_succ', List.flatten_concat]
 
