@@ -1525,4 +1525,74 @@ theorem gubaEvenPrefix_resolvent_occurrence (m n h k : ℕ)
   rw [show k-1 = j by omega]
   exact hpos
 
+
+/-! ## Weighted overlap consequences
+
+The existence of a complete resolvent in a sufficiently heavy factor
+and its literal uniqueness now give a quantitative overlap bound.
+These are estimates for positive conjugating words, not yet for
+arbitrary paths in graded diagrams.
+-/
+
+/-- A sufficiently heavy common factor identifies the base prefix
+and the starting position of both occurrences. -/
+theorem guba_long_overlap_alignment (m n : ℕ)
+    (p z r u v : List (Fin 2))
+    (hq : 6*10^80 ≤ positiveWeight (gubaEvenPrefix m))
+    (hfirst : longRaw (gubaEvenPrefix m) (10^20) = p ++ z ++ r)
+    (hsecond : longRaw (gubaEvenPrefix n) (10^20) = u ++ z ++ v)
+    (hlarge : positiveWeight (longRaw (gubaEvenPrefix m) (10^20)) <
+      240*10^17*positiveWeight z) :
+    gubaEvenPrefix m = gubaEvenPrefix n ∧ p.length = u.length := by
+  obtain ⟨k,hk,_,left,right,hz⟩ :=
+    guba19_resolvent (gubaEvenPrefix m) p z r hq hfirst hlarge
+  have h1 : longRaw (gubaEvenPrefix m) (10^20) =
+      (p++left) ++ resolventRaw (gubaEvenPrefix m) k ++ (right++r) := by
+    rw [hfirst,hz]
+    simp only [List.append_assoc]
+  have h2 : longRaw (gubaEvenPrefix n) (10^20) =
+      (u++left) ++ resolventRaw (gubaEvenPrefix m) k ++ (right++v) := by
+    rw [hsecond,hz]
+    simp only [List.append_assoc]
+  obtain ⟨_,_,hp⟩ := gubaEvenPrefix_resolvent_occurrence m m _ k _ _ (by omega) h1
+  obtain ⟨hb,_,hu⟩ := gubaEvenPrefix_resolvent_occurrence n m _ k _ _ (by omega) h2
+  rw [hb] at hu
+  simp only [List.length_append] at hp hu
+  exact ⟨hb.symm,by omega⟩
+
+/-- If the base prefixes differ or the occurrences start at different
+positions, the common factor is at most the explicit weight threshold.
+This is a one-sided bound; interchanging the two words gives the
+other side when its base prefix satisfies the weight hypothesis. -/
+theorem guba_long_overlap_bound (m n : ℕ)
+    (p z r u v : List (Fin 2))
+    (hq : 6*10^80 ≤ positiveWeight (gubaEvenPrefix m))
+    (hfirst : longRaw (gubaEvenPrefix m) (10^20) = p ++ z ++ r)
+    (hsecond : longRaw (gubaEvenPrefix n) (10^20) = u ++ z ++ v)
+    (hdiff : gubaEvenPrefix m ≠ gubaEvenPrefix n ∨ p.length ≠ u.length) :
+    240*10^17*positiveWeight z ≤
+      positiveWeight (longRaw (gubaEvenPrefix m) (10^20)) := by
+  by_contra! hlarge
+  obtain ⟨hb,hpos⟩ := guba_long_overlap_alignment m n p z r u v
+    hq hfirst hsecond hlarge
+  rcases hdiff with hn | hn
+  · exact hn hb
+  · exact hn hpos
+
+/-- The first prefix's lower weight hypothesis follows from the
+published choice condition for any bad word and previous weight. -/
+theorem guba_chosen_overlap_bound (N : Subgroup F) (C : F)
+    (hbad : ¬ Good N C) (previousWeight n : ℕ)
+    (p z r u v : List (Fin 2)) :
+    let m := chooseEvenPrefixIndex C previousWeight
+    longRaw (gubaEvenPrefix m) (10^20) = p ++ z ++ r →
+    longRaw (gubaEvenPrefix n) (10^20) = u ++ z ++ v →
+    (gubaEvenPrefix m ≠ gubaEvenPrefix n ∨ p.length ≠ u.length) →
+    240*10^17*positiveWeight z ≤
+      positiveWeight (longRaw (gubaEvenPrefix m) (10^20)) := by
+  dsimp only
+  intro hfirst hsecond hdiff
+  exact guba_long_overlap_bound _ n p z r u v
+    (chosenEvenPrefix_weight_ge N C hbad previousWeight) hfirst hsecond hdiff
+
 end QuandleResearch.Issue070
