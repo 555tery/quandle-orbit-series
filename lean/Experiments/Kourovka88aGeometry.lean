@@ -14623,4 +14623,131 @@ theorem guba23_no_heavy_direct_long_side_cuts
 
 #print axioms guba23_no_heavy_direct_long_side_cuts
 
+
+/-- Cross-rank periodic separation for both orientations. Unlike the
+unsigned prefix theorem, this covers negative heights after reversing
+one boundary interval to compare the actual paired coefficient words. -/
+theorem distinct_rank_signed_period_overlap (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i j : ℕ) (hij : i < j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w)
+    (si sj : Bool) (l r p q z : RawWord)
+    (hc : (if si then (pick (weightedStages pick X i) hi).val
+      else (pick (weightedStages pick X i) hi).val⁻¹).toWord = l ++ r)
+    (hd : (if sj then (pick (weightedStages pick X j) hj).val
+      else (pick (weightedStages pick X j) hj).val⁻¹).toWord = p ++ q)
+    (hp : r ++ l <+: z) (hq : q ++ p <+: z)
+    (hperP : z.HasPeriod (r ++ l).length)
+    (hperQ : z.HasPeriod (q ++ p).length) :
+    z.length < (r ++ l).length + (q ++ p).length -
+      (r ++ l).length.gcd (q ++ p).length := by
+  let N := weightedStages pick X i
+  let M := weightedStages pick X j
+  let _ : N.Normal := weightedStages_normal pick X i
+  let _ : M.Normal := weightedStages_normal pick X j
+  let c := if si then (pick N hi).val else (pick N hi).val⁻¹
+  let d := if sj then (pick M hj).val else (pick M hj).val⁻¹
+  have hci : MinBad N c := by
+    cases si
+    · exact minBad_inverse (pick N hi).property
+    · exact (pick N hi).property
+  have hdj : MinBad M d := by
+    cases sj
+    · exact minBad_inverse (pick M hj).property
+    · exact (pick M hj).property
+  have hcr := (minBad_rotation hci l r hc).1
+  have hdr := (minBad_rotation hdj p q hd).1
+  have hcw := minBad_rotation_toWord hci l r hc
+  have hdw := minBad_rotation_toWord hdj p q hd
+  by_contra! hlarge
+  have he : FreeGroup.mk (r ++ l) = FreeGroup.mk (q ++ p) := by
+    apply minBad_literal_period_alignment hcr hdr z
+    · rw [hcw]; exact hp
+    · rw [hdw]; exact hq
+    · rw [hcw]; exact hperP
+    · rw [hdw]; exact hperQ
+    · rw [hcw,hdw]; exact hlarge
+  have hg : Good M (pick N hi).val :=
+    good_mono (weightedStages_mono pick X (Nat.succ_le_of_lt hij))
+      (selected_period_good_next pick X i hi)
+  have hgc : Good M c := by
+    cases si
+    · simpa only [zpow_neg_one] using good_integer_power M hg (-1)
+    · exact hg
+  have hg' : Good M (FreeGroup.mk (l ++ r)) := by
+    rw [← hc,FreeGroup.mk_toWord]
+    exact hgc
+  exact hdr.1 (he ▸ (good_raw_rotation_iff M l r).mpr hg')
+
+/-- A word of length at most two periods has weight at most the
+weight of two copies, regardless of the distribution of heavy
+letters. This converts the ordinary Fine--Wilf threshold to a
+bound in Guba's weighted metric without the factor 10^80. -/
+theorem periodic_prefix_two_weight (v z : RawWord)
+    (hp : v <+: z) (hper : z.HasPeriod v.length)
+    (hlen : z.length ≤ 2*v.length) :
+    rawWeight z ≤ 2*rawWeight v := by
+  have htake : z.take v.length = v := by
+    obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp hp
+    rw [hr]
+    simp
+  have hstep : z <+: v ++ z := by
+    change z <+: z.take v.length ++ z at hper
+    rwa [htake] at hper
+  have hstep' : v ++ z <+: v ++ (v ++ z) :=
+    (List.prefix_append_right_inj _).mpr hstep
+  have hpre : z <+: (v++v)++z := by
+    rw [List.append_assoc]
+    exact hstep.trans hstep'
+  have hpre' : z <+: v++v :=
+    (List.isPrefix_append_of_length (by simp only [List.length_append]; omega)).mp hpre
+  have hw := rawWeight_le_of_sublist hpre'.sublist
+  rw [rawWeight_append] at hw
+  omega
+
+/-- Uniform weighted bound on a cross-rank paired periodic factor
+whose two signed cyclic periods occur at its beginning. The bound
+does not involve either cell's height. It is a literal overlap
+bound; it does not replace the lower-rank corridor estimate. -/
+theorem distinct_rank_signed_period_overlap_weight (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i j : ℕ) (hij : i < j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w)
+    (si sj : Bool) (l r p q z : RawWord)
+    (hc : (if si then (pick (weightedStages pick X i) hi).val
+      else (pick (weightedStages pick X i) hi).val⁻¹).toWord = l ++ r)
+    (hd : (if sj then (pick (weightedStages pick X j) hj).val
+      else (pick (weightedStages pick X j) hj).val⁻¹).toWord = p ++ q)
+    (hp : r ++ l <+: z) (hq : q ++ p <+: z)
+    (hperP : z.HasPeriod (r ++ l).length)
+    (hperQ : z.HasPeriod (q ++ p).length) :
+    rawWeight z ≤ 2 * max
+      (weightedLength (pick (weightedStages pick X i) hi).val)
+      (weightedLength (pick (weightedStages pick X j) hj).val) := by
+  have hlen := distinct_rank_signed_period_overlap pick X i j hij hi hj
+    si sj l r p q z hc hd hp hq hperP hperQ
+  have hwc : rawWeight (r++l) =
+      weightedLength (pick (weightedStages pick X i) hi).val := by
+    rw [rawWeight_append,Nat.add_comm,← rawWeight_append,← hc]
+    cases si
+    · simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+    · rfl
+  have hwd : rawWeight (q++p) =
+      weightedLength (pick (weightedStages pick X j) hj).val := by
+    rw [rawWeight_append,Nat.add_comm,← rawWeight_append,← hd]
+    cases sj
+    · simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+    · rfl
+  by_cases hle : (r++l).length ≤ (q++p).length
+  · have hw := periodic_prefix_two_weight (q++p) z hq hperQ (by omega)
+    rw [hwd] at hw
+    exact hw.trans (Nat.mul_le_mul_left 2 (le_max_right _ _))
+  · have hw := periodic_prefix_two_weight (r++l) z hp hperP (by omega)
+    rw [hwc] at hw
+    exact hw.trans (Nat.mul_le_mul_left 2 (le_max_left _ _))
+
+#print axioms distinct_rank_signed_period_overlap
+#print axioms periodic_prefix_two_weight
+#print axioms distinct_rank_signed_period_overlap_weight
+
 end QuandleResearch.Issue070
