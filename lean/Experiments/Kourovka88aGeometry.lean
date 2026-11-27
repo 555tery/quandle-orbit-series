@@ -6710,7 +6710,7 @@ theorem guba19_from_nine_categories (V M N K D E F H0 P K0 G0 D0 : ℝ)
   have hMV : M ≤ V := by linarith
   have hcoeff : 0 ≤ 300*(1/10^11 : ℝ)^(1/2 : ℝ) := by positivity
   have h18' : P ≤ 300*(1/10^11 : ℝ)^(1/2 : ℝ)*V + H0 :=
-    h18.trans (add_le_add_right (mul_le_mul_of_nonneg_left hMV hcoeff) H0)
+    h18.trans (add_le_add (mul_le_mul_of_nonneg_left hMV hcoeff) (le_refl H0))
   apply guba19_outer_weight_arithmetic V M N hM hN htotal
   linarith only [hpartition,hbase,h14,h15,h16,h17,h18']
 
@@ -6819,8 +6819,8 @@ theorem guba19_relaxed_budget (V M N K D E F H0 P K0 G0 D0 : ℝ)
     h15.trans (mul_le_mul_of_nonneg_right
       (mul_le_mul_of_nonneg_left hb (by norm_num)) hV)
   have hP : P ≤ 300*(1/200000 : ℝ)*M + H0 :=
-    h18.trans (add_le_add_right (mul_le_mul_of_nonneg_right
-      (mul_le_mul_of_nonneg_left ht (by norm_num)) hM) H0)
+    h18.trans (add_le_add (mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_left ht (by norm_num : (0 : ℝ) ≤ 300)) hM) (le_refl H0))
   norm_num at hbase h14 hK hP h16 h17 ⊢
   linarith only [hpartition,hbase,h14,hK,hP,h16,h17,htotal,hV,hM]
 
