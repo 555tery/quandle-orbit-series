@@ -8098,11 +8098,97 @@ theorem minBad_literal_period_alignment {N M : Subgroup F}
   have hQ := minBad_dividing_period hd _ hG hgq (Nat.gcd_dvd_right _ _)
   have hlen : c.toWord.length = d.toWord.length := hP.symm.trans hQ
   have he := (List.prefix_of_prefix_length_le hp hq (le_of_eq hlen)).eq_of_length hlen
-  rw [← FreeGroup.mk_toWord c, ← FreeGroup.mk_toWord d, he]
+  simpa only [FreeGroup.mk_toWord] using congrArg (FreeGroup.mk : RawWord → F) he
 
 #print axioms rawWord_eq_pow_of_dividing_period
 #print axioms minBad_dividing_period
 #print axioms minBad_literal_period_alignment
+
+
+
+/-! ## Literal cross-rank separation
+
+Once the chosen bad word is made good by its defining relation,
+it remains good in every subsequent quotient. Hence a later bad
+period cannot be any cyclic rotation of it. Fine--Wilf now rules
+out long literal overlaps even at different starting corners.
+-/
+
+theorem selected_period_good_next (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (weightedStages pick X i) w) :
+    Good (weightedStages pick X (i+1))
+      (pick (weightedStages pick X i) h).val := by
+  let N := weightedStages pick X i
+  let c := (pick N h).val
+  refine ⟨X i N c, 1, ?_⟩
+  rw [zpow_one, ← heightRelator_one (X i N c) c]
+  change heightRelator (X i N c) c 1 ∈ adjoin N (weightedRelator pick X i N)
+  rw [← weightedRelator_eq pick X i N h]
+  exact relator_mem_adjoin _ _
+
+/-- Goodness is invariant under cutting a literal word at a corner
+and rotating the two pieces, with no reduction assumption. -/
+theorem good_raw_rotation_iff (N : Subgroup F) (l r : RawWord) :
+    Good N (FreeGroup.mk (r ++ l)) ↔ Good N (FreeGroup.mk (l ++ r)) := by
+  have he : FreeGroup.mk l * FreeGroup.mk (r ++ l) *
+      (FreeGroup.mk l)⁻¹ = FreeGroup.mk (l ++ r) := by
+    rw [← FreeGroup.mul_mk]
+    calc
+      FreeGroup.mk (l ++ (r ++ l)) * (FreeGroup.mk l)⁻¹ =
+          FreeGroup.mk (l ++ r) := by
+        rw [← List.append_assoc, ← FreeGroup.mul_mk]
+        group
+  -- Use conjugacy invariance before rewriting the rotated product.
+  have h := good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))
+  rw [he] at h
+  exact h.symm
+
+/-- At two distinct active ranks, sufficiently long common literal
+periodic readings cannot start with cyclic rotations of both selected
+periods. This is a free-word statement; the graded quotient version
+of Guba's periodic compatibility remains to be proved. -/
+theorem distinct_rank_literal_period_overlap (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i j : ℕ) (hij : i < j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w)
+    (l r p q z : RawWord)
+    (hc : (pick (weightedStages pick X i) hi).val.toWord = l ++ r)
+    (hd : (pick (weightedStages pick X j) hj).val.toWord = p ++ q)
+    (hp : r ++ l <+: z) (hq : q ++ p <+: z)
+    (hperP : z.HasPeriod (r ++ l).length)
+    (hperQ : z.HasPeriod (q ++ p).length) :
+    z.length < (r ++ l).length + (q ++ p).length -
+      (r ++ l).length.gcd (q ++ p).length := by
+  let N := weightedStages pick X i
+  let M := weightedStages pick X j
+  let _ : N.Normal := weightedStages_normal pick X i
+  let _ : M.Normal := weightedStages_normal pick X j
+  have hci : MinBad N (pick N hi).val := (pick N hi).property
+  have hdj : MinBad M (pick M hj).val := (pick M hj).property
+  have hcr := (minBad_rotation hci l r hc).1
+  have hdr := (minBad_rotation hdj p q hd).1
+  have hcw := minBad_rotation_toWord hci l r hc
+  have hdw := minBad_rotation_toWord hdj p q hd
+  by_contra! hlarge
+  have he : FreeGroup.mk (r ++ l) = FreeGroup.mk (q ++ p) := by
+    apply minBad_literal_period_alignment hcr hdr z
+    · rw [hcw]; exact hp
+    · rw [hdw]; exact hq
+    · rw [hcw]; exact hperP
+    · rw [hdw]; exact hperQ
+    · rw [hcw, hdw]; exact hlarge
+  have hg : Good M (pick N hi).val :=
+    good_mono (weightedStages_mono pick X (Nat.succ_le_of_lt hij))
+      (selected_period_good_next pick X i hi)
+  have hg' : Good M (FreeGroup.mk (l ++ r)) := by
+    rw [← hc, FreeGroup.mk_toWord]
+    exact hg
+  exact hdr.1 (he ▸ (good_raw_rotation_iff M l r).mpr hg')
+
+#print axioms selected_period_good_next
+#print axioms good_raw_rotation_iff
+#print axioms distinct_rank_literal_period_overlap
 
 
 end QuandleResearch.Issue070
