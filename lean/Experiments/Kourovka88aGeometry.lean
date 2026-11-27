@@ -3800,4 +3800,132 @@ theorem guba19_outer_weight_arithmetic (V M N : ℝ)
 #print axioms guba19_outer_weight_arithmetic
 
 
+/-! ## Two full peripheral readings through a lower-rank region
+
+Unlike the direct-edge splicing lemma, the two marked vertices may
+be separated by arbitrarily many interior vertices. Work in their
+actual connected component and retain their full literal readings.
+-/
+
+/-- The two marked vertex readings in any spherical component
+are inverse conjugate modulo the normal subgroup killing the other
+vertices. No direct edge between the marked vertices is required. -/
+theorem component_two_boundary_inverse_conjugacy {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hE : P.EulerEquality) (a b : D)
+    (hab : P.SameComponent a b) (hne : ¬ P.rotation.SameCycle a b)
+    (hint : ∀ d, P.SameComponent a d → ¬ P.rotation.SameCycle a d →
+      ¬ P.rotation.SameCycle b d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N) :
+    ∃ g : F ⧸ N,
+      QuotientGroup.mk' N (FreeGroup.mk ((P.vertexBoundary a).map read)) * g *
+        QuotientGroup.mk' N (FreeGroup.mk ((P.vertexBoundary b).map read)) * g⁻¹ = 1 := by
+  classical
+  let C := P.componentRibbon a
+  let q := QuotientGroup.mk' N
+  let x : {d : D // P.SameComponent a d} := ⟨a,Relation.EqvGen.refl a⟩
+  let y : {d : D // P.SameComponent a d} := ⟨b,hab⟩
+  let v : {d : D // P.SameComponent a d} → F ⧸ N :=
+    fun d => q (FreeGroup.mk [read d.val])
+  have hEC : C.EulerEquality := by
+    change Fintype.card (P.componentRibbon a).Vertex +
+      Fintype.card (P.componentRibbon a).Face =
+      Fintype.card (P.componentRibbon a).Edge +
+        2 * Fintype.card (P.componentRibbon a).Component
+    rw [P.componentRibbon_card_components, mul_one]
+    exact P.componentRibbon_sphere hE a
+  have hxy : ¬ C.rotation.SameCycle x y := by
+    intro h
+    exact hne ((P.restrict_sameVertex_iff (P.SameComponent a)
+      (P.component_membership_edge a) (P.component_membership_rotation a) x y).mp h)
+  have eval (ds : List {d : D // P.SameComponent a d}) :
+      (ds.map v).prod = q (FreeGroup.mk (ds.map (fun d => read d.val))) := by
+    induction ds with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons d ds ih =>
+      change v d * (ds.map v).prod =
+        q (FreeGroup.mk ([read d.val] ++ ds.map (fun e => read e.val)))
+      rw [ih, ← FreeGroup.mul_mk, map_mul]
+  have hread (d : {d : D // P.SameComponent a d}) :
+      cycleProduct C.rotation v d =
+        q (FreeGroup.mk ((P.vertexBoundary d.val).map read)) := by
+    change ((C.vertexBoundary d).map v).prod = _
+    rw [eval, component_vertex_read P read a d]
+  obtain ⟨g,hg⟩ := guba22_two_boundary_product C v
+    (by
+      intro d
+      change q (FreeGroup.mk [read (P.edge d.val)]) =
+        (q (FreeGroup.mk [read d.val]))⁻¹
+      rw [he, signedLetterValue_reverse, map_inv])
+    (P.componentRibbon_connected a) hEC x y hxy (by
+      intro d hdx hdy
+      rw [hread]
+      apply (QuotientGroup.eq_one_iff _).mpr
+      apply hint d.val d.property
+      · intro h
+        exact hdx ((P.restrict_sameVertex_iff (P.SameComponent a)
+          (P.component_membership_edge a) (P.component_membership_rotation a) x d).mpr h)
+      · intro h
+        exact hdy ((P.restrict_sameVertex_iff (P.SameComponent a)
+          (P.component_membership_edge a) (P.component_membership_rotation a) y d).mpr h))
+  rw [hread x, hread y] at hg
+  exact ⟨g,hg⟩
+
+/-- Arbitrary protected cuts of an actual rank ribbon preserve
+the lower-rank cells. If a component of the refinement has just
+two peripheral interval vertices, their full words are inverse
+conjugate modulo the earlier presentation. The existence and
+size of such a component must still be established geometrically. -/
+theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (cuts : List ((DiscDarts (markedRows (rankHeightRows pick X n) w)
+      (boundaryIdentity s)) × (DiscDarts (markedRows (rankHeightRows pick X n) w)
+      (boundaryIdentity s)))) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let keep := lowerRankDart pick X n j w s
+    let S := cuts.foldl (fun Q x => Q.vertexCut x.1 x.2) P
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ a b, (∀ x ∈ cuts, ¬keep x.1 ∧ ¬keep x.2) →
+      SplitRefinement P.rotation S.rotation →
+      (P.withRotation S.rotation).SameComponent a b → ¬ S.rotation.SameCycle a b →
+      (∀ d, (P.withRotation S.rotation).SameComponent a d → ¬ S.rotation.SameCycle a d →
+        ¬ S.rotation.SameCycle b d → keep d) →
+      ∃ g : F ⧸ weightedHeightStage pick X j,
+        QuotientGroup.mk' (weightedHeightStage pick X j)
+          (FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary a).map read)) * g *
+        QuotientGroup.mk' (weightedHeightStage pick X j)
+          (FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary b).map read)) * g⁻¹ = 1 := by
+  classical
+  intro rows P keep S read a b hout href hab hne hint
+  have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
+    intro d
+    exact lowerRankDart_sameCycle pick X n j w s hs (P.rotation d) d
+      (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  have hag := (protected_splitRefinement_agreement P keep hkeep cuts hout).2
+  have hE : P.EulerEquality := boundaryRibbon_euler rows w s hs
+  let T := P.withRotation S.rotation
+  have hET : T.EulerEquality := P.splitRefinement_preserves_euler href hE
+  apply component_two_boundary_inverse_conjugacy T read _ _ hET a b hab hne
+  · intro d
+    change read (P.edge d) = reverseLetter (read d)
+    exact relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
+  · intro d hc hd1 hd2
+    have hd := hint d hc hd1 hd2
+    have hrot : ∀ e, P.rotation.SameCycle d e → S.rotation e = P.rotation e :=
+      fun e he => hag e ((lowerRankDart_sameCycle pick X n j w s hs d e he).mp hd)
+    change FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary d).map read) ∈
+      weightedHeightStage pick X j
+    rw [refined_vertex_read_of_agreement P S.rotation d hrot]
+    obtain ⟨i,hi,hlt⟩ := hd
+    exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt
+
+#print axioms component_two_boundary_inverse_conjugacy
+#print axioms rankRibbon_protected_two_arc_conjugacy
+
+
 end QuandleResearch.Issue070
