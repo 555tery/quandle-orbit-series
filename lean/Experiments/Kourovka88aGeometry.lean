@@ -19070,4 +19070,128 @@ theorem exists_monogon_free_internal_edge_compression {D : Type} [Fintype D]
 #print axioms compressed_no_monogons
 #print axioms exists_monogon_free_internal_edge_compression
 
+
+/-- A vertex all of whose departures are bigon departures can only
+be incident to one other vertex, with the entire opposite boundary
+paired to it. In a connected ribbon the two vertices exhaust the
+diagram. This excludes zero-end lower regions as soon as there
+are two distinct retained vertices. -/
+theorem ribbon_closed_bigon_belt_two_cycles {D : Type} [Fintype D]
+    (P : RibbonMap D) (hc : P.Connected) (a : D)
+    (hfull : ∀ d, P.rotation.SameCycle a d → P.face (P.face d) = d) :
+    ∀ d, P.rotation.SameCycle a d ∨ P.rotation.SameCycle (P.edge a) d := by
+  classical
+  let A : D → Prop := P.rotation.SameCycle a
+  let B : D → Prop := P.rotation.SameCycle (P.edge a)
+  have hpair (d : D) (hd : A d) :
+      P.edge (P.rotation d) = P.rotation.symm (P.edge d) :=
+    (ribbon_bigon_pairing P d).mp (hfull d hd)
+  have hs (d : D) (hd : A (P.edge d)) :
+      A (P.edge (P.rotation d)) := by
+    let e := P.rotation.symm (P.edge d)
+    have he : A e := by
+      apply Equiv.Perm.sameCycle_apply_right.mp
+      change A (P.rotation (P.rotation.symm (P.edge d)))
+      rw [Equiv.apply_symm_apply]
+      exact hd
+    have hh := hpair e he
+    change P.edge (P.rotation (P.rotation.symm (P.edge d))) =
+      P.rotation.symm (P.edge e) at hh
+    rw [Equiv.apply_symm_apply,P.edge_involutive] at hh
+    have hr := congrArg P.rotation hh
+    rw [Equiv.apply_symm_apply] at hr
+    have hf := congrArg P.edge hr
+    rw [P.edge_involutive] at hf
+    rw [hf]
+    exact he
+  have hAB (d : D) (hd : A d) : B (P.edge d) := by
+    have hm := (P.mem_vertexBoundary_iff a d).mpr hd
+    change d ∈ List.ofFn (fun k : Fin (Function.minimalPeriod P.rotation a) =>
+      P.rotation^[k.val] a) at hm
+    obtain ⟨i,hi⟩ := List.mem_ofFn.mp hm
+    rw [← hi]
+    have step (n : ℕ) : B (P.edge (P.rotation^[n] a)) := by
+      induction n with
+      | zero => exact .refl _ _
+      | succ n ih =>
+        rw [Function.iterate_succ_apply']
+        have hn : A (P.rotation^[n] a) := by
+          rw [← Equiv.Perm.coe_pow]
+          exact Equiv.Perm.sameCycle_pow_right.mpr (.refl _ _)
+        rw [hpair _ hn]
+        apply Equiv.Perm.sameCycle_apply_right.mp
+        rw [Equiv.apply_symm_apply]
+        exact ih
+    exact step i.val
+  have hBA (d : D) (hd : B d) : A (P.edge d) := by
+    have hm := (P.mem_vertexBoundary_iff (P.edge a) d).mpr hd
+    change d ∈ List.ofFn (fun k : Fin (Function.minimalPeriod P.rotation (P.edge a)) =>
+      P.rotation^[k.val] (P.edge a)) at hm
+    obtain ⟨i,hi⟩ := List.mem_ofFn.mp hm
+    rw [← hi]
+    have step (n : ℕ) : A (P.edge (P.rotation^[n] (P.edge a))) := by
+      induction n with
+      | zero =>
+        rw [Function.iterate_zero_apply,P.edge_involutive]
+        exact .refl _ _
+      | succ n ih =>
+        rw [Function.iterate_succ_apply']
+        exact hs _ ih
+    exact step i.val
+  let reach : D → Prop := fun d => A d ∨ B d
+  have hedgeForward (d : D) (hd : reach d) : reach (P.edge d) := by
+    rcases hd with h | h
+    · exact Or.inr (hAB d h)
+    · exact Or.inl (hBA d h)
+  have hedge (d : D) : reach (P.edge d) ↔ reach d := by
+    constructor
+    · intro h
+      have hh := hedgeForward (P.edge d) h
+      rwa [P.edge_involutive] at hh
+    · exact hedgeForward d
+  have hrot (d : D) : reach (P.rotation d) ↔ reach d := by
+    change (A (P.rotation d) ∨ B (P.rotation d)) ↔ (A d ∨ B d)
+    rw [show A (P.rotation d) ↔ A d from Equiv.Perm.sameCycle_apply_right,
+      show B (P.rotation d) ↔ B d from Equiv.Perm.sameCycle_apply_right]
+  intro d
+  exact (P.invariant_on_component reach hedge hrot (hc a d)).mp
+    (Or.inl (.refl _ _))
+
+/-- In a compressed connected ribbon, a lower vertex with zero
+nonbigon departures forces all retained vertices to coincide.
+The presence of even one interior retained cell in addition to
+the exterior rules out that degeneracy. -/
+theorem ribbon_lower_end_positive_of_two_retained {D : Type} [Fintype D]
+    (P : RibbonMap D) (hc : P.Connected) (low : D → Prop)
+    (hcycle : ∀ d e, P.rotation.SameCycle d e → (low d ↔ low e))
+    (a b c : D) (ha : low a) (hb : ¬ low b) (hhc : ¬ low c)
+    (hbc : ¬ P.rotation.SameCycle b c) :
+    0 < ribbonVertexEndCount P (P.vertexOf a) := by
+  classical
+  by_contra! hzero
+  have hfull (d : D) (hd : P.rotation.SameCycle a d) :
+      P.face (P.face d) = d := by
+    have hm : d ∈ Finset.univ.filter (fun e => P.vertexOf e = P.vertexOf a) := by
+      simp only [Finset.mem_filter,Finset.mem_univ,true_and]
+      exact Quotient.sound hd.symm
+    have hle : ribbonEndIndicator P d ≤ ribbonVertexEndCount P (P.vertexOf a) := by
+      unfold ribbonVertexEndCount
+      exact Finset.single_le_sum (fun _ _ => Nat.zero_le _) hm
+    have hz : ribbonEndIndicator P d = 0 := by omega
+    by_contra hn
+    simp [ribbonEndIndicator,hn] at hz
+  have hall := ribbon_closed_bigon_belt_two_cycles P hc a hfull
+  have hb' : P.rotation.SameCycle (P.edge a) b := by
+    rcases hall b with h | h
+    · exact (hb ((hcycle a b h).mp ha)).elim
+    · exact h
+  have hc' : P.rotation.SameCycle (P.edge a) c := by
+    rcases hall c with h | h
+    · exact (hhc ((hcycle a c h).mp ha)).elim
+    · exact h
+  exact hbc (hb'.symm.trans hc')
+
+#print axioms ribbon_closed_bigon_belt_two_cycles
+#print axioms ribbon_lower_end_positive_of_two_retained
+
 end QuandleResearch.Issue070
