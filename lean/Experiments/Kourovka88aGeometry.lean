@@ -10594,24 +10594,8 @@ theorem ribbon_vertex_weight_sameCycle {D : Type} [Fintype D]
     (hab : P.rotation.SameCycle a b) :
     rawWeight ((P.vertexBoundary b).map read) =
       rawWeight ((P.vertexBoundary a).map read) := by
-  obtain ⟨m,hm⟩ := hab.exists_nat_pow_eq
-  rw [← hm]
-  clear hm hab
-  induction m with
-  | zero => rfl
-  | succ m ih =>
-    let d := (P.rotation ^ m) a
-    obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation d
-    have hnext := cycleBoundary_next P.rotation d l hl
-    have hstep : rawWeight ((P.vertexBoundary (P.rotation d)).map read) =
-        rawWeight ((P.vertexBoundary d).map read) := by
-      change rawWeight ((cycleBoundary P.rotation (P.rotation d)).map read) =
-        rawWeight ((cycleBoundary P.rotation d).map read)
-      rw [hnext,hl,List.map_append,List.map_cons,rawWeight_append]
-      simp only [List.map_nil,rawWeight]
-      omega
-    rw [pow_succ',Equiv.Perm.mul_apply]
-    exact hstep.trans ih
+  exact (ribbon_perimeter_sameCycle P read a b hab).symm
+
 
 /-- In a shortest nontrivial kernel word every based cyclic reading
 is itself canonical. This uses minimality in the weighted metric,
@@ -10783,10 +10767,9 @@ theorem rankRibbon_shortest_kernel_distinct_faces
   have hinterior (e : DiscDarts (markedRows rows w) (boundaryIdentity s))
       (he : ¬ P.rotation.SameCycle a e) :
       FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N := by
-    let k := discOccurrence (markedRows rows w) (boundaryIdentity s) e
-    have hk : k ≠ boundaryOccurrence s :=
-      fun h => he ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
-    have hlabel : ∃ i : RankHeight n, (boundaryIdentity s)[k].1.2 = some i := by
+    have hinteriorLabel (k : Fin (boundaryIdentity s).length)
+        (hk : k ≠ boundaryOccurrence s) :
+        ∃ i : RankHeight n, (boundaryIdentity s)[k].1.2 = some i := by
       obtain ⟨v,hv⟩ := k
       cases v with
       | zero => exact (hk (Fin.ext rfl)).elim
@@ -10794,7 +10777,10 @@ theorem rankRibbon_shortest_kernel_distinct_faces
         have hm' : m < s.length := by simpa [boundaryIdentity] using hv
         refine ⟨s[m].1.2,?_⟩
         simp [boundaryIdentity,markOccurrence]
-    obtain ⟨i,hi⟩ := hlabel
+    have hk : discOccurrence (markedRows rows w) (boundaryIdentity s) e ≠
+        boundaryOccurrence s :=
+      fun h => he ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
+    obtain ⟨i,hi⟩ := hinteriorLabel _ hk
     exact rankRibbon_lower_vertex_mem pick X n n w s hs e i hi i.1.isLt
   apply shortest_kernel_no_separating_cut P read N
     (boundaryRibbon_euler rows w s hs)
@@ -11008,6 +10994,7 @@ theorem topRank_project_filling (pick : WeightedSelector)
           Peiffer.evaluation (rankHeightRel pick X (j+1)) xs := by
       change Peiffer.term (rankHeightRel pick X (j+1)) ((u,(i,k)),true) * _ = _
       rw [hterm]
+      rfl
     by_cases hi : i.val = j
     · refine ⟨(u,k)::l,?_,?_⟩
       · rw [hcount,if_pos hi,List.length_cons,hl]
@@ -11023,7 +11010,7 @@ theorem topRank_project_filling (pick : WeightedSelector)
           rw [← weightedHeightStage_eq]
           exact Subgroup.subset_normalClosure ⟨i.val,hij,k,rfl⟩
         have hq : q (u * weightedRankHeightRelator pick X i.val k * u⁻¹) = 1 :=
-          (QuotientGroup.eq_one_iff N).mpr
+          (QuotientGroup.eq_one_iff _).mpr
             ((inferInstance : N.Normal).conj_mem _ hm _)
         rw [hsplit,map_mul,hq,one_mul,he]
 
@@ -11056,14 +11043,14 @@ theorem rankMinimal_top_quotient_exact
     apply hnew
     rw [weightedHeightStage_eq]
     change w ∈ N
-    apply (QuotientGroup.eq_one_iff N).mp
+    apply (QuotientGroup.eq_one_iff _).mp
     rw [hn] at he
     simpa using he
   · intro t ht
     rw [hl]
     apply rankMinimal_top_quotient_lower_bound pick X j w s hm t
     rw [weightedHeightStage_eq]
-    apply (QuotientGroup.eq_one_iff N).mp
+    apply (QuotientGroup.eq_one_iff _).mp
     change q (((t.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod)⁻¹ * w) = 1
     rw [map_mul,map_inv,ht,inv_mul_cancel]
 
@@ -11135,7 +11122,7 @@ theorem topRank_minimal_no_transported_merge
     let R := weightedRankHeightRelator pick X j
     q w = topHeightProduct q R (p ++ [(u,k)] ++ m ++ [(v,l)] ++ r) →
     topHeightProduct q R m * q v ≠ q u * q (a^k) := by
-  intro N inst q R he halign
+  intro N q R he halign
   let t := p ++ [(u,k+l)] ++ m ++ r
   have hmerge := topHeightProduct_merge q R
     (weightedRankHeightRelator_add pick X j) u v k l m halign
@@ -11158,7 +11145,7 @@ theorem topRank_minimal_no_transported_merge
   have hmod : ((t.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod)⁻¹ *
       w ∈ weightedHeightStage pick X j := by
     rw [weightedHeightStage_eq]
-    apply (QuotientGroup.eq_one_iff N).mp
+    apply (QuotientGroup.eq_one_iff _).mp
     change q (((t.map (fun x => x.1 * R x.2 * x.1⁻¹)).prod)⁻¹ * w) = 1
     rw [map_mul,map_inv,topHeightProduct_map,hnew,inv_mul_cancel]
   have hle := rankMinimal_top_quotient_lower_bound pick X j w s hm t hmod
@@ -11175,7 +11162,7 @@ theorem short_quotient_equality_lifts (N : Subgroup F) [N.Normal] (B : ℕ)
     (x y : F) (hweight : weightedLength x + weightedLength y ≤ B)
     (he : QuotientGroup.mk' N x = QuotientGroup.mk' N y) : x = y := by
   have hm : x⁻¹ * y ∈ N := by
-    apply (QuotientGroup.eq_one_iff N).mp
+    apply (QuotientGroup.eq_one_iff _).mp
     rw [map_mul,map_inv,he,inv_mul_cancel]
   have hinv : weightedLength x⁻¹ = weightedLength x := by
     simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
