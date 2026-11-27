@@ -17383,4 +17383,139 @@ theorem gubaType_aligned_loop_smaller_power_filling
 #print axioms separating_cut_has_root_free_side
 #print axioms gubaType_aligned_loop_smaller_power_filling
 
+
+/-! ## Full-type induction on the actual power boundary
+
+Minimize only among expressions already below the parent type;
+transitivity then proves unrestricted full-type minimality. Strip
+the conjugating prefix by translating every Peiffer base, which
+does not alter either coordinate at any rank.
+-/
+theorem gubaTypeMinimal_exists_below_type
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (hlt : descendingCountLT (2*n) gubaTypeCoordinate t s) :
+    ∃ u : Peiffer.Sequence F (RankHeight n),
+      GubaTypeMinimalExpression pick X n w u ∧ descendingCountLT (2*n) gubaTypeCoordinate u s := by
+  obtain ⟨u,hu,hmin⟩ := exists_descending_count_min (2*n)
+    (fun v : Peiffer.Sequence F (RankHeight n) =>
+      Peiffer.evaluation (rankHeightRel pick X n) v = w ∧
+        descendingCountLT (2*n) gubaTypeCoordinate v s)
+    gubaTypeCoordinate ⟨t,ht,hlt⟩
+  refine ⟨u,⟨hu.1,?_⟩,hu.2⟩
+  intro v hv j hj habove
+  by_contra! h
+  have hvu : descendingCountLT (2*n) gubaTypeCoordinate v u :=
+    ⟨j,hj,h,fun k hk hkn => (habove k hk hkn).symm⟩
+  exact (Nat.not_lt_of_ge (hmin v
+    ⟨hv,descending_count_trans (2*n) gubaTypeCoordinate hvu hu.2⟩ j hj habove)) h
+
+theorem peiffer_shift_evaluation (rel : I → F) (g : F)
+    (s : Peiffer.Sequence F I) :
+    Peiffer.evaluation rel (s.map (shiftOccurrence g)) =
+      g * Peiffer.evaluation rel s * g⁻¹ := by
+  induction s with
+  | nil => simp [Peiffer.evaluation]
+  | cons x xs ih =>
+    change Peiffer.term rel (shiftOccurrence g x) *
+      Peiffer.evaluation rel (xs.map (shiftOccurrence g)) =
+      g * (Peiffer.term rel x * Peiffer.evaluation rel xs) * g⁻¹
+    rw [shiftOccurrence_term,ih]
+    group
+
+theorem gubaTypeCoordinate_shift {n : ℕ} (g : F)
+    (s : Peiffer.Sequence F (RankHeight n)) (k : ℕ) :
+    gubaTypeCoordinate (s.map (shiftOccurrence g)) k = gubaTypeCoordinate s k := by
+  induction s with
+  | nil => rfl
+  | cons x xs ih =>
+    change gubaTypeCoordinate ([shiftOccurrence g x] ++ xs.map (shiftOccurrence g)) k =
+      gubaTypeCoordinate ([x] ++ xs) k
+    rw [gubaTypeCoordinate_append,gubaTypeCoordinate_append,ih]
+    rfl
+
+/-- A smaller-type filling of a conjugate yields a globally
+full-type-minimal filling of the unconjugated element, still
+strictly below the parent type. In particular one can apply an
+induction hypothesis for smooth boundary words, rather than
+pretending conjugated raw words are themselves smooth. -/
+theorem gubaTypeMinimal_conjugate_exists_below_type
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ)
+    (w g : F) (s t : Peiffer.Sequence F (RankHeight n))
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = g*w*g⁻¹)
+    (hlt : descendingCountLT (2*n) gubaTypeCoordinate t s) :
+    ∃ u : Peiffer.Sequence F (RankHeight n),
+      GubaTypeMinimalExpression pick X n w u ∧
+      descendingCountLT (2*n) gubaTypeCoordinate u s := by
+  let v := t.map (shiftOccurrence g⁻¹)
+  have hv : Peiffer.evaluation (rankHeightRel pick X n) v = w := by
+    dsimp only [v]
+    rw [peiffer_shift_evaluation,ht]
+    group
+  have hvs : descendingCountLT (2*n) gubaTypeCoordinate v s := by
+    obtain ⟨j,hj,hstrict,habove⟩ := hlt
+    refine ⟨j,hj,?_,?_⟩
+    · change gubaTypeCoordinate (t.map (shiftOccurrence g⁻¹)) j < _
+      rw [gubaTypeCoordinate_shift]
+      exact hstrict
+    · intro k hk hkn
+      change gubaTypeCoordinate (t.map (shiftOccurrence g⁻¹)) k = _
+      rw [gubaTypeCoordinate_shift]
+      exact habove k hk hkn
+  exact gubaTypeMinimal_exists_below_type pick X n w s v hv hvs
+
+/-- The precise smooth-power consequence needed at an aligned
+self-loop. The new boundary is an actual power, not merely a
+conjugate of one, and the new expression is globally minimal.
+This is the interface for Guba's simultaneous induction, rather
+than an assumption that all powers survive in the final group. -/
+theorem gubaType_aligned_loop_minimal_power_filling
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ (x c : _) (i : Fin s.length) (L M N : List _) (A B : RawWord) (C : F) (k : ℤ),
+      R.rotation.SameCycle c (R.edge c) →
+      R.rotation c ≠ R.edge c →
+      (idx (R.rotation c)).val = i.val+1 →
+      R.vertexBoundary x = (L++[c]) ++ (M++(R.edge c::N)) →
+      (L++[c]).map read = A →
+      M.map read = B ++ rawIntPow C.toWord k ++ FreeGroup.invRev B →
+      (R.edge c::N).map read =
+        FreeGroup.invRev A ++ FreeGroup.invRev (rawIntPow a.toWord k) →
+      ∃ u : Peiffer.Sequence F (RankHeight n),
+        descendingCountLT (2*n) gubaTypeCoordinate u s ∧
+        (GubaTypeMinimalExpression pick X n (C^(-k)) u ∨
+          GubaTypeMinimalExpression pick X n (a^k) u) := by
+  intro rows R idx read x c i L M N A B C k hloop hne hi hrow hA hM hN
+  obtain ⟨l,_,_,_,hlt,he⟩ :=
+    gubaType_aligned_loop_smaller_power_filling pick X n w s hs hw
+      x c i L M N A B C k hloop hne hi hrow hA hM hN
+  rcases he with he | he
+  · have hv : Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+        FreeGroup.mk B * C^(-k) * (FreeGroup.mk B)⁻¹ := by
+      rw [he,zpow_neg]
+      group
+    obtain ⟨u,hm,hu⟩ := gubaTypeMinimal_conjugate_exists_below_type
+      pick X n (C^(-k)) (FreeGroup.mk B) s (l.map Prod.snd) hv hlt
+    exact ⟨u,hu,Or.inl hm⟩
+  · have hv : Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+        (FreeGroup.mk A)⁻¹ * a^k * ((FreeGroup.mk A)⁻¹)⁻¹ := by
+      rw [he]
+      group
+    obtain ⟨u,hm,hu⟩ := gubaTypeMinimal_conjugate_exists_below_type
+      pick X n (a^k) (FreeGroup.mk A)⁻¹ s (l.map Prod.snd) hv hlt
+    exact ⟨u,hu,Or.inr hm⟩
+
+#print axioms gubaTypeMinimal_exists_below_type
+#print axioms peiffer_shift_evaluation
+#print axioms gubaTypeCoordinate_shift
+#print axioms gubaTypeMinimal_conjugate_exists_below_type
+#print axioms gubaType_aligned_loop_minimal_power_filling
+
 end QuandleResearch.Issue070
