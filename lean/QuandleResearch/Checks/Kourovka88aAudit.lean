@@ -118,4 +118,11 @@ example : answer ↔
 #print axioms guba19_threshold
 #print axioms guba19_resolvent
 
+#print axioms mk_eq_a_zpow_of_light
+#print axioms eq_a_zpow_of_light
+#print axioms good_a_zpow
+#print axioms weight_ge_of_bad
+#print axioms chosenEvenPrefix_weight_ge
+#print axioms guba19_chosen_resolvent
+
 end QuandleResearch.Issue070
