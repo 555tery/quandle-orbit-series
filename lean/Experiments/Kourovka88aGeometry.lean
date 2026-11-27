@@ -4621,4 +4621,115 @@ theorem coefficient_one_face_iff_no_internal_edges {D : Type} [Fintype D]
 #print axioms coefficient_one_face_iff_no_internal_edges
 
 
+
+/-! ## Removing an internal loop by a cut and a contraction
+
+This surgery preserves the underlying connectedness and all peripheral
+vertex words, but merges the two faces incident to the loop. In particular
+it does NOT assert preservation of the separate original face readings,
+or that the new interior vertex words vanish in a coefficient quotient.
+Those stronger assertions require additional algebraic information.
+-/
+
+/-- Cutting at the paired ends of an edge never separates a component:
+the edge itself still joins the cut positions. -/
+theorem paired_vertexCut_sameComponent {D : Type} (P : RibbonMap D)
+    (a d e : D) :
+    (P.vertexCut a (P.edge a)).SameComponent d e ↔ P.SameComponent d e := by
+  apply P.vertexCut_sameComponent_iff a (P.edge a)
+  · exact P.component_edge a
+  · exact (P.vertexCut a (P.edge a)).component_edge a
+
+/-- The cut at two interior ends preserves every peripheral vertex
+reading and the property that the interior predicate is constant
+on rotation cycles. -/
+theorem interior_vertexCut_preserves {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (a b : D) (ha : keep a) (hb : keep b) :
+    (∀ d e, (P.vertexCut a b).rotation.SameCycle d e → (keep d ↔ keep e)) ∧
+      (∀ d, ¬ keep d → (P.vertexCut a b).vertexBoundary d =
+        P.vertexBoundary d) := by
+  classical
+  have hrot (d : D) : keep (P.rotation d) ↔ keep d :=
+    (hkeep d (P.rotation d)
+      (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))).symm
+  have hi := vertexCut_protected_invariant P (fun d => ¬ keep d)
+    (fun d => not_congr (hrot d)) a b (fun h => h ha) (fun h => h hb)
+  have hnew (d : D) : keep ((P.vertexCut a b).rotation d) ↔ keep d := by
+    simpa only [not_not] using not_congr (hi d)
+  constructor
+  · intro d e h
+    obtain ⟨n,hn⟩ := h.exists_nat_pow_eq
+    rw [← hn]
+    clear hn h
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [pow_succ', Equiv.Perm.mul_apply]
+      exact ih.trans (hnew _).symm
+  · intro d hd
+    apply vertexCut_other_vertex_read P a b d
+    · intro h
+      exact hd ((hkeep d a h).mpr ha)
+    · intro h
+      exact hd ((hkeep d b h).mpr hb)
+
+/-- One genuine internal edge can be removed even if it is a loop.
+In the loop case, cut it into a non-loop edge and use the existing
+contraction theorem. All assertions concern surviving literal darts. -/
+theorem exists_internal_edge_removal {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality) (a : D) (ha : keep a) (hb : keep (P.edge a)) :
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D),
+      Fintype.card E < Fintype.card D ∧
+      Q.EulerEquality ∧ (P.Connected → Q.Connected) ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) →
+        (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) ∧
+      (∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e))) := by
+  classical
+  have prep : ∃ R : RibbonMap D, R.edge = P.edge ∧
+      R.EulerEquality ∧ (P.Connected → R.Connected) ∧
+      (∀ d e, R.rotation.SameCycle d e → (keep d ↔ keep e)) ∧
+      (∀ d, ¬ keep d → R.vertexBoundary d = P.vertexBoundary d) ∧
+      ¬ R.rotation.SameCycle a (R.edge a) := by
+    by_cases hl : P.rotation.SameCycle a (P.edge a)
+    · let R := P.vertexCut a (P.edge a)
+      have hn : a ≠ P.edge a := (P.edge_ne a).symm
+      have hcut := interior_vertexCut_preserves P keep hkeep a (P.edge a) ha hb
+      refine ⟨R,rfl,P.vertexCut_preserves_euler a (P.edge a) hn hl hE,
+        ?_,hcut.1,hcut.2,?_⟩
+      · intro hc d e
+        exact (paired_vertexCut_sameComponent P a d e).mpr (hc d e)
+      · exact SmallPresentationStatements.PermutationCycles.cutAt_not_sameCycle_of_sameCycle
+          P.rotation a (P.edge a) hn hl
+    · exact ⟨P,rfl,hE,fun h => h,hkeep,fun _ _ => rfl,hl⟩
+  obtain ⟨R,he,hR,hconn,hI,hread,hn⟩ := prep
+  have hbR : keep (R.edge a) := by rw [he]; exact hb
+  let Q := R.contractEdge a
+  let f : R.ContractDart a ↪ D := ⟨Subtype.val,Subtype.val_injective⟩
+  refine ⟨R.ContractDart a,inferInstance,Q,f,?_,R.contractEdge_euler a hn hR,
+    ?_,?_,?_,?_,?_⟩
+  · have hh := R.contractEdge_card_darts a
+    omega
+  · intro hc
+    exact R.contractEdge_connected (hconn hc) a hn
+  · intro d
+    change (Q.edge d).val = P.edge d.val
+    rw [R.contractEdge_edge_val a, he]
+  · intro d hd
+    exact ⟨⟨d,fun h => hd (h ▸ ha),fun h => hd (h ▸ hbR)⟩,rfl⟩
+  · intro d hd
+    exact (contractEdge_peripheral_boundary R keep hI a ha hbR d hd).trans
+      (hread d.val hd)
+  · exact contractEdge_keep_sameVertex R keep hI a ha hbR hn
+
+#print axioms paired_vertexCut_sameComponent
+#print axioms interior_vertexCut_preserves
+#print axioms exists_internal_edge_removal
+
+
 end QuandleResearch.Issue070
