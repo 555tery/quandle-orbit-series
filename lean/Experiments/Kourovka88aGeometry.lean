@@ -2070,4 +2070,46 @@ theorem lowerRankDart_sameCycle (pick : WeightedSelector) (X : ConjugatorChoice)
 #print axioms lowerRankDart
 #print axioms lowerRankDart_sameCycle
 
+
+/-- In the actual rank ribbon, cutting only at non-lower-rank darts
+automatically preserves every lower-rank row. Thus the region lemma
+requires only the rank bound on its interior, not a second rotation
+agreement hypothesis. -/
+theorem rankRibbon_protected_cuts_boundary_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (cuts : List ((DiscDarts (markedRows (rankHeightRows pick X n) w)
+      (boundaryIdentity s)) × (DiscDarts (markedRows (rankHeightRows pick X n) w)
+      (boundaryIdentity s)))) :
+    let P := boundaryRibbon (rankHeightRows pick X n) w s hs
+    let keep := lowerRankDart pick X n j w s
+    let S := cuts.foldl (fun Q x => Q.vertexCut x.1 x.2) P
+    let read := discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+    ∀ a, (∀ x ∈ cuts, ¬keep x.1 ∧ ¬keep x.2) →
+      SmallPresentationStatements.PermutationCycles.SplitRefinement P.rotation S.rotation →
+      (¬ S.rotation.SameCycle a (P.edge a)) →
+      (∀ d, (P.withRotation S.rotation).SameComponent a d →
+        ¬ S.rotation.SameCycle a d →
+        ¬ S.rotation.SameCycle (P.edge a) d → keep d) →
+      FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary (S.rotation a)).map read ++
+        ((P.withRotation S.rotation).vertexBoundary (P.edge a)).map read) ∈
+        weightedHeightStage pick X j := by
+  intro P keep S read a hout href hn hint
+  have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
+    intro d
+    exact lowerRankDart_sameCycle pick X n j w s hs (P.rotation d) d
+      (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  have hag := (protected_splitRefinement_agreement P keep hkeep cuts hout).2
+  apply rankRibbon_refined_two_boundary_mem pick X n j w s hs S.rotation a href hn
+  intro d hc hd1 hd2
+  have hd := hint d hc hd1 hd2
+  refine ⟨hd, ?_⟩
+  intro e he
+  exact hag e ((lowerRankDart_sameCycle pick X n j w s hs d e he).mp hd)
+
+#print axioms rankRibbon_protected_cuts_boundary_mem
+
 end QuandleResearch.Issue070
