@@ -7536,4 +7536,76 @@ decreasing_by
 #print axioms two_boundary_adjacent_reduction
 
 
+
+/-! ## Shorter of the two boundary routes
+
+A change of marked corner can use either complementary part of
+the complete cycle. The backward route is read with inverse
+orientation; it is not a forward walk with the same labels.
+The resulting factor of one half is valid for arbitrary positive
+letter weights, but by itself is not the small-cancellation
+constant required of a preferred bond.
+-/
+
+/-- Split the actual cycle into complementary walks from a to b
+and from b back to a. Empty first walks are allowed. -/
+theorem vertex_two_complementary_walks {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b : D) (hab : P.rotation.SameCycle a b) :
+    ∃ p r : List D, P.vertexBoundary a = p ++ r ∧
+      Walk P.rotation a b p ∧ Walk P.rotation b a r := by
+  have hm := (P.mem_vertexBoundary_iff a b).mpr hab
+  obtain ⟨p,r,he⟩ := List.mem_iff_append.mp hm
+  have hw : Walk P.rotation a a (P.vertexBoundary a) :=
+    cycleBoundary_walk _ _
+  rw [he] at hw
+  obtain ⟨d,hp,hr⟩ := walk_split_departures P.rotation p (b :: r) a a hw
+  have hd : d = b := by
+    cases hr
+    rfl
+  subst d
+  exact ⟨p,b :: r,he,hp,hr⟩
+
+/-- A corner change admits a literal connector word of weight at
+most half of the entire cycle. The two transport identities follow
+from the complementary actual walks and inversion, without assuming
+the cycle product is trivial. -/
+theorem vertex_short_corner_connector {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a b : D)
+    (hab : P.rotation.SameCycle a b) :
+    ∃ u : RawWord,
+      FreeGroup.mk ((P.vertexBoundary a).map read) * FreeGroup.mk u =
+        FreeGroup.mk u * FreeGroup.mk ((P.vertexBoundary b).map read) ∧
+      2 * rawWeight u ≤ rawWeight ((P.vertexBoundary a).map read) := by
+  obtain ⟨p,r,hpart,hp,hr⟩ := vertex_two_complementary_walks P a b hab
+  let v : D → F := fun d => FreeGroup.mk [read d]
+  have eval (l : List D) : (l.map v).prod = FreeGroup.mk (l.map read) := by
+    induction l with
+    | nil => rfl
+    | cons d ds ih =>
+      change v d * (ds.map v).prod = FreeGroup.mk ([read d] ++ ds.map read)
+      rw [ih,← FreeGroup.mul_mk]
+  have based (d : D) : cycleProduct P.rotation v d =
+      FreeGroup.mk ((P.vertexBoundary d).map read) := eval (P.vertexBoundary d)
+  have hforward := walk_cycleProduct_transport P.rotation v hp
+  have hbackward := walk_cycleProduct_transport P.rotation v hr
+  simp only [based,eval] at hforward hbackward
+  have hweight : rawWeight ((P.vertexBoundary a).map read) =
+      rawWeight (p.map read) + rawWeight (r.map read) := by
+    rw [hpart,List.map_append,rawWeight_append]
+  rcases le_total (rawWeight (p.map read)) (rawWeight (r.map read)) with h | h
+  · exact ⟨p.map read,hforward,by omega⟩
+  · refine ⟨FreeGroup.invRev (r.map read),?_,?_⟩
+    · rw [← FreeGroup.inv_mk]
+      calc
+        _ = (FreeGroup.mk (r.map read))⁻¹ *
+            (FreeGroup.mk (r.map read) * FreeGroup.mk ((P.vertexBoundary a).map read)) *
+            (FreeGroup.mk (r.map read))⁻¹ := by group
+        _ = _ := by rw [← hbackward]; group
+    · rw [rawWeight_invRev]
+      omega
+
+#print axioms vertex_two_complementary_walks
+#print axioms vertex_short_corner_connector
+
+
 end QuandleResearch.Issue070
