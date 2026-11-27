@@ -18378,10 +18378,11 @@ theorem gubaPowerBoundary_lower_stage_last_period (pick : WeightedSelector)
   · by_cases hlt : i.val < j
     · have he := guba_selected_power_mem_iff pick j ⟨i.val,hlt⟩ h k
       exact (hprev k hk (he.mp hm)).elim
-    · have hj : i.val = j := by omega
-      revert h hm
-      rw [hj]
-      intro h hm
+    · obtain ⟨i,hi⟩ := i
+      have hj : i = j := by
+        change ¬ i < j at hlt
+        omega
+      subst i
       exact ⟨h,k,hk,rfl⟩
 
 /-- No-top-cell case of the first failure: it is not a generic
@@ -18410,5 +18411,64 @@ theorem gubaPowerCounterexample_no_top_last_period (pick : WeightedSelector)
 #print axioms guba_selected_power_mem_iff
 #print axioms gubaPowerBoundary_lower_stage_last_period
 #print axioms gubaPowerCounterexample_no_top_last_period
+
+
+/-- The simultaneous power-boundary counterexample class at a
+fixed stage is nonempty exactly when a has a nonzero collapsed
+power at that stage. In particular it does not introduce a
+stronger global survival assertion than infinite order of a. -/
+theorem gubaPowerBoundary_failure_iff (pick : WeightedSelector) (n : ℕ) :
+    (∃ w : F, GubaPowerBoundary pick n w ∧
+      w ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n) ↔
+    (∃ k : ℤ, k ≠ 0 ∧
+      a^k ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n) := by
+  constructor
+  · rintro ⟨w,hw,hm⟩
+    rcases hw with ⟨k,hk,rfl⟩ | ⟨i,h,k,hk,rfl⟩
+    · exact ⟨k,hk,hm⟩
+    · exact ⟨k,hk,(guba_selected_power_mem_iff pick n i h k).mp hm⟩
+  · rintro ⟨k,hk,hm⟩
+    exact ⟨a^k,Or.inl ⟨k,hk,rfl⟩,hm⟩
+
+/-- If a nonzero power of a ever collapses, there is a first
+successor stage, and the simultaneous minimization may be
+performed at exactly this stage. The previous-stage hypothesis
+used in the no-top-cell classification is therefore automatic. -/
+theorem exists_guba_first_power_failure (pick : WeightedSelector)
+    (hex : ∃ n : ℕ, ∃ k : ℤ, k ≠ 0 ∧
+      a^k ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n) :
+    ∃ j : ℕ,
+      (∀ k : ℤ, k ≠ 0 →
+        a^k ∉ weightedHeightStage pick (gubaConjugatorChoice pick) j) ∧
+      ∃ w : F, GubaPowerBoundary pick (j+1) w ∧
+        w ∈ weightedHeightStage pick (gubaConjugatorChoice pick) (j+1) := by
+  classical
+  let P : ℕ → Prop := fun n => ∃ k : ℤ, k ≠ 0 ∧
+    a^k ∈ weightedHeightStage pick (gubaConjugatorChoice pick) n
+  have hex' : ∃ n, P n := hex
+  have h0 : ¬ P 0 := by
+    rintro ⟨k,hk,hm⟩
+    rw [weightedHeightStage_eq] at hm
+    change a^k ∈ (⊥ : Subgroup F) at hm
+    have he : a^k = 1 := by simpa using hm
+    exact gubaPowerBoundary_ne_one pick 0 (a^k)
+      (Or.inl ⟨k,hk,rfl⟩) he
+  let n := Nat.find hex'
+  have hn : P n := Nat.find_spec hex'
+  have hn0 : n ≠ 0 := by
+    intro he
+    exact h0 (he ▸ hn)
+  obtain ⟨j,hj⟩ := Nat.exists_eq_succ_of_ne_zero hn0
+  have hprev : ∀ k : ℤ, k ≠ 0 →
+      a^k ∉ weightedHeightStage pick (gubaConjugatorChoice pick) j := by
+    intro k hk hm
+    have hle : n ≤ j := Nat.find_min' hex' (show P j from ⟨k,hk,hm⟩)
+    omega
+  refine ⟨j,hprev,(gubaPowerBoundary_failure_iff pick (j+1)).mpr ?_⟩
+  change P (j+1)
+  exact hj ▸ hn
+
+#print axioms gubaPowerBoundary_failure_iff
+#print axioms exists_guba_first_power_failure
 
 end QuandleResearch.Issue070
