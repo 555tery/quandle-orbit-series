@@ -10246,4 +10246,137 @@ theorem guba21_separating_cut_canonical_induction
 #print axioms guba21_boundary_cut_reduced_factors
 #print axioms guba21_separating_cut_canonical_induction
 
+
+/-- Exact local criterion for separation of a spherical ribbon by
+a cut inside one vertex: the old predecessor corners belong to
+the same face. The nontrivial direction follows from Euler's
+inequality and the actual change in vertex and face counts. -/
+theorem spherical_vertexCut_separates_iff {D : Type} [Fintype D]
+    (P : RibbonMap D) (hE : P.EulerEquality) (a b : D)
+    (hne : a ≠ b) (hsame : P.rotation.SameCycle a b) :
+    ¬ (P.vertexCut a b).SameComponent a b ↔
+      P.face.SameCycle (P.rotation.symm a) (P.rotation.symm b) := by
+  classical
+  constructor
+  · exact P.vertexCut_face_sameCycle_of_split a b
+  · intro hpred hnew
+    have hv := P.vertexCut_card_vertices_of_sameCycle a b hne hsame
+    have he := Fintype.card_congr (P.vertexCutEdgeEquiv a b)
+    have hc := Fintype.card_congr
+      (P.vertexCutComponentsEquiv a b (P.component_of_vertexCycle hsame) hnew)
+    have hf : Fintype.card (P.vertexCut a b).Face = Fintype.card P.Face + 1 := by
+      let : Fintype (Cycles P.face) := inferInstanceAs (Fintype P.Face)
+      let := Fintype.ofFinite (Cycles (cutAt P.face (P.rotation.symm a) (P.rotation.symm b)))
+      have hcast := Fintype.card_congr (Equiv.cast (congrArg Cycles (P.vertexCut_face a b)))
+      exact hcast.trans (card_cutAt_of_sameCycle P.face (P.rotation.symm a)
+        (P.rotation.symm b) (P.rotation.symm.injective.ne hne) hpred)
+    have hu := (P.vertexCut a b).euler_upper_bound
+    change Fintype.card P.Vertex + Fintype.card P.Face =
+      Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
+    omega
+
+/-- In the weighted metric of Guba, a canonical split still has
+exact additivity: both factors are infixes of a reduced word. -/
+theorem canonical_split_weight (z : F) (L R : RawWord)
+    (h : L ++ R = z.toWord) :
+    weightedLength (FreeGroup.mk L) = rawWeight L ∧
+    weightedLength (FreeGroup.mk R) = rawWeight R := by
+  have hr : FreeGroup.IsReduced (L ++ R) := by
+    rw [h]
+    exact FreeGroup.isReduced_toWord
+  have hl' : FreeGroup.IsReduced L :=
+    hr.infix ⟨[], R, by simp⟩
+  have hr' : FreeGroup.IsReduced R :=
+    hr.infix ⟨L, [], by simp⟩
+  constructor
+  · rw [weightedLength,FreeGroup.toWord_mk,hl'.reduce_eq]
+  · rw [weightedLength,FreeGroup.toWord_mk,hr'.reduce_eq]
+
+/-- Exact weighted perimeter conservation for the actual cut,
+including the unequal weights of the two generators. -/
+theorem guba21_boundary_cut_weight_additive
+    (rows : I → RawWord) (w : F) (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    let P := boundaryRibbon rows w s hs
+    let a := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ b, a ≠ b → P.rotation.SameCycle a b →
+      let Q := P.vertexCut a b
+      let u := (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹
+      let v := (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹
+      weightedLength u + weightedLength v = weightedLength w := by
+  intro P a read b hne hsame Q u v
+  let L := (Q.vertexBoundary a).map read
+  let R := (Q.vertexBoundary b).map read
+  have hcat : L ++ R = (w⁻¹).toWord := by
+    change (Q.vertexBoundary a).map read ++
+      (Q.vertexBoundary b).map read = _
+    rw [← List.map_append]
+    change (((P.vertexCut a b).vertexBoundary a ++
+      (P.vertexCut a b).vertexBoundary b).map read) = _
+    rw [← vertexCut_partition P a b hne hsame]
+    exact (boundaryRibbon_read rows w s hs hw).trans
+      (FreeGroup.toWord_inv w).symm
+  obtain ⟨hl,hr⟩ := canonical_split_weight w⁻¹ L R hcat
+  have winv (x : F) : weightedLength x⁻¹ = weightedLength x := by
+    rw [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+    rfl
+  change weightedLength (FreeGroup.mk L)⁻¹ +
+    weightedLength (FreeGroup.mk R)⁻¹ = weightedLength w
+  rw [winv,winv,hl,hr,← rawWeight_append,hcat]
+  exact winv w
+
+/-- The all-cell perimeter conclusion of Lemma 23 is preserved by
+a separating reassembly. The argument uses the original occurrence
+indices, not just rank counts (which forget the height of a row).
+This is the actual smaller-type induction step once the two
+indexed fillings of the cut are supplied. -/
+theorem guba23_reassembly_perimeter
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w u v : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s)
+    (l r : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+    (hn : ((r ++ l).map Prod.fst).Nodup)
+    (hlabel : ∀ x ∈ r ++ l, x.2.1.2 = s[x.1.val].1.2)
+    (hl : RankMinimalExpression pick X n u (l.map Prod.snd))
+    (hr : RankMinimalExpression pick X n v (r.map Prod.snd))
+    (hprod : v * u = w)
+    (hweight : weightedLength u + weightedLength v = weightedLength w)
+    (hsmallL : descendingCountLT n rankCount (l.map Prod.snd) s)
+    (hsmallR : descendingCountLT n rankCount (r.map Prod.snd) s)
+    (ih : ∀ z t, RankMinimalExpression pick X n z t →
+      descendingCountLT n rankCount t s →
+      ∀ x ∈ t, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+        5 * weightedLength z) :
+    ∀ x ∈ s, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+      5 * weightedLength w := by
+  have he : Peiffer.evaluation (rankHeightRel pick X n) ((r ++ l).map Prod.snd) = w := by
+    rw [List.map_append,peiffer_evaluation_append,hr.1,hl.1,hprod]
+  have hall := rankMinimal_no_omitted_indices pick X n w s
+    ((r ++ l).map Prod.snd) hm he ((r ++ l).map Prod.fst) hn
+    (indexed_rankCount_eq s (r ++ l) hlabel)
+  intro x hx
+  obtain ⟨i,hi⟩ := List.mem_iff_getElem.mp hx
+  let k : Fin s.length := ⟨i,hi.1⟩
+  obtain ⟨t,ht,htk⟩ := List.mem_map.mp (hall k)
+  have hrow := hlabel t ht
+  have hxrow : t.2.1.2 = x.1.2 := by
+    rw [hrow,htk]
+    exact congrArg (fun y : Peiffer.Occurrence F (RankHeight n) => y.1.2) hi.2
+  rcases List.mem_append.mp ht with ht | ht
+  · have h := ih v (r.map Prod.snd) hr hsmallR t.2
+      (List.mem_map.mpr ⟨t,ht,rfl⟩)
+    rw [hxrow] at h
+    omega
+  · have h := ih u (l.map Prod.snd) hl hsmallL t.2
+      (List.mem_map.mpr ⟨t,ht,rfl⟩)
+    rw [hxrow] at h
+    omega
+
+#print axioms spherical_vertexCut_separates_iff
+#print axioms canonical_split_weight
+#print axioms guba21_boundary_cut_weight_additive
+#print axioms guba23_reassembly_perimeter
+
 end QuandleResearch.Issue070
