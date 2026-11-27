@@ -17433,7 +17433,11 @@ theorem gubaTypeCoordinate_shift {n : ℕ} (g : F)
     change gubaTypeCoordinate ([shiftOccurrence g x] ++ xs.map (shiftOccurrence g)) k =
       gubaTypeCoordinate ([x] ++ xs) k
     rw [gubaTypeCoordinate_append,gubaTypeCoordinate_append,ih]
-    rfl
+    by_cases hk : k%2 = 0
+    · simp only [gubaTypeCoordinate,hk,ite_true,rankHeightSum,shiftOccurrence,
+        List.filter_cons,List.filter_nil]
+      split <;> simp
+    · simp only [gubaTypeCoordinate,hk,ite_false,rankCount_singleton,shiftOccurrence]
 
 /-- A smaller-type filling of a conjugate yields a globally
 full-type-minimal filling of the unconjugated element, still
@@ -17654,7 +17658,7 @@ theorem gubaType_actual_self_long_pair_minimal_power_filling
       rw [hdt]
       simp only [N,List.cons_append]
     rw [hN,List.map_append,List.map_append,hpair,hr',hA]
-    simp only [A,FreeGroup.invRev_append]
+    simp only [A,k,FreeGroup.invRev_append]
   exact gubaType_aligned_loop_minimal_power_filling pick X n w s hs hw
     x c i L M N A B C k hloop hne hi hrow hleft hmid hright
 
