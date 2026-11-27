@@ -12302,6 +12302,9 @@ theorem oneDart_rankMinimal_defect_exact_type
           (FreeGroup.mk (l.map read))⁻¹ ∧
         Peiffer.evaluation (rankHeightRel pick X n) (y::t) = w ∧
         descendingCountLT n rankCount t s ∧
+        (discOccurrence (markedRows rows w) (boundaryIdentity s)
+          (P.edge z)).val = i.val+1 ∧
+        Peiffer.term (rankHeightRel pick X n) y = w * FreeGroup.mk (l.map read) ∧
         (RankMinimalExpression pick X n w s →
           RankMinimalExpression pick X n (FreeGroup.mk (l.map read))⁻¹ t ∧
           ∀ j, rankCount s j = rankCount [y] j + rankCount t j) := by
@@ -12458,7 +12461,7 @@ theorem oneDart_rankMinimal_defect_exact_type
       Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) = w
     rw [hyval,heval]
     group
-  refine ⟨tail,htail,omit,y,l.map Prod.snd,hylabel,heval,hfull,hlt,?_⟩
+  refine ⟨tail,htail,omit,y,l.map Prod.snd,hylabel,heval,hfull,hlt,homit,hyval,?_⟩
   intro hm
   let L := (omit,y)::l
   have hnd : (L.map Prod.fst).Nodup := by
@@ -12504,7 +12507,7 @@ theorem oneDart_rankMinimal_defect_smaller_type
         RankMinimalExpression pick X n (FreeGroup.mk (l.map read))⁻¹ t ∧
         descendingCountLT n rankCount t s := by
   intro rows P z read hc hz
-  obtain ⟨l,hl,_,_,t,_,he,_,hlt,_⟩ :=
+  obtain ⟨l,hl,_,_,t,_,he,_,hlt,_,_,_⟩ :=
     oneDart_rankMinimal_defect_exact_type pick X n w s hs hw hc hz
   exact ⟨l,hl,rankMinimal_exists_below_type pick X n _ s t he hlt⟩
 
@@ -12517,5 +12520,145 @@ theorem oneDart_rankMinimal_defect_smaller_type
 #print axioms affinePerm
 #print axioms affineFreeMap
 #print axioms twoPeriodSelector
+
+
+/-- A filling with no occurrence of the top rank is already a
+relation in the preceding stage. This holds with either orientation,
+and is the converse to the existing lower-rank filling construction. -/
+theorem top_count_zero_mem_lower
+    (pick : WeightedSelector) (X : ConjugatorChoice) (j : ℕ)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hz : rankCount s j = 0) :
+    Peiffer.evaluation (rankHeightRel pick X (j+1)) s ∈
+      weightedHeightStage pick X j := by
+  let N := weightedStages pick X j
+  let : N.Normal := weightedStages_normal pick X j
+  rw [weightedHeightStage_eq]
+  change Peiffer.evaluation (rankHeightRel pick X (j+1)) s ∈ N
+  induction s with
+  | nil => exact N.one_mem
+  | cons x xs ih =>
+    have hcount : rankCount (x::xs) j = rankCount [x] j + rankCount xs j :=
+      rankCount_append [x] xs j
+    have h0 : rankCount [x] j = 0 := by omega
+    have hx0 : x.1.2.1.val ≠ j := by
+      intro h
+      rw [rankCount_singleton,if_pos h] at h0
+      omega
+    have hlt : x.1.2.1.val < j := by
+      have h := x.1.2.1.isLt
+      omega
+    have hr : rankHeightRel pick X (j+1) x.1.2 ∈ N := by
+      change weightedRankHeightRelator pick X x.1.2.1.val x.1.2.2 ∈
+        weightedStages pick X j
+      rw [← weightedHeightStage_eq]
+      exact Subgroup.subset_normalClosure ⟨_,hlt,_,rfl⟩
+    have ht : Peiffer.term (rankHeightRel pick X (j+1)) x ∈ N := by
+      rcases x with ⟨⟨u,i⟩,sg⟩
+      cases sg
+      · change u * (rankHeightRel pick X (j+1) i)⁻¹ * u⁻¹ ∈ N
+        exact (inferInstance : N.Normal).conj_mem _ (N.inv_mem hr) _
+      · change u * rankHeightRel pick X (j+1) i * u⁻¹ ∈ N
+        exact (inferInstance : N.Normal).conj_mem _ hr _
+    change Peiffer.term (rankHeightRel pick X (j+1)) x *
+      Peiffer.evaluation (rankHeightRel pick X (j+1)) xs ∈ N
+    exact N.mul_mem ht (ih (by omega))
+
+/-- For a rank-minimal expression, the top count vanishes exactly
+when the boundary belongs to the preceding stage. -/
+theorem rankMinimal_top_count_zero_iff
+    (pick : WeightedSelector) (X : ConjugatorChoice) (j : ℕ)
+    (w : F) (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hm : RankMinimalExpression pick X (j+1) w s) :
+    rankCount s j = 0 ↔ w ∈ weightedHeightStage pick X j := by
+  constructor
+  · intro h
+    rw [← hm.1]
+    exact top_count_zero_mem_lower pick X j s h
+  · intro h
+    have hmod : (Peiffer.evaluation (rankHeightRel pick X (j+1))
+      ([] : Peiffer.Sequence F (RankHeight (j+1))))⁻¹ * w ∈
+        weightedHeightStage pick X j := by
+      simpa [Peiffer.evaluation] using h
+    have hle := rankMinimal_top_count_of_modular_filling pick X j w s [] hm hmod
+    change rankCount s j ≤ 0 at hle
+    omega
+
+/-- An exact deletion detects whether the literal defect is a
+lower-rank relation, solely from the original top count and the
+rank of the deleted occurrence. No assumption about the size of
+the other cells is required. -/
+theorem oneDart_defect_lower_iff_top_count
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (j : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hm : RankMinimalExpression pick X (j+1) w s)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X (j+1) i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick X (j+1)
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    P.Connected → P.vertexBoundary z = [z] →
+    ∃ (l : List _) (i : Fin s.length),
+      P.vertexBoundary (P.edge z) = P.edge z::l ∧
+      (discOccurrence (markedRows rows w) (boundaryIdentity s)
+        (P.edge z)).val = i.val+1 ∧
+      (FreeGroup.mk (l.map read) ∈ weightedHeightStage pick X j ↔
+        rankCount s j = if s[i.val].1.2.1.val = j then 1 else 0) := by
+  intro rows P z read hc hz
+  obtain ⟨l,hl,i,y,t,hy,he,_,_,hidx,_,hmin⟩ :=
+    oneDart_rankMinimal_defect_exact_type pick X (j+1) w s hs hw hc hz
+  obtain ⟨ht,hprofile⟩ := hmin hm
+  have hcount := hprofile j
+  rw [rankCount_singleton,hy] at hcount
+  refine ⟨l,i,hl,hidx,?_⟩
+  have hinv : FreeGroup.mk (l.map read) ∈ weightedHeightStage pick X j ↔
+      (FreeGroup.mk (l.map read))⁻¹ ∈ weightedHeightStage pick X j := by
+    constructor
+    · exact fun h => (weightedHeightStage pick X j).inv_mem h
+    · intro h
+      simpa only [inv_inv] using (weightedHeightStage pick X j).inv_mem h
+  rw [hinv,← rankMinimal_top_count_zero_iff pick X j _ t ht]
+  omega
+
+/-- A unit-height relator with a base commuting with the light
+generator in the preceding quotient cannot equal a power of that
+generator. This includes shifts based by a pure light power. -/
+theorem unit_height_light_aligned_impossible
+    (N : Subgroup F) [N.Normal] (c u v : F) (k m : ℤ)
+    (hc : MinBad N c) (hk : k = 1 ∨ k = -1) :
+    let q := QuotientGroup.mk' N
+    Commute (q v) (q a) →
+    q (v * heightRelator u c k * v⁻¹) ≠ q (a^m) := by
+  intro q hcomm he
+  have hcomm' : Commute (q v) (q (a^m)) := by
+    rw [map_zpow]
+    exact hcomm.zpow_right m
+  have hr : q (heightRelator u c k) = q (a^m) := by
+    simp only [map_mul,map_inv] at he
+    calc
+      _ = (q v)⁻¹ * (q v * q (heightRelator u c k) * (q v)⁻¹) * q v := by group
+      _ = _ := by rw [he,mul_assoc,← hcomm'.eq,← mul_assoc,inv_mul_cancel,one_mul]
+  have heq : q u * (q c)^k * (q u)⁻¹ = (q a)^(m+k) := by
+    simp only [heightRelator,map_mul,map_inv,map_zpow] at hr
+    calc
+      _ = (q u * (q c)^k * (q u)⁻¹ * ((q a)^k)⁻¹) * (q a)^k := by group
+      _ = _ := by rw [hr,← zpow_add]
+  have hg : Good N (c^k) := by
+    apply (good_iff_quotient N (c^k)).mpr
+    refine ⟨m+k,isConj_iff.mpr ⟨q u,?_⟩⟩
+    rw [map_zpow]
+    exact heq
+  apply hc.1
+  rcases hk with hk | hk
+  · simpa only [hk,zpow_one] using hg
+  · have hh := good_integer_power N hg (-1)
+    simpa only [hk,zpow_neg_one,inv_inv] using hh
+
+#print axioms top_count_zero_mem_lower
+#print axioms rankMinimal_top_count_zero_iff
+#print axioms oneDart_defect_lower_iff_top_count
+#print axioms unit_height_light_aligned_impossible
 
 end QuandleResearch.Issue070
