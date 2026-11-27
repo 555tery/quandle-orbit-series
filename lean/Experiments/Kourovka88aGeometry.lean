@@ -2,6 +2,7 @@ import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
 import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
+import SmallPresentation.SmallCancellationGeometryBoundaryTheorem
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -1219,5 +1220,131 @@ theorem rankMinimal_no_separated_merge_mod_lower (pick : WeightedSelector)
 
 #print axioms rankCount_singleton
 #print axioms rankMinimal_no_separated_merge_mod_lower
+
+
+/-! ## Boundary of a lower-rank spherical region
+
+Use the actual nonabelian boundary theorem of the ribbon library.
+In particular, a region's boundary relation follows from its interior
+cell labels and topology; it need not be assumed as an independent
+algebraic relation. Cutting such a region out of a larger diagram
+is a separate geometric construction.
+-/
+
+theorem signedLetterValue_reverse (x : Letter) :
+    FreeGroup.mk [reverseLetter x] = (FreeGroup.mk [x])⁻¹ := by
+  rcases x with ⟨i,s⟩
+  cases s <;> rw [FreeGroup.inv_mk] <;> rfl
+
+theorem rawWord_eval_prod (w : RawWord) :
+    FreeGroup.mk w = (w.map (fun x => FreeGroup.mk [x])).prod := by
+  induction w with
+  | nil => rfl
+  | cons x xs ih =>
+    change FreeGroup.mk ([x] ++ xs) =
+      FreeGroup.mk [x] * (xs.map (fun x => FreeGroup.mk [x])).prod
+    rw [← FreeGroup.mul_mk, ← ih]
+
+/-- The quotient-valued nonabelian boundary theorem implies actual
+normal-subgroup membership for the boundary word of a spherical
+connected labelled region. -/
+theorem ribbon_boundary_mem_normal {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hc : P.Connected) (hE : P.EulerEquality) (d : D)
+    (hint : ∀ e, ¬ P.rotation.SameCycle d e →
+      FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N) :
+    FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N := by
+  let q := QuotientGroup.mk' N
+  have eval (ds : List D) :
+      q (FreeGroup.mk (ds.map read)) =
+        (ds.map (fun e => q (FreeGroup.mk [read e]))).prod := by
+    induction ds with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons e es ih =>
+      change q (FreeGroup.mk ([read e] ++ es.map read)) =
+        q (FreeGroup.mk [read e]) *
+          (es.map (fun e => q (FreeGroup.mk [read e]))).prod
+      rw [← FreeGroup.mul_mk, map_mul, ih]
+  have hprod := RibbonMap.boundary_product_one D P
+    (fun e => q (FreeGroup.mk [read e])) (by
+      intro e
+      rw [he, signedLetterValue_reverse, map_inv])
+    hc hE d (by
+      intro e hne
+      rw [← eval]
+      exact (QuotientGroup.eq_one_iff _).mpr (hint e hne))
+  apply (QuotientGroup.eq_one_iff _).mp
+  rw [eval]
+  exact hprod
+
+/-- Cyclically cutting a relator does not alter membership in a normal
+subgroup. The rotation is allowed even when its spelling is unreduced. -/
+theorem rotated_word_mem_normal {N : Subgroup F} [N.Normal]
+    (p r : RawWord) (h : FreeGroup.mk (p ++ r) ∈ N) :
+    FreeGroup.mk (r ++ p) ∈ N := by
+  have he : (FreeGroup.mk p)⁻¹ * FreeGroup.mk (p ++ r) *
+      ((FreeGroup.mk p)⁻¹)⁻¹ = FreeGroup.mk (r ++ p) := by
+    simp only [← FreeGroup.mul_mk]
+    group
+  rw [← he]
+  exact (inferInstance : N.Normal).conj_mem _ h _
+
+/-- Every cyclic reading of either orientation of a lower-rank
+literal row is trivial in the preceding quotient. -/
+theorem lowerRank_rotated_row_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (j : ℕ) (i : RankHeight j)
+    (sign : Bool) (p r : RawWord)
+    (hword : orientedWord (rankHeightRows pick X j i) sign = p ++ r) :
+    FreeGroup.mk (r ++ p) ∈ weightedHeightStage pick X j := by
+  let N := weightedHeightStage pick X j
+  letI : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  change FreeGroup.mk (r ++ p) ∈ N
+  apply rotated_word_mem_normal p r
+  rw [← hword]
+  have hm : FreeGroup.mk (rankHeightRows pick X j i) ∈ N := by
+    rw [rankHeightRows_eval]
+    unfold N
+    rw [← rankHeight_normalClosure]
+    exact Subgroup.subset_normalClosure ⟨i,rfl⟩
+  cases sign
+  · change FreeGroup.mk (FreeGroup.invRev (rankHeightRows pick X j i)) ∈ N
+    rw [← FreeGroup.inv_mk]
+    exact N.inv_mem hm
+  · exact hm
+
+/-- A genuine connected spherical region over ranks below j has a
+boundary trivial in stage j. The interior readings may start at
+arbitrary cyclic corners and may use either orientation. -/
+theorem lowerRank_region_boundary_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (j : ℕ) {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hc : P.Connected) (hE : P.EulerEquality) (d : D)
+    (hint : ∀ e, ¬ P.rotation.SameCycle d e →
+      ∃ (i : RankHeight j) (sign : Bool) (p r : RawWord),
+        orientedWord (rankHeightRows pick X j i) sign = p ++ r ∧
+        (P.vertexBoundary e).map read = r ++ p) :
+    FreeGroup.mk ((P.vertexBoundary d).map read) ∈ weightedHeightStage pick X j := by
+  let N := weightedHeightStage pick X j
+  letI : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  apply ribbon_boundary_mem_normal P read N he hc hE d
+  intro e hne
+  obtain ⟨i,sign,p,r,hw,hr⟩ := hint e hne
+  rw [hr]
+  exact lowerRank_rotated_row_mem pick X j i sign p r hw
+
+#print axioms signedLetterValue_reverse
+#print axioms rawWord_eval_prod
+#print axioms ribbon_boundary_mem_normal
+#print axioms rotated_word_mem_normal
+#print axioms lowerRank_rotated_row_mem
+#print axioms lowerRank_region_boundary_mem
 
 end QuandleResearch.Issue070
