@@ -1535,12 +1535,16 @@ theorem roth_sqrt_bound (N : ℕ) (hN : 1 ≤ N) :
   have hmb : u ≤ (m : ℝ) * b := ((div_lt_iff₀ hb).mp hml).le
   have hma : (m : ℝ) * a ≤ b * u + a := by
     have hh := (le_div_iff₀ hb).mp (show (m : ℝ) - 1 ≤ u / b by linarith)
-    have hh' := mul_le_mul_of_nonneg_right hh hb.le
-    nlinarith
+    calc
+      (m : ℝ) * a = ((m : ℝ) - 1) * b * b + a := by rw [← hb2]; ring
+      _ ≤ u * b + a := add_le_add_right (mul_le_mul_of_nonneg_right hh hb.le) _
+      _ = b * u + a := by ring
   have hlog : Real.log (N : ℝ) / (m : ℝ) ≤ b * u := by
     apply (div_le_iff₀ hm').2
-    have hh := mul_le_mul_of_nonneg_right hmb hu
-    nlinarith
+    calc
+      Real.log (N : ℝ) = u * u := by rw [← hu2, pow_two]
+      _ ≤ ((m : ℝ) * b) * u := mul_le_mul_of_nonneg_right hmb hu
+      _ = b * u * (m : ℝ) := by ring
   have hopt : (m : ℝ) * a + Real.log (N : ℝ) / (m : ℝ) ≤
       2 * b * u + a := by linarith
   have h := roth_exp_parameters N m hN hm
@@ -1602,7 +1606,10 @@ lemma exp_dominates_linear (d M : ℝ) (hd : 0 < d) (hM : 0 ≤ M) :
     _ ≤ (d * u / 2)^2 := hquad
     _ ≤ Real.exp (d * u / 2) * Real.exp (d * u / 2) := by
       simpa only [pow_two] using hs
-    _ = _ := by rw [← Real.exp_add]; congr 1; ring
+    _ = _ := by
+      rw [← Real.exp_add]
+      congr 1
+      ring
 
 /-- Every coefficient strictly above the new leading coefficient
 is attainable for all sufficiently large natural N. -/
@@ -1651,9 +1658,10 @@ theorem roth_eventual_of_constant (C : ℝ)
     512 * (1000001 * (u / b + 1) + 1) * ((rothNumberNat N : ℝ) + 2) at hbase
   have hpoly : 512 * (1000001 * (u / b + 1) + 1) ≤
       512 * (1000001 * (1 / b + 1) + 1) * u := by
-    have he : u / b = (1 / b) * u := by ring
-    rw [he]
-    linarith
+    have hquot : u / b = (1 / b) * u := by ring
+    rw [hquot]
+    nlinarith [mul_nonneg (show 0 ≤ (1 / b : ℝ) by positivity)
+      (show 0 ≤ u - 1 by linarith)]
   have hbase' : (N : ℝ) * Real.exp (-(2 * b * u + a)) <
       1536 * (1000001 * (1 / b + 1) + 1) * u * (rothNumberNat N : ℝ) := by
     calc
