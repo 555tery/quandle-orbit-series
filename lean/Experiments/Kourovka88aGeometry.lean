@@ -2406,4 +2406,178 @@ theorem guba23_row_perimeter_of_arcs (pick : WeightedSelector)
 #print axioms guba23_boundary_transfer
 #print axioms guba23_row_perimeter_of_arcs
 
+
+
+/-! ## Lemma 22: actual component partition and loss of short sections
+
+Use the actual connectivity relation of the finite ribbon, including
+after coefficient-region refinement. A component can have more than
+two boundary outlets, so this partition is not yet a system of
+Guba contiguity subdiagrams. The separate pruning lemma below implements
+the last step of Lemma 22 once the preferred system from Lemma 19 and
+the local bounds and multiplicity estimate are established.
+-/
+
+/-- Each support consists of actual darts of a specified boundary set
+in the component of the chosen representative. -/
+noncomputable def guba22_component_support {D : Type}
+    (P : RibbonMap D) (B : Finset D) (a : D) : Finset D := by
+  classical
+  exact B.filter (P.SameComponent a)
+
+theorem guba22_mem_component_support {D : Type} (P : RibbonMap D)
+    (B : Finset D) (a d : D) :
+    d ∈ guba22_component_support P B a ↔ d ∈ B ∧ P.SameComponent a d := by
+  classical
+  simp [guba22_component_support]
+
+/-- Distinct components cannot share even a single boundary dart. -/
+theorem guba22_component_support_disjoint {D : Type} (P : RibbonMap D)
+    (B : Finset D) (a b : D) (h : ¬ P.SameComponent a b) :
+    Disjoint (guba22_component_support P B a)
+      (guba22_component_support P B b) := by
+  classical
+  apply Finset.disjoint_left.mpr
+  intro d ha hb
+  have ha' := (guba22_mem_component_support P B a d).mp ha
+  have hb' := (guba22_mem_component_support P B b d).mp hb
+  exact h (Relation.EqvGen.trans _ _ _ ha'.2
+    (Relation.EqvGen.symm _ _ hb'.2))
+
+/-- Choose one representative of each actual component meeting B.
+This is an existence theorem, not a postulated partition. -/
+theorem guba22_exists_component_representatives {D : Type}
+    (P : RibbonMap D) (B : Finset D) :
+    ∃ R : Finset D, R ⊆ B ∧
+      (∀ a ∈ R, ∀ b ∈ R, a ≠ b → ¬ P.SameComponent a b) ∧
+      (∀ d ∈ B, ∃ a ∈ R, P.SameComponent a d) := by
+  classical
+  induction B using Finset.induction_on with
+  | empty =>
+    exact ⟨∅, by simp, by simp, by simp⟩
+  | @insert d B hd ih =>
+    obtain ⟨R, hsub, hsep, hcov⟩ := ih
+    by_cases hex : ∃ a ∈ R, P.SameComponent a d
+    · refine ⟨R, ?_, hsep, ?_⟩
+      · intro a ha
+        exact Finset.mem_insert_of_mem (hsub ha)
+      · intro e he
+        rcases Finset.mem_insert.mp he with rfl | he
+        · exact hex
+        · exact hcov e he
+    · refine ⟨insert d R, ?_, ?_, ?_⟩
+      · intro a ha
+        rcases Finset.mem_insert.mp ha with rfl | ha
+        · exact Finset.mem_insert_self _ _
+        · exact Finset.mem_insert_of_mem (hsub ha)
+      · intro a ha b hb hab hconn
+        rcases Finset.mem_insert.mp ha with rfl | ha
+        · rcases Finset.mem_insert.mp hb with rfl | hb
+          · exact hab rfl
+          · exact hex ⟨b, hb, Relation.EqvGen.symm _ _ hconn⟩
+        · rcases Finset.mem_insert.mp hb with rfl | hb
+          · exact hex ⟨a, ha, hconn⟩
+          · exact hsep a ha b hb hab hconn
+      · intro e he
+        rcases Finset.mem_insert.mp he with rfl | he
+        · exact ⟨d, Finset.mem_insert_self _ _, Relation.EqvGen.refl d⟩
+        · obtain ⟨a, ha, hac⟩ := hcov e he
+          exact ⟨a, Finset.mem_insert_of_mem ha, hac⟩
+
+/-- The component supports really partition B, and every dart weight
+is counted exactly once. This applies to the actual refined ribbon
+and to the actual letter weights, not only to a list of lengths. -/
+theorem guba22_component_partition_weight {D : Type}
+    (P : RibbonMap D) (B : Finset D) (weight : D → ℕ) :
+    ∃ R : Finset D, R ⊆ B ∧
+      Set.PairwiseDisjoint (↑R : Set D) (guba22_component_support P B) ∧
+      (∑ a ∈ R, ∑ d ∈ guba22_component_support P B a, weight d) =
+        ∑ d ∈ B, weight d := by
+  classical
+  obtain ⟨R, hsub, hsep, hcov⟩ :=
+    guba22_exists_component_representatives P B
+  have hdis : Set.PairwiseDisjoint (↑R : Set D)
+      (guba22_component_support P B) := by
+    intro a ha b hb hab
+    exact guba22_component_support_disjoint P B a b (hsep a ha b hb hab)
+  have hunion : R.biUnion (guba22_component_support P B) = B := by
+    ext d
+    constructor
+    · intro hd
+      obtain ⟨a, _, hda⟩ := Finset.mem_biUnion.mp hd
+      exact ((guba22_mem_component_support P B a d).mp hda).1
+    · intro hd
+      obtain ⟨a, ha, hda⟩ := hcov d hd
+      exact Finset.mem_biUnion.mpr
+        ⟨a, ha, (guba22_mem_component_support P B a d).mpr ⟨hd,hda⟩⟩
+  refine ⟨R, hsub, hdis, ?_⟩
+  rw [← Finset.sum_biUnion hdis, hunion]
+
+/-- The cardinality calculation in Lemma 22: at most twelve first-kind
+sections, six second-kind sections and two distinct corridors per pair.
+The injective coding is the geometric multiplicity obligation. -/
+theorem guba22_second_kind_card {A : Type} (bad : Finset A)
+    (code : A → Fin 12 × Fin 6 × Fin 2)
+    (hinj : Set.InjOn code (↑bad : Set A)) :
+    bad.card ≤ 144 := by
+  classical
+  have hc := Finset.card_le_card_of_injOn code
+    (t := (Finset.univ : Finset (Fin 12 × Fin 6 × Fin 2)))
+    (fun _ _ => Finset.mem_univ _) hinj
+  simpa using hc
+
+/-- Prune the second-kind corridors. k stands for the nonnegative real
+coefficient omega^(3/2); the proof is uniform in k and uses no
+approximation. In Guba's proof each discarded arc contributes <= 2*k*D
+and the preferred system initially covers >= (eta+300*k)*D.
+The statement is conditional on these geometric estimates. -/
+theorem guba22_prune_coverage {A : Type} [DecidableEq A]
+    (s bad : Finset A) (hbad : bad ⊆ s) (weight : A → ℝ)
+    (D k : ℝ) (hD : 0 ≤ D) (hk : 0 ≤ k)
+    (hcard : bad.card ≤ 144)
+    (hlocal : ∀ a ∈ bad, weight a ≤ 2 * k * D)
+    (hcover : (95/100 + 300*k) * D ≤ ∑ a ∈ s, weight a) :
+    (95/100 : ℝ) * D ≤ ∑ a ∈ s \ bad, weight a := by
+  have hloss : (∑ a ∈ bad, weight a) ≤ (bad.card : ℝ) * (2*k*D) := by
+    calc
+      (∑ a ∈ bad, weight a) ≤ ∑ _a ∈ bad, (2*k*D) :=
+        Finset.sum_le_sum hlocal
+      _ = _ := by simp [nsmul_eq_mul]
+  have hc : (bad.card : ℝ) ≤ 144 := by exact_mod_cast hcard
+  have hkd : 0 ≤ 2*k*D := mul_nonneg (mul_nonneg (by norm_num) hk) hD
+  have hloss' := hloss.trans (mul_le_mul_of_nonneg_right hc hkd)
+  have hsplit := Finset.sum_sdiff (f := weight) hbad
+  have hn : 0 ≤ k*D := mul_nonneg hk hD
+  nlinarith only [hcover, hloss', hsplit, hn]
+
+/-- Actual set-theoretic pruning preserves the no-common-cell and
+no-common-boundary-dart conditions, as well as the no-merge condition.
+The supports and merge predicate must be supplied by the geometric
+construction; no claim of their existence is hidden in this result. -/
+theorem guba22_prune_preserves_geometry {A C D : Type} [DecidableEq A]
+    (s bad : Finset A) (cells : A → Finset C) (edges : A → Finset D)
+    (merge : A → A → Prop)
+    (hc : Set.PairwiseDisjoint (↑s : Set A) cells)
+    (he : Set.PairwiseDisjoint (↑s : Set A) edges)
+    (hm : ∀ a ∈ s, ∀ b ∈ s, a ≠ b → ¬ merge a b) :
+    Set.PairwiseDisjoint (↑(s \ bad) : Set A) cells ∧
+      Set.PairwiseDisjoint (↑(s \ bad) : Set A) edges ∧
+      (∀ a ∈ s \ bad, ∀ b ∈ s \ bad, a ≠ b → ¬ merge a b) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro a ha b hb hab
+    exact hc (Finset.mem_sdiff.mp ha).1 (Finset.mem_sdiff.mp hb).1 hab
+  · intro a ha b hb hab
+    exact he (Finset.mem_sdiff.mp ha).1 (Finset.mem_sdiff.mp hb).1 hab
+  · intro a ha b hb hab
+    exact hm a (Finset.mem_sdiff.mp ha).1 b (Finset.mem_sdiff.mp hb).1 hab
+
+#print axioms guba22_component_support
+#print axioms guba22_mem_component_support
+#print axioms guba22_component_support_disjoint
+#print axioms guba22_exists_component_representatives
+#print axioms guba22_component_partition_weight
+#print axioms guba22_second_kind_card
+#print axioms guba22_prune_coverage
+#print axioms guba22_prune_preserves_geometry
+
 end QuandleResearch.Issue070
