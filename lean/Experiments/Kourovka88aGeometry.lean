@@ -8719,7 +8719,7 @@ theorem guba23_delete_cell_minimal_type
   have he : Peiffer.evaluation rel (p ++ [x] ++ r) =
       Peiffer.evaluation rel ([y] ++ (p ++ r)) := by
     rw [peiffer_evaluation_append, peiffer_move_occurrence rel p x]
-    simp only [peiffer_evaluation_append]
+    simp only [peiffer_evaluation_append, y]
     group
   have hc (j : ℕ) : rankCount ([y] ++ (p ++ r)) j =
       rankCount (p ++ [x] ++ r) j := by
@@ -8743,10 +8743,12 @@ theorem guba23_delete_cell_minimal_type
     have hcounts : ∀ k, j < k → k < n →
         rankCount ([y] ++ (p ++ r)) k = rankCount ([y] ++ t) k := by
       intro k hjk hkn
-      rw [rankCount_append,rankCount_append,habove k hjk hkn]
+      exact (rankCount_append [y] (p ++ r) k).trans
+        ((congrArg (fun z : ℕ => rankCount [y] k + z) (habove k hjk hkn)).trans
+          (rankCount_append [y] t k).symm)
     have hle := hmin.2 ([y] ++ t) ht' j hj hcounts
-    simp only [rankCount_append] at hle
-    omega
+    rw [rankCount_append [y] (p ++ r) j, rankCount_append [y] t j] at hle
+    exact Nat.le_of_add_le_add_left hle
   · exact rank_type_lt_of_omitted_occurrence p r x (p ++ r) (List.Sublist.refl _)
 
 #print axioms guba23_delete_cell_minimal_type
