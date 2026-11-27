@@ -13148,17 +13148,19 @@ theorem fourBlocks_cyclicallyReduced
   have he2 := rawEnds_append he1 hi
   have hr3 := rawReduced_append_of_ends he2 ha hr2 hra h3
   have he3 := rawEnds_append he2 ha
-  apply FreeGroup.isCyclicallyReduced_iff.mpr
-  refine ⟨hr3,?_⟩
-  intro a hlast b hhead
-  rw [he3.2] at hlast
-  rw [he3.1] at hhead
-  have he : a = (0,sg) := by simpa using hlast
-  have hf : b = (1,true) := by simpa using hhead
-  subst a
-  subst b
-  intro h
-  exact ((by decide : (0 : Fin 2) ≠ 1) h).elim
+  have hcyc : FreeGroup.IsCyclicallyReduced (((U++V)++FreeGroup.invRev U)++A) := by
+    apply FreeGroup.isCyclicallyReduced_iff.mpr
+    refine ⟨hr3,?_⟩
+    intro a hlast b hhead
+    rw [he3.2] at hlast
+    rw [he3.1] at hhead
+    have he : a = (0,sg) := by simpa using hlast
+    have hf : b = (1,true) := by simpa using hhead
+    subst a
+    subst b
+    intro h
+    exact ((by decide : (0 : Fin 2) ≠ 1) h).elim
+  simpa only [List.append_assoc] using hcyc
 
 /-- The signed powers of a normalized minimal bad period preserve
 its forbidden-endpoint convention, for every nonzero height. -/
@@ -13290,5 +13292,173 @@ theorem guba_normalized_rows_cyclicallyReduced
 #print axioms activeLongWord_rawEnds
 #print axioms light_power_inverse_rawEnds
 #print axioms guba_normalized_rows_cyclicallyReduced
+
+
+/-- Moving the first letter to the end preserves cyclic reduction.
+Both junctions are handled by the actual Mathlib chain predicates. -/
+theorem rawCyclic_move_head (x : Letter) (l : RawWord)
+    (h : FreeGroup.IsCyclicallyReduced (x::l)) :
+    FreeGroup.IsCyclicallyReduced (l++[x]) := by
+  cases l with
+  | nil => exact h
+  | cons y ys =>
+    let R : Letter → Letter → Prop := fun a b => a.1 = b.1 → a.2 = b.2
+    obtain ⟨hr,hcyc⟩ := FreeGroup.isCyclicallyReduced_iff.mp h
+    have hr' : List.IsChain R (x::y::ys) := hr
+    obtain ⟨hxy,ht⟩ := List.isChain_cons.mp hr'
+    apply FreeGroup.isCyclicallyReduced_iff.mpr
+    constructor
+    · change List.IsChain R ((y::ys)++[x])
+      apply List.isChain_append.mpr
+      refine ⟨ht,by simp,?_⟩
+      intro a ha b hb
+      have ha' : a ∈ (x::y::ys).getLast? := by simpa using ha
+      have hb' : b ∈ (x::y::ys).head? := by simpa using hb
+      exact hcyc a ha' b hb'
+    · intro a ha b hb
+      have ha' : a = x := by simpa [List.getLast?_append] using ha
+      subst a
+      apply hxy b
+      simpa using hb
+
+/-- The original cyclic reduction certificate propagates to every
+actual based corner of the same ribbon vertex. -/
+theorem ribbon_cyclic_read_sameCycle {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a b : D)
+    (hab : P.rotation.SameCycle a b)
+    (h : FreeGroup.IsCyclicallyReduced ((P.vertexBoundary a).map read)) :
+    FreeGroup.IsCyclicallyReduced ((P.vertexBoundary b).map read) := by
+  obtain ⟨m,hm⟩ := hab.exists_nat_pow_eq
+  rw [← hm]
+  clear hm hab
+  induction m with
+  | zero => simpa using h
+  | succ m ih =>
+    rw [pow_succ',Equiv.Perm.mul_apply]
+    let d := (P.rotation^m) a
+    obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation d
+    have hn := cycleBoundary_next P.rotation d l hl
+    change P.vertexBoundary d = d::l at hl
+    change P.vertexBoundary (P.rotation d) = l++[d] at hn
+    change FreeGroup.IsCyclicallyReduced ((P.vertexBoundary d).map read) at ih
+    rw [hl,List.map_cons] at ih
+    change FreeGroup.IsCyclicallyReduced ((P.vertexBoundary (P.rotation d)).map read)
+    rw [hn,List.map_append,List.map_cons,List.map_nil]
+    exact rawCyclic_move_head (read d) (l.map read) ih
+
+/-- A monogon would put the two inverse-labelled ends of one edge
+next to each other in a vertex reading. Cyclic reduction rules it
+out without any small-cancellation estimates. -/
+theorem ribbon_no_monogon_of_reduced_readings {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hred : ∀ d, FreeGroup.IsReduced ((P.vertexBoundary d).map read))
+    (d : D) : P.face d ≠ d := by
+  intro hf
+  have he : P.edge d = P.rotation d := by
+    have hh := congrArg P.rotation hf
+    simpa only [RibbonMap.face_apply,Equiv.apply_symm_apply] using hh
+  obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation d
+  have hn := cycleBoundary_next P.rotation d l hl
+  change P.vertexBoundary d = d::l at hl
+  change P.vertexBoundary (P.rotation d) = l++[d] at hn
+  obtain ⟨t,ht⟩ := cycleBoundary_cons P.rotation (P.rotation d)
+  change P.vertexBoundary (P.rotation d) = P.rotation d::t at ht
+  cases l with
+  | nil =>
+    rw [List.nil_append,ht] at hn
+    have heq := (List.cons.inj hn).1
+    exact P.edge_ne d (he.trans heq)
+  | cons e es =>
+    rw [ht,List.cons_append] at hn
+    have heq := (List.cons.inj hn).1
+    subst e
+    have hr := hred d
+    rw [hl,List.map_cons,List.map_cons] at hr
+    change List.IsChain (fun a b : Letter => a.1 = b.1 → a.2 = b.2)
+      (read d :: read (P.rotation d) :: es.map read) at hr
+    have hc := (List.isChain_cons.mp hr).1 (read (P.rotation d)) (by simp)
+    rw [← he,hedge] at hc
+    rcases read d with ⟨i,sg⟩
+    cases sg <;> simp [reverseLetter] at hc
+
+/-- Bridge from actual marked row spellings (including the marked
+boundary) to all cyclic readings of the actual ribbon. -/
+theorem boundaryRibbon_all_cyclic_readings (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hrows : ∀ j : Fin (boundaryIdentity s).length,
+      FreeGroup.IsCyclicallyReduced (orientedWord
+        (markedRows rows w (boundaryIdentity s)[j].1.2)
+        (boundaryIdentity s)[j].2)) :
+    ∀ d, FreeGroup.IsCyclicallyReduced (((boundaryRibbon rows w s hs).vertexBoundary d).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) := by
+  intro d
+  obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
+  let z := discAt (markedRows rows w) (boundaryIdentity s) idx
+    ⟨0,Nat.zero_lt_of_lt k.isLt⟩
+  have hz : (boundaryRibbon rows w s hs).rotation.SameCycle z
+      (discAt (markedRows rows w) (boundaryIdentity s) idx k) := by
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle z _
+    rw [disc_sameCycle_iff]
+    simp only [z,discOccurrence_at]
+  apply ribbon_cyclic_read_sameCycle _ _ z _ hz
+  change FreeGroup.IsCyclicallyReduced (((boundaryRibbon rows w s hs).vertexBoundary
+    (discAt (markedRows rows w) (boundaryIdentity s) idx
+      ⟨0,Nat.zero_lt_of_lt k.isLt⟩)).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)))
+  rw [vertex_read_at_zero (chosenSection (Fin 2)) (markedRows rows w)
+    (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) idx
+    (Nat.zero_lt_of_lt k.isLt)]
+  exact hrows idx
+
+/-- Actual one-letter diagrams in the positive normal form have
+no monogons. The row convention is used here rather than a
+stronger unsupported assumption excluding all loops. -/
+theorem guba_oneDart_no_monogons (n : ℕ)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk
+      (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n i)) s = a)
+    (hpos : ∀ x ∈ s, x.2 = true) :
+    let P := boundaryRibbon
+      (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n) a s hs
+    ∀ d, P.face d ≠ d := by
+  classical
+  let rows := rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n
+  let P := boundaryRibbon rows a s hs
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows a) (boundaryIdentity s)
+  have hrows (j : Fin (boundaryIdentity s).length) :
+      FreeGroup.IsCyclicallyReduced (orientedWord
+        (markedRows rows a (boundaryIdentity s)[j].1.2) (boundaryIdentity s)[j].2) := by
+    obtain ⟨v,hv⟩ := j
+    cases v with
+    | zero =>
+      change FreeGroup.IsCyclicallyReduced (FreeGroup.invRev a.toWord)
+      have ha : a.toWord = [(0,true)] := by decide
+      rw [ha]
+      change FreeGroup.IsCyclicallyReduced ([(0,false)] : RawWord)
+      simp [FreeGroup.isCyclicallyReduced_iff,FreeGroup.IsReduced]
+    | succ v =>
+      have hlt : v < s.length := by simpa [boundaryIdentity] using hv
+      have hp := hpos s[v] (List.getElem_mem hlt)
+      change FreeGroup.IsCyclicallyReduced (orientedWord (rows s[v].1.2) s[v].2)
+      rw [hp]
+      change FreeGroup.IsCyclicallyReduced (rows s[v].1.2)
+      by_cases hn : rows s[v].1.2 = []
+      · rw [hn]
+        simp [FreeGroup.isCyclicallyReduced_iff]
+      · exact guba_normalized_rows_cyclicallyReduced n s[v].1.2 hn
+  intro d
+  apply ribbon_no_monogon_of_reduced_readings P read
+  · exact relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows a)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows a s hs)
+  · intro e
+    exact (boundaryRibbon_all_cyclic_readings rows a s hs hrows e).isReduced
+
+#print axioms rawCyclic_move_head
+#print axioms ribbon_cyclic_read_sameCycle
+#print axioms ribbon_no_monogon_of_reduced_readings
+#print axioms boundaryRibbon_all_cyclic_readings
+#print axioms guba_oneDart_no_monogons
 
 end QuandleResearch.Issue070
