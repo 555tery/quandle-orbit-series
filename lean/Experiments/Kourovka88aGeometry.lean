@@ -4550,4 +4550,76 @@ theorem coefficient_loopless_component_one_face {D : Type}
 #print axioms coefficient_loopless_component_one_face
 
 
+
+/-! ## Separating loops in spherical coefficient ribbons
+
+An interior loop must have distinct incident faces: cutting its endpoint
+vertex at the paired darts keeps the component count unchanged, increases
+the vertex count, and therefore cannot increase the face count.
+This argument also covers loops enclosing other loops or peripheral darts.
+-/
+
+/-- Every loop of a spherical ribbon has two distinct incident face cycles. -/
+theorem spherical_loop_distinct_faces {D : Type} [Fintype D]
+    (P : RibbonMap D) (hE : P.EulerEquality) (a : D)
+    (hloop : P.rotation.SameCycle a (P.edge a)) :
+    ¬ P.face.SameCycle a (P.edge a) := by
+  classical
+  let b := P.edge a
+  have hne : a ≠ b := (P.edge_ne a).symm
+  intro hface
+  have next (d : D) : P.face.SameCycle d (P.face d) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have hfa : P.face b = P.rotation.symm a := by
+    change P.rotation.symm (P.edge (P.edge a)) = P.rotation.symm a
+    rw [P.edge_involutive]
+  have hfb : P.face a = P.rotation.symm b := rfl
+  have hpred : P.face.SameCycle (P.rotation.symm a) (P.rotation.symm b) := by
+    rw [← hfa, ← hfb]
+    exact (next b).symm.trans (hface.symm.trans (next a))
+  have hv := P.vertexCut_card_vertices_of_sameCycle a b hne hloop
+  have he := Fintype.card_congr (P.vertexCutEdgeEquiv a b)
+  have hold : P.SameComponent a b := P.component_edge a
+  have hnew : (P.vertexCut a b).SameComponent a b :=
+    (P.vertexCut a b).component_edge a
+  have hc := Fintype.card_congr (P.vertexCutComponentsEquiv a b hold hnew)
+  let := Fintype.ofFinite
+    (SmallPresentationStatements.PermutationCycles.Cycles
+      (SmallPresentationStatements.PermutationCycles.cutAt P.face
+        (P.rotation.symm a) (P.rotation.symm b)))
+  have hcast := Fintype.card_congr
+    (Equiv.cast (congrArg SmallPresentationStatements.PermutationCycles.Cycles
+      (P.vertexCut_face a b)))
+  have hf := hcast.trans
+    (SmallPresentationStatements.PermutationCycles.card_cutAt_of_sameCycle
+      P.face (P.rotation.symm a) (P.rotation.symm b)
+      (P.rotation.symm.injective.ne hne) hpred)
+  have hu := (P.vertexCut a b).euler_upper_bound
+  change Fintype.card P.Vertex + Fintype.card P.Face =
+    Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
+  omega
+
+/-- In a compressed spherical coefficient ribbon, the absence of
+interior loops is equivalent to every component having a single face
+cycle. Thus one cannot discard all internal loops merely from the
+star-shape conclusion. -/
+theorem coefficient_one_face_iff_no_internal_edges {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hE : P.EulerEquality)
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hterminal : ∀ d, keep d → keep (P.edge d) →
+      P.rotation.SameCycle d (P.edge d)) :
+    (∀ a b, P.SameComponent a b → P.face.SameCycle a b) ↔
+      (∀ d, keep d → ¬ keep (P.edge d)) := by
+  constructor
+  · intro hone d hd he
+    exact spherical_loop_distinct_faces P hE d (hterminal d hd he)
+      (hone d (P.edge d) (P.component_edge d))
+  · intro hno a b hab
+    exact coefficient_loopless_component_one_face P keep hleaf hno a b hab
+
+#print axioms spherical_loop_distinct_faces
+#print axioms coefficient_one_face_iff_no_internal_edges
+
+
 end QuandleResearch.Issue070
