@@ -15243,4 +15243,170 @@ theorem gubaTypeMinimal_no_compatible_coefficient_cuts
 #print axioms coefficient_pair_cut_contours
 #print axioms gubaTypeMinimal_no_compatible_coefficient_cuts
 
+
+/-- Full type is invariant under permutation of occurrences. -/
+theorem gubaTypeCoordinate_perm {n : ℕ}
+    {s t : Peiffer.Sequence F (RankHeight n)} (h : s.Perm t) (k : ℕ) :
+    gubaTypeCoordinate s k = gubaTypeCoordinate t k := by
+  by_cases he : k%2 = 0
+  · simp only [gubaTypeCoordinate,he,ite_true,rankHeightSum]
+    exact ((h.filter (fun x => decide (x.1.2.1.val = k/2))).map
+      (fun x => x.1.2.2.natAbs)).sum_eq
+  · simp only [gubaTypeCoordinate,he,ite_false,rankCount]
+    exact (h.filter (fun x => decide (x.1.2.1.val = k/2))).length_eq
+
+/-- Removing an indexed occurrence without changing any retained
+rank-height label strictly decreases the full Guba type.
+Unlike count-only minimization, the proof compares ALL coordinates:
+the discarded occurrences contribute nonnegative summands. -/
+theorem gubaTypeMinimal_no_omitted_indices
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (hs : GubaTypeMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (l : List (Fin s.length)) (hl : l.Nodup)
+    (hcounts : ∀ j, gubaTypeCoordinate t j =
+      gubaTypeCoordinate (l.map (fun i => s[i.val])) j) :
+    ∀ i : Fin s.length, i ∈ l := by
+  classical
+  intro i
+  by_contra hi
+  have hsub : List.Subperm l (List.finRange s.length) :=
+    hl.subperm (fun x _ => List.mem_finRange x)
+  obtain ⟨u,hu,hlsub⟩ := List.subperm_iff.mp hsub
+  obtain ⟨r,hr⟩ := hlsub.exists_perm_append
+  have hp : List.Perm (List.finRange s.length) (l ++ r) := hu.symm.trans hr
+  have hir : i ∈ r := by
+    have hm := hp.mem_iff.mp (List.mem_finRange i)
+    exact (List.mem_append.mp hm).resolve_left hi
+  let get : Fin s.length → Peiffer.Occurrence F (RankHeight n) := fun k => s[k.val]
+  have hall : (List.finRange s.length).map get = s := by
+    rw [← List.ofFn_eq_map]
+    exact List.ofFn_getElem
+  have hperm : List.Perm s (l.map get ++ r.map get) := by
+    have h := hp.map get
+    rw [hall,List.map_append] at h
+    exact h
+  have hsplit (k : ℕ) : gubaTypeCoordinate s k =
+      gubaTypeCoordinate t k + gubaTypeCoordinate (r.map get) k := by
+    calc
+      _ = gubaTypeCoordinate (l.map get ++ r.map get) k :=
+        gubaTypeCoordinate_perm hperm k
+      _ = _ := by rw [gubaTypeCoordinate_append,hcounts k]
+  have hpositive : 0 < rankCount (r.map get) (get i).1.2.1.val := by
+    unfold rankCount
+    apply List.length_pos_iff_exists_mem.mpr
+    refine ⟨get i,List.mem_filter.mpr ⟨List.mem_map.mpr ⟨i,hir,rfl⟩,?_⟩⟩
+    simp
+  have hlt : descendingCountLT (2*n) gubaTypeCoordinate t s := by
+    apply descending_count_lt_of_pointwise
+    · intro k _
+      have h := hsplit k
+      omega
+    · let k := 2*(get i).1.2.1.val+1
+      have hk : k < 2*n := by
+        have hh := (get i).1.2.1.isLt
+        dsimp only [k]
+        omega
+      refine ⟨k,hk,?_⟩
+      have he := hsplit k
+      have hpos : 0 < gubaTypeCoordinate (r.map get) k := by
+        dsimp only [k]
+        rw [gubaTypeCoordinate_count]
+        exact hpositive
+      omega
+  obtain ⟨j,hj,hstrict,habove⟩ := hlt
+  exact (Nat.not_lt_of_ge (hs.2 t ht j hj
+    (fun k hjk hkn => (habove k hjk hkn).symm))) hstrict
+
+/-- The actual full-type-minimal marked ribbon is connected.
+This uses the original spherical factorization of the boundary
+component; every retained occurrence keeps its exact rank-height
+label. A component outside the boundary would omit an index and
+strictly lower the full type. -/
+theorem guba23_gubaTypeMinimal_ribbon_connected
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    (boundaryRibbon (rankHeightRows pick X n) w s hs).Connected := by
+  classical
+  let rows := rankHeightRows pick X n
+  let P := boundaryRibbon rows w s hs
+  let z := boundaryDart rows w s hw
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+  let D := {d // P.SameComponent z d}
+  let factor : F × D → F := fun t =>
+    t.1 * FreeGroup.mk ((P.vertexBoundary t.2.val).map read) * t.1⁻¹
+  obtain ⟨l,hl,hsep,_,hprod⟩ :=
+    guba23_boundary_component_exact_factors rows w s hs hw
+  have build (a : List (F × D))
+      (ha : ∀ t ∈ a, idx t.2.val ≠ boundaryOccurrence s)
+      (hpair : a.Pairwise (fun t u => idx t.2.val ≠ idx u.2.val)) :
+      ∃ (ids : List (Fin s.length)) (t : Peiffer.Sequence F (RankHeight n)),
+        ids.Nodup ∧
+        (∀ i ∈ ids, ∃ b ∈ a, (idx b.2.val).val = i.val+1) ∧
+        (∀ j, gubaTypeCoordinate t j = gubaTypeCoordinate (ids.map (fun i => s[i.val])) j) ∧
+        Peiffer.evaluation (rankHeightRel pick X n) t = (a.map factor).prod := by
+    induction a with
+    | nil =>
+      exact ⟨[],[],by simp,by simp,fun _ => rfl,rfl⟩
+    | cons b bs ih =>
+      obtain ⟨i,y,hi,hy,hval⟩ := guba23_vertex_factor_as_occurrence rows w s hs
+        b.2.val b.1 (ha b List.mem_cons_self)
+      obtain ⟨ids,t,hn,hcover,hcount,ht⟩ := ih
+        (fun u hu => ha u (List.mem_cons_of_mem _ hu))
+        (List.pairwise_cons.mp hpair).2
+      refine ⟨i::ids,y::t,?_,?_,?_,?_⟩
+      · apply List.nodup_cons.mpr
+        refine ⟨?_,hn⟩
+        intro hmem
+        obtain ⟨u,hu,he⟩ := hcover i hmem
+        exact (List.pairwise_cons.mp hpair).1 u hu (Fin.ext (hi.trans he.symm))
+      · intro j hj
+        rcases List.mem_cons.mp hj with h | h
+        · subst j
+          exact ⟨b,List.mem_cons_self,hi⟩
+        · obtain ⟨u,hu,he⟩ := hcover j h
+          exact ⟨u,List.mem_cons_of_mem _ hu,he⟩
+      · intro j
+        change gubaTypeCoordinate ([y] ++ t) j =
+          gubaTypeCoordinate ([s[i.val]] ++ ids.map (fun i => s[i.val])) j
+        rw [gubaTypeCoordinate_append,gubaTypeCoordinate_append,hcount j]
+        have hsingle : gubaTypeCoordinate [y] j =
+            gubaTypeCoordinate [s[i.val]] j := by
+          simp [gubaTypeCoordinate,rankHeightSum,rankCount,hy]
+        rw [hsingle]
+      · have hval' : Peiffer.term (rankHeightRel pick X n) y = factor b := by
+          simpa only [rows,rankHeightRows_eval] using hval
+        change Peiffer.term (rankHeightRel pick X n) y *
+          Peiffer.evaluation (rankHeightRel pick X n) t =
+            factor b * (bs.map factor).prod
+        rw [hval',ht]
+  obtain ⟨ids,t,hn,hcover,hcount,ht⟩ := build l hl hsep
+  have hall := gubaTypeMinimal_no_omitted_indices pick X n w s t hm
+    (ht.trans hprod) ids hn hcount
+  have hconn (d : DiscDarts (markedRows rows w) (boundaryIdentity s)) :
+      P.SameComponent z d := by
+    by_cases h : idx d = boundaryOccurrence s
+    · exact P.component_of_vertexCycle ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr h)
+    · obtain ⟨i,y,hi,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs d 1 h
+      obtain ⟨b,_,hb⟩ := hcover i (hall i)
+      have hcycle : P.rotation.SameCycle b.2.val d := by
+        change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle b.2.val d
+        rw [disc_sameCycle_iff]
+        exact Fin.ext (hb.trans hi.symm)
+      exact Relation.EqvGen.trans _ _ _ b.2.property (P.component_of_vertexCycle hcycle)
+  intro d e
+  exact Relation.EqvGen.trans _ _ _
+    (Relation.EqvGen.symm _ _ (hconn d)) (hconn e)
+
+
+#print axioms gubaTypeCoordinate_perm
+#print axioms gubaTypeMinimal_no_omitted_indices
+#print axioms guba23_gubaTypeMinimal_ribbon_connected
+
 end QuandleResearch.Issue070
