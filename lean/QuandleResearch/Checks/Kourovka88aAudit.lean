@@ -181,4 +181,14 @@ example : answer ↔
 #print axioms resolvent_occurrence_gap
 #print axioms samePrefix_resolvent_position
 
+#print axioms gubaEvenPrefix_odd_length
+#print axioms gubaEvenPrefix_dividing_period
+#print axioms repeat_take_base
+#print axioms repeat_hasPeriod
+#print axioms repeat_base_infix
+#print axioms commonPower_fineWilf_threshold
+#print axioms gubaEvenPrefix_commonPower
+#print axioms gubaEvenPrefix_resolvent_eq
+#print axioms gubaEvenPrefix_resolvent_occurrence
+
 end QuandleResearch.Issue070
