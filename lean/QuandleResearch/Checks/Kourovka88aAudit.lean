@@ -152,4 +152,24 @@ example : answer ↔
 #print axioms thueFactor_twoPeriods_bound
 #print axioms gubaEvenPrefix_period_bound
 
+#print axioms tripleBAt_fits
+#print axioms tripleBAt_letter
+#print axioms tripleBAt_append_left
+#print axioms tripleBAt_append_right
+#print axioms tripleBAt_no_cross
+#print axioms tripleBAt_guarded_append
+#print axioms thuePrefix_no_tripleB
+#print axioms gubaPrefix_no_tripleB
+#print axioms gubaPrefix_head_zero
+#print axioms gubaPrefix_last_zero
+#print axioms repeat_no_tripleB
+#print axioms repeat_head_zero
+#print axioms repeat_last_zero
+#print axioms separator_tripleB_iff
+#print axioms longBlock_tripleB_iff
+#print axioms longBlock_last_zero
+#print axioms longRaw_last_zero
+#print axioms longRaw_tripleB_iff
+#print axioms gubaEvenPrefix_longRaw_tripleB_iff
+
 end QuandleResearch.Issue070
