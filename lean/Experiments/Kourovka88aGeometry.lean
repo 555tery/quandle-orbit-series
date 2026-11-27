@@ -4457,4 +4457,97 @@ theorem coefficient_peripheral_edge_or_interior {D : Type} (P : RibbonMap D)
 #print axioms coefficient_peripheral_edge_or_interior
 
 
+
+/-! ## Face walks of loop-free compressed coefficient regions
+
+The terminal stars become literal one-face components once their
+interior loops are absent. This is proved directly with the face
+permutation, without any graph-theoretic planarity assumption.
+The removal of separating interior loops is a separate obligation.
+-/
+
+/-- Traversing an edge with a singleton endpoint stays on the same face. -/
+theorem face_sameCycle_of_fixed_edge_endpoint {D : Type}
+    (P : RibbonMap D) (d : D)
+    (h : P.rotation d = d ∨ P.rotation (P.edge d) = P.edge d) :
+    P.face.SameCycle d (P.edge d) := by
+  have next (x : D) : P.face.SameCycle x (P.face x) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  rcases h with hd | he
+  · have hf : P.face (P.edge d) = d := by
+      apply P.rotation.injective
+      simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply,
+        P.edge_involutive] using hd.symm
+    have hh := next (P.edge d)
+    rw [hf] at hh
+    exact hh.symm
+  · have hf : P.face d = P.edge d := by
+      apply P.rotation.injective
+      simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply] using he.symm
+    rw [← hf]
+    exact next d
+
+/-- If every edge has a singleton endpoint, a whole connected component
+is traversed by one face cycle. This applies both to isolated
+peripheral edges and to compressed stars without interior loops. -/
+theorem face_sameCycle_of_fixed_edge_endpoints {D : Type}
+    (P : RibbonMap D)
+    (h : ∀ d, P.rotation d = d ∨ P.rotation (P.edge d) = P.edge d)
+    (a b : D) (hab : P.SameComponent a b) :
+    P.face.SameCycle a b := by
+  let reach : D → Prop := fun d => P.face.SameCycle a d
+  have next (d : D) : P.face.SameCycle d (P.face d) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have he (d : D) : P.face.SameCycle d (P.edge d) :=
+    face_sameCycle_of_fixed_edge_endpoint P d (h d)
+  have hr (d : D) : P.face.SameCycle d (P.rotation d) := by
+    have hf : P.face (P.edge (P.rotation d)) = d := by
+      apply P.rotation.injective
+      simp only [RibbonMap.face_apply, Equiv.apply_symm_apply,
+        P.edge_involutive]
+    have hh := next (P.edge (P.rotation d))
+    rw [hf] at hh
+    exact ((he (P.rotation d)).trans hh).symm
+  have hedge (d : D) : reach (P.edge d) ↔ reach d :=
+    ⟨fun hd => hd.trans (he d).symm, fun hd => hd.trans (he d)⟩
+  have hrot (d : D) : reach (P.rotation d) ↔ reach d :=
+    ⟨fun hd => hd.trans (hr d).symm, fun hd => hd.trans (hr d)⟩
+  exact (P.invariant_on_component reach hedge hrot hab).mp (.refl _ _)
+
+/-- Consecutive interior incidences of a star give consecutive
+peripheral outlets in its face traversal, with precisely two face steps.
+This identifies the cyclic order needed for contiguity intervals. -/
+theorem peripheral_face_two_steps {D : Type} (P : RibbonMap D)
+    (a b : D) (hb : P.rotation b = b)
+    (h : P.rotation (P.edge b) = P.edge a) :
+    P.face (P.face a) = b := by
+  have hfirst : P.face a = P.edge b := by
+    apply P.rotation.injective
+    simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply] using h.symm
+  rw [hfirst]
+  apply P.rotation.injective
+  simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply,
+    P.edge_involutive] using hb.symm
+
+/-- The one-face statement specialized to compressed coefficient
+regions, with no interior-interior edge remaining. -/
+theorem coefficient_loopless_component_one_face {D : Type}
+    (P : RibbonMap D) (keep : D → Prop)
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hno : ∀ d, keep d → ¬ keep (P.edge d))
+    (a b : D) (hab : P.SameComponent a b) :
+    P.face.SameCycle a b := by
+  classical
+  apply face_sameCycle_of_fixed_edge_endpoints P _ a b hab
+  intro d
+  by_cases hd : keep d
+  · exact Or.inr (hleaf _ (hno d hd))
+  · exact Or.inl (hleaf d hd)
+
+#print axioms face_sameCycle_of_fixed_edge_endpoint
+#print axioms face_sameCycle_of_fixed_edge_endpoints
+#print axioms peripheral_face_two_steps
+#print axioms coefficient_loopless_component_one_face
+
+
 end QuandleResearch.Issue070
