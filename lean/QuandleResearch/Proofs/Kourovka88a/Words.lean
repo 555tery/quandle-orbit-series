@@ -879,10 +879,12 @@ theorem mk_eq_a_zpow_of_light (w : RawWord) (hw : rawWeight w < 10^80) :
     cases s with
     | false =>
       refine ⟨-1+n, ?_⟩
-      rw [hmul, FreeGroup.mk_eq_inv_of, hn, zpow_add] <;> simp [a]
+      rw [hmul, FreeGroup.mk_eq_inv_of, hn, zpow_add]
+      simp [a]
     | true =>
       refine ⟨1+n, ?_⟩
-      rw [hmul, FreeGroup.mk_eq_of, hn, zpow_add] <;> simp [a]
+      rw [hmul, FreeGroup.mk_eq_of, hn, zpow_add]
+      simp [a]
 
 theorem eq_a_zpow_of_light (w : F) (hw : weightedLength w < 10^80) :
     ∃ n : ℤ, w = a ^ n := by
