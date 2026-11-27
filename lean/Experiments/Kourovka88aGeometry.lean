@@ -1811,4 +1811,122 @@ theorem vertexCut_prescribed_interval {D : Type} [Fintype D]
 
 #print axioms vertexCut_prescribed_interval
 
+
+/-! ## Read the actual rank labels at arbitrary corners
+
+For a region inside the original marked ribbon, the interior
+relation should be deduced from the original occurrence label.
+There is no need to supply a fresh cyclic spelling of each row.
+-/
+
+/-- Moving the basepoint of a vertex does not change membership of
+its evaluated reading in a normal subgroup. -/
+theorem ribbon_vertex_mem_sameCycle {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (d e : D) (h : P.rotation.SameCycle d e) :
+    FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N ↔
+      FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N := by
+  let q := QuotientGroup.mk' N
+  have eval (ds : List D) :
+      q (FreeGroup.mk (ds.map read)) =
+        (ds.map (fun x => q (FreeGroup.mk [read x]))).prod := by
+    induction ds with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons x xs ih =>
+      change q (FreeGroup.mk ([read x] ++ xs.map read)) =
+        q (FreeGroup.mk [read x]) *
+          (xs.map (fun z => q (FreeGroup.mk [read z]))).prod
+      rw [← FreeGroup.mul_mk, map_mul, ih]
+  have hc := SmallPresentationStatements.PermutationCycles.cycleProduct_eq_one_of_sameCycle
+    P.rotation (fun x => q (FreeGroup.mk [read x])) h
+  rw [← QuotientGroup.eq_one_iff, ← QuotientGroup.eq_one_iff]
+  change (q (FreeGroup.mk ((P.vertexBoundary d).map read)) = 1 ↔
+    q (FreeGroup.mk ((P.vertexBoundary e).map read)) = 1)
+  rw [eval, eval]
+  exact hc
+
+/-- The complete reading at any corner of an actual labelled disc
+belongs to N as soon as its original row evaluates into N. -/
+theorem boundaryRibbon_vertex_mem_of_label (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (N : Subgroup F) [N.Normal]
+    (d : DiscDarts (markedRows rows w) (boundaryIdentity s)) (i : I)
+    (hi : (boundaryIdentity s)[discOccurrence (markedRows rows w)
+      (boundaryIdentity s) d].1.2 = some i)
+    (hm : FreeGroup.mk (rows i) ∈ N) :
+    FreeGroup.mk (((boundaryRibbon rows w s hs).vertexBoundary d).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) ∈ N := by
+  obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
+  rw [discOccurrence_at] at hi
+  let z := discAt (markedRows rows w) (boundaryIdentity s) idx
+    ⟨0, Nat.zero_lt_of_lt k.isLt⟩
+  have hz : (boundaryRibbon rows w s hs).rotation.SameCycle z
+      (discAt (markedRows rows w) (boundaryIdentity s) idx k) := by
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle z _
+    rw [disc_sameCycle_iff]
+    simp only [z, discOccurrence_at]
+  apply (ribbon_vertex_mem_sameCycle (boundaryRibbon rows w s hs)
+    (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))
+    N z _ hz).mp
+  change FreeGroup.mk (((boundaryRibbon rows w s hs).vertexBoundary
+    (discAt (markedRows rows w) (boundaryIdentity s) idx
+      ⟨0, Nat.zero_lt_of_lt k.isLt⟩)).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) ∈ N
+  rw [boundaryRibbon_interior_read rows w s hs idx i hi (Nat.zero_lt_of_lt k.isLt)]
+  cases (boundaryIdentity s)[idx].2
+  · change FreeGroup.mk (FreeGroup.invRev (rows i)) ∈ N
+    rw [← FreeGroup.inv_mk]
+    exact N.inv_mem hm
+  · exact hm
+
+/-- A lower-rank label alone suffices for membership of the actual
+vertex reading in the preceding stage, regardless of its corner. -/
+theorem rankRibbon_lower_vertex_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (d : DiscDarts (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s))
+    (i : RankHeight n)
+    (hi : (boundaryIdentity s)[discOccurrence
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s) d].1.2 = some i)
+    (hlt : i.1.val < j) :
+    FreeGroup.mk (((boundaryRibbon (rankHeightRows pick X n) w s hs).vertexBoundary d).map
+      (discRead (chosenSection (Fin 2)) (markedRows (rankHeightRows pick X n) w)
+        (boundaryIdentity s))) ∈ weightedHeightStage pick X j := by
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  apply boundaryRibbon_vertex_mem_of_label (rankHeightRows pick X n)
+    w s hs N d i hi
+  rw [rankHeightRows_eval]
+  change weightedRankHeightRelator pick X i.1.val i.2 ∈ N
+  unfold N
+  rw [← rankHeight_normalClosure]
+  exact Subgroup.subset_normalClosure ⟨(⟨i.1.val,hlt⟩,i.2),rfl⟩
+
+/-- Rotation agreement on the original complete vertex is enough
+to preserve its exact based reading in any refined ribbon. -/
+theorem refined_vertex_read_of_agreement {D : Type} [Fintype D]
+    (P : RibbonMap D) (tau : Equiv.Perm D) (d : D)
+    (h : ∀ e, P.rotation.SameCycle d e → tau e = P.rotation e) :
+    (P.withRotation tau).vertexBoundary d = P.vertexBoundary d := by
+  have hw := SmallPresentationStatements.PermutationCycles.cycleBoundary_walk P.rotation d
+  have hw' : SmallPresentationStatements.PermutationCycles.Walk tau d d
+      (P.vertexBoundary d) := by
+    apply hw.changePerm
+    intro e he
+    exact h e ((P.mem_vertexBoundary_iff d e).mp he)
+  exact (hw'.eq_cycleBoundary
+    (SmallPresentationStatements.PermutationCycles.cycleBoundary_ne_nil P.rotation d)
+    (SmallPresentationStatements.PermutationCycles.cycleBoundary_nodup P.rotation d)).symm
+
+#print axioms ribbon_vertex_mem_sameCycle
+#print axioms boundaryRibbon_vertex_mem_of_label
+#print axioms rankRibbon_lower_vertex_mem
+#print axioms refined_vertex_read_of_agreement
+
 end QuandleResearch.Issue070
