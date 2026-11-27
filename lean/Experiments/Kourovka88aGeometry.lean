@@ -14597,7 +14597,9 @@ theorem guba23_no_heavy_direct_long_side_cuts
   rw [hypart] at hwy
   obtain ⟨e,hMwalk,hrest⟩ := walk_split_departures R.rotation M (dt++N) y y hwy
   have hdt : dt = R.edge c :: (U.map R.edge).reverse := by
-    simp [dt,ds,List.map_append,List.reverse_append]
+    change ((U++[c]).map R.edge).reverse = _
+    simp only [List.map_append,List.map_singleton,List.reverse_append,List.reverse_singleton,
+      List.singleton_append]
   rw [hdt] at hrest
   have he : e = R.edge c := by
     change Walk R.rotation e y (R.edge c :: ((U.map R.edge).reverse ++ N)) at hrest
@@ -17903,7 +17905,7 @@ theorem guba_actual_single_block_pair_cyclic_exterior
           GubaFourBlockRead read cs (activeLongWord pick s[j.val].1.2.1.val h)
             (pick (gubaState pick s[j.val].1.2.1.val).1 h).val s[j.val].1.2.2) := by
     by_cases hroot : P.rotation.SameCycle root (P.edge z)
-    · exact ⟨root,[P.vertexBoundary root],hroot,by simp,by decide,Or.inl ⟨rfl,rfl⟩⟩
+    · exact ⟨root,[P.vertexBoundary root],hroot,by simp,by simp,Or.inl ⟨rfl,rfl⟩⟩
     · have he : idx (P.edge z) ≠ boundaryOccurrence s := by
         intro he
         exact hroot ((boundaryDart_sameVertex_iff rows w s hs hw (P.edge z)).mpr he)
@@ -18155,7 +18157,9 @@ theorem rawNatPow_factor_rotated_prefix (w : RawWord) (m : ℕ)
     · obtain ⟨t,ht⟩ := List.prefix_iff_exists_append_eq.mp
         (List.prefix_of_prefix_length_le hp hw (by omega))
       have he : p ++ (t ++ rawNatPow (p++t) m) = p ++ (z++r) := by
-        simpa only [ht,List.append_assoc] using h
+        calc
+          _ = w ++ rawNatPow w m := by rw [← List.append_assoc,ht]
+          _ = _ := by simpa only [List.append_assoc] using h
       have hz := List.append_inj_right he rfl
       have hrot (j : ℕ) :
           t ++ rawNatPow (p++t) j ++ p = rawNatPow (t++p) (j+1) := by
@@ -18230,11 +18234,13 @@ theorem distinct_rank_arbitrary_period_factor_weight
   rcases rawNatPow_factor_short_or_period _ m z hz with hs | ⟨l,r,hc,hp,hper⟩
   · change rawWeight z ≤ rawWeight (if si then c else c⁻¹).toWord at hs
     rw [hcw] at hs
-    exact hs.trans (by have h := le_max_left (weightedLength c) (weightedLength d); omega)
+    change rawWeight z ≤ 2 * max (weightedLength c) (weightedLength d)
+    exact hs.trans ((le_max_left _ _).trans (by omega))
   rcases rawNatPow_factor_short_or_period _ n z hz' with hs | ⟨p,q,hd,hq,hper'⟩
   · change rawWeight z ≤ rawWeight (if sj then d else d⁻¹).toWord at hs
     rw [hdw] at hs
-    exact hs.trans (by have h := le_max_right (weightedLength c) (weightedLength d); omega)
+    change rawWeight z ≤ 2 * max (weightedLength c) (weightedLength d)
+    exact hs.trans ((le_max_right _ _).trans (by omega))
   exact distinct_rank_signed_period_overlap_weight pick X i j hij hi hj si sj
     l r p q z hc hd hp hq hper hper'
 
@@ -18256,6 +18262,15 @@ theorem selected_period_weight_mono (pick : WeightedSelector)
   intro hg
   exact (pick (weightedStages pick X j) hj).property.1
     (good_mono (weightedStages_mono pick X hij) hg)
+
+/-- Transport the value of a dependent selector through equality of its input subgroup. -/
+theorem weightedSelector_val_congr (pick : WeightedSelector) (N M : Subgroup F)
+    (he : N = M) (hN : ∃ w : F, ¬ Good N w) (hM : ∃ w : F, ¬ Good M w) :
+    (pick N hN).val = (pick M hM).val := by
+  subst M
+  rfl
+
+#print axioms weightedSelector_val_congr
 
 /-- A periodic block of a cell cannot have a heavy literal overlap
 with an earlier active period, regardless of the heights, signs,
@@ -18282,16 +18297,10 @@ theorem guba_earlier_period_factor_not_heavy
     rwa [gubaState_stage pick j] at hj
   have hci : (pick (gubaState pick i).1 hi).val =
       (pick (weightedStages pick X i) hi').val := by
-    generalize hN : (gubaState pick i).1 = N at hi ⊢
-    have he : N = weightedStages pick X i := hN.symm.trans (gubaState_stage pick i)
-    subst N
-    rfl
+    exact weightedSelector_val_congr pick _ _ (gubaState_stage pick i) hi hi'
   have hcj : (pick (gubaState pick j).1 hj).val =
       (pick (weightedStages pick X j) hj').val := by
-    generalize hN : (gubaState pick j).1 = N at hj ⊢
-    have he : N = weightedStages pick X j := hN.symm.trans (gubaState_stage pick j)
-    subst N
-    rfl
+    exact weightedSelector_val_congr pick _ _ (gubaState_stage pick j) hj hj'
   rw [hci] at hz
   rw [hcj] at hz'
   have hb := distinct_rank_arbitrary_period_factor_weight pick X i j hij
@@ -18324,18 +18333,18 @@ theorem heightRelator_power_mem_iff (N : Subgroup F) [N.Normal]
   let q := QuotientGroup.mk' N
   have he : q X * q (C^k) * (q X)⁻¹ * (q (a^k))⁻¹ = 1 := by
     simpa only [heightRelator,map_mul,map_inv] using
-      (QuotientGroup.eq_one_iff N).mpr h
+      (QuotientGroup.eq_one_iff _).mpr h
   have hc : q X * q (C^k) * (q X)⁻¹ = q (a^k) := by
     calc
       _ = (q X * q (C^k) * (q X)⁻¹ * (q (a^k))⁻¹) * q (a^k) := by group
       _ = _ := by rw [he,one_mul]
   constructor
   · intro hm
-    apply (QuotientGroup.eq_one_iff N).mp
-    rw [← hc,(QuotientGroup.eq_one_iff N).mpr hm,mul_one,mul_inv_cancel]
+    apply (QuotientGroup.eq_one_iff _).mp
+    rw [← hc,(QuotientGroup.eq_one_iff _).mpr hm,mul_one,mul_inv_cancel]
   · intro hm
-    apply (QuotientGroup.eq_one_iff N).mp
-    have hq := (QuotientGroup.eq_one_iff N).mpr hm
+    apply (QuotientGroup.eq_one_iff _).mp
+    have hq := (QuotientGroup.eq_one_iff _).mpr hm
     calc
       q (C^k) = (q X)⁻¹ * (q X * q (C^k) * (q X)⁻¹) * q X := by group
       _ = 1 := by rw [hc,hq,mul_one,inv_mul_cancel]
@@ -18354,7 +18363,8 @@ theorem guba_selected_power_mem_iff (pick : WeightedSelector)
   let N := weightedHeightStage pick X n
   letI : N.Normal := by
     dsimp only [N]
-    infer_instance
+    rw [weightedHeightStage_eq]
+    exact weightedStages_normal pick X n
   have hm : rankHeightRel pick X n (i,k) ∈ N := by
     change rankHeightRel pick X n (i,k) ∈ weightedHeightStage pick X n
     rw [← rankHeight_normalClosure]
@@ -18466,7 +18476,9 @@ theorem exists_guba_first_power_failure (pick : WeightedSelector)
     omega
   refine ⟨j,hprev,(gubaPowerBoundary_failure_iff pick (j+1)).mpr ?_⟩
   change P (j+1)
-  exact hj ▸ hn
+  change P j.succ
+  rw [← hj]
+  exact hn
 
 #print axioms gubaPowerBoundary_failure_iff
 #print axioms exists_guba_first_power_failure
@@ -18540,10 +18552,12 @@ theorem activeLongWord_arbitrary_period_factor_bound (pick : WeightedSelector)
       positiveWeight (activeLongWord pick i hi) := by
   by_cases hv : v = []
   · subst v
-    have he : rawNatPow [] m = [] := by
-      induction m with
+    have emptyPow : ∀ l : ℕ, rawNatPow [] l = [] := by
+      intro l
+      induction l with
       | zero => rfl
-      | succ m ih => simp only [rawNatPow,ih,List.append_nil]
+      | succ l ih => simp only [rawNatPow,ih,List.append_nil]
+    have he := emptyPow m
     rw [he] at hpow
     have hlen := hpow.sublist.length_le
     have hz' : z = [] := List.length_eq_zero_iff.mp (by simpa using hlen)
