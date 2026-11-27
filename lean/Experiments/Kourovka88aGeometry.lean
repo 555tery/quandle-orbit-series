@@ -10751,4 +10751,61 @@ theorem answer_of_first_shortest_kernel_step (pick : WeightedSelector)
 #print axioms shortest_kernel_no_separating_cut
 #print axioms answer_of_first_shortest_kernel_step
 
+
+/-- Apply the shortest-kernel argument to the actual marked ribbon
+of the recursive rank presentation, with no hypotheses about
+the signs, counts, or distribution of its interior occurrences. -/
+theorem rankRibbon_shortest_kernel_distinct_faces
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) (hm : w ∈ weightedHeightStage pick X n)
+    (hmin : ∀ z : F, z ∈ weightedHeightStage pick X n →
+      z ≠ 1 → weightedLength w ≤ weightedLength z) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let a := boundaryDart rows w s hw
+    ∀ c d, P.rotation.SameCycle a c → P.rotation.SameCycle a d →
+      c ≠ d → ¬ P.face.SameCycle (P.rotation.symm c) (P.rotation.symm d) := by
+  classical
+  intro rows P a
+  let N := weightedHeightStage pick X n
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  have winv (z : F) : weightedLength z⁻¹ = weightedLength z := by
+    simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+  have hbase : (P.vertexBoundary a).map read = (w⁻¹).toWord :=
+    (boundaryRibbon_read rows w s hs hw).trans (FreeGroup.toWord_inv w).symm
+  have hinterior (e : DiscDarts (markedRows rows w) (boundaryIdentity s))
+      (he : ¬ P.rotation.SameCycle a e) :
+      FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N := by
+    let k := discOccurrence (markedRows rows w) (boundaryIdentity s) e
+    have hk : k ≠ boundaryOccurrence s :=
+      fun h => he ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
+    have hlabel : ∃ i : RankHeight n, (boundaryIdentity s)[k].1.2 = some i := by
+      obtain ⟨v,hv⟩ := k
+      cases v with
+      | zero => exact (hk (Fin.ext rfl)).elim
+      | succ m =>
+        have hm' : m < s.length := by simpa [boundaryIdentity] using hv
+        refine ⟨s[m].1.2,?_⟩
+        simp [boundaryIdentity,markOccurrence]
+    obtain ⟨i,hi⟩ := hlabel
+    exact rankRibbon_lower_vertex_mem pick X n n w s hs e i hi i.1.isLt
+  apply shortest_kernel_no_separating_cut P read N
+    (boundaryRibbon_euler rows w s hs)
+    (relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs))
+    a w⁻¹ (by simpa using hw) (N.inv_mem hm) hbase
+  · intro z hz hne
+    rw [winv]
+    exact hmin z hz hne
+  · exact hinterior
+
+#print axioms rankRibbon_shortest_kernel_distinct_faces
+
 end QuandleResearch.Issue070
