@@ -6466,4 +6466,102 @@ theorem coefficient_partition_sameComponent {D : Type} [Fintype D]
 #print axioms coefficient_partition_sameComponent
 
 
+
+/-! ## Existence of a global interval refinement
+
+Choose representatives of the original peripheral vertices and their
+literal coefficient-component runs. The simultaneous refinement is
+therefore obtained from the given diagram, without supplying a
+representative list or a block partition as additional premises.
+-/
+
+/-- From any finite list choose one representative of each rotation
+cycle that meets it, with no duplication of cycles. -/
+theorem vertex_cycle_representatives {D : Type} (P : RibbonMap D)
+    (l : List D) :
+    ∃ reps : List D, (∀ a ∈ reps, a ∈ l) ∧
+      reps.Pairwise (fun a b => ¬ P.rotation.SameCycle a b) ∧
+      (∀ d ∈ l, ∃ a ∈ reps, P.rotation.SameCycle a d) := by
+  classical
+  induction l with
+  | nil =>
+    exact ⟨[],by simp,.nil,by simp⟩
+  | cons d ds ih =>
+    obtain ⟨reps,hsub,hsep,hcov⟩ := ih
+    by_cases h : ∃ a ∈ reps, P.rotation.SameCycle a d
+    · refine ⟨reps,fun a ha => List.mem_cons_of_mem _ (hsub a ha),hsep,?_⟩
+      intro e he
+      rcases List.mem_cons.mp he with he | he
+      · rw [he]
+        exact h
+      · exact hcov e he
+    · refine ⟨d :: reps,?_,?_,?_⟩
+      · intro a ha
+        rcases List.mem_cons.mp ha with ha | ha
+        · rw [ha]
+          exact List.mem_cons_self
+        · exact List.mem_cons_of_mem _ (hsub a ha)
+      · apply List.pairwise_cons.mpr
+        exact ⟨fun a ha hc => h ⟨a,ha,hc.symm⟩,hsep⟩
+      · intro e he
+        rcases List.mem_cons.mp he with he | he
+        · rw [he]
+          exact ⟨d,List.mem_cons_self,.refl _ _⟩
+        · obtain ⟨a,ha,hd⟩ := hcov e he
+          exact ⟨a,List.mem_cons_of_mem _ ha,hd⟩
+
+/-- The interval refinement exists for every finite spherical
+ribbon and every cycle-invariant protected set. All peripheral
+darts are covered by the literal runs of their original vertices;
+the genuine coefficient components and protected words are
+unchanged. Runs are based linear intervals; this statement does
+not assert metric coverage by Guba's preferred contiguity bands. -/
+theorem exists_global_coefficient_interval_refinement {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality) :
+    ∃ (hstep : ∀ d, keep (P.rotation d) ↔ keep d)
+      (reps : List D) (blocks : D → List (D × List D))
+      (tau : Equiv.Perm D),
+      (∀ a ∈ reps, ¬ keep a) ∧
+      (∀ d, ¬ keep d → ∃ a ∈ reps, P.rotation.SameCycle a d) ∧
+      reps.Pairwise (fun a b => ¬ P.rotation.SameCycle a b) ∧
+      (∀ a ∈ reps, P.vertexBoundary a =
+        (blocks a).flatMap (fun b => b.1 :: b.2)) ∧
+      (∀ a ∈ reps, ∀ b ∈ blocks a, ∀ d ∈ b.2,
+        (P.coefficientRegions keep hstep).SameComponent b.1 d) ∧
+      SplitRefinement P.rotation tau ∧
+      (P.withRotation tau).EulerEquality ∧
+      (∀ a ∈ reps, ∀ b ∈ blocks a,
+        (P.withRotation tau).vertexBoundary b.1 = b.1 :: b.2) ∧
+      (∀ d, keep d → (P.withRotation tau).vertexBoundary d = P.vertexBoundary d) ∧
+      (∀ d e, (P.withRotation tau).SameComponent d e ↔
+        (P.coefficientRegions keep hstep).SameComponent d e) := by
+  classical
+  have hstep (d : D) : keep (P.rotation d) ↔ keep d :=
+    hkeep _ _ (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  let B := Finset.univ.filter (fun d : D => ¬ keep d)
+  have hB (d : D) : d ∈ B.toList ↔ ¬ keep d := by
+    simp [B]
+  obtain ⟨reps,hsub,hsep,hcov⟩ := vertex_cycle_representatives P B.toList
+  let S := P.coefficientRegions keep hstep
+  have hchoose (a : D) : ∃ runs : List (D × List D),
+      P.vertexBoundary a = runs.flatMap (fun b => b.1 :: b.2) ∧
+      (∀ b ∈ runs, ∀ d ∈ b.2, S.SameComponent b.1 d) := by
+    obtain ⟨runs,hr,hs,_⟩ := coefficient_component_runs S (P.vertexBoundary a)
+    exact ⟨runs,hr,hs⟩
+  choose blocks hpart hlocal using hchoose
+  have hsel (a : D) (ha : a ∈ reps) : ¬ keep a := (hB a).mp (hsub a ha)
+  have hcover (d : D) (hd : ¬ keep d) : ∃ a ∈ reps, P.rotation.SameCycle a d :=
+    hcov d ((hB d).mpr hd)
+  obtain ⟨tau,href,hEuler,hread,hprotected,hcomp⟩ :=
+    coefficient_partition_sameComponent P keep hkeep hstep reps blocks
+      hsel hcover hsep (fun a _ => hpart a) (fun a _ => hlocal a) hE
+  exact ⟨hstep,reps,blocks,tau,hsel,hcover,hsep,fun a _ => hpart a,
+    fun a _ => hlocal a,href,hEuler,hread,hprotected,hcomp⟩
+
+#print axioms vertex_cycle_representatives
+#print axioms exists_global_coefficient_interval_refinement
+
+
 end QuandleResearch.Issue070
