@@ -1565,6 +1565,141 @@ theorem leading_constant_strict :
   linarith
 
 
+
+/-! Final absorption of the polynomial factor, with an explicit
+existence argument for the threshold. -/
+
+lemma roth_at_least_one (N : ℕ) (hN : 1 ≤ N) :
+    1 ≤ rothNumberNat N := by
+  apply ThreeAPFree.le_rothNumberNat ({0} : Finset ℕ)
+  · simpa using (threeAPFree_singleton (0 : ℕ))
+  · intro x hx
+    have he : x = 0 := Finset.mem_singleton.mp hx
+    omega
+  · simp
+
+lemma exp_dominates_linear (d M : ℝ) (hd : 0 < d) (hM : 0 ≤ M) :
+    ∃ U : ℝ, 1 ≤ U ∧ ∀ u : ℝ, U ≤ u → M * u ≤ Real.exp (d * u) := by
+  let U := max 1 (4 * M / d^2)
+  refine ⟨U, le_max_left _ _, ?_⟩
+  intro u hu
+  have hu1 : 1 ≤ u := le_trans (le_max_left _ _) hu
+  have hu0 : 0 ≤ u := by linarith
+  have hU : 4 * M / d^2 ≤ u := le_trans (le_max_right _ _) hu
+  have hcoef : 4 * M ≤ u * d^2 :=
+    (div_le_iff₀ (by positivity : 0 < d^2)).mp hU
+  have hquad : M * u ≤ (d * u / 2)^2 := by
+    nlinarith [mul_le_mul_of_nonneg_left hcoef hu0]
+  have hv : 0 ≤ d * u / 2 := by positivity
+  have he : d * u / 2 ≤ Real.exp (d * u / 2) := by
+    linarith [Real.add_one_le_exp (d * u / 2)]
+  have hs := mul_le_mul he he hv (Real.exp_pos _).le
+  calc
+    _ ≤ (d * u / 2)^2 := hquad
+    _ ≤ Real.exp (d * u / 2) * Real.exp (d * u / 2) := by
+      simpa only [pow_two] using hs
+    _ = _ := by rw [← Real.exp_add]; congr 1; ring
+
+/-- Every coefficient strictly above the new leading coefficient
+is attainable for all sufficiently large natural N. -/
+theorem roth_eventual_of_constant (C : ℝ)
+    (hC : 2 * Real.sqrt (Real.log (250 / 73)) < C) :
+    ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N →
+      (N : ℝ) * Real.exp (-C * Real.sqrt (Real.log (N : ℝ))) ≤
+        (rothNumberNat N : ℝ) := by
+  let a : ℝ := Real.log (250 / 73)
+  let b : ℝ := Real.sqrt a
+  let d : ℝ := C - 2 * b
+  let M : ℝ := 1536 * (1000001 * (1 / b + 1) + 1) * Real.exp a
+  have ha : 0 < a := Real.log_pos (by norm_num)
+  have hb : 0 < b := Real.sqrt_pos.2 ha
+  have hd : 0 < d := by dsimp [d, b, a]; linarith
+  have hM : 0 ≤ M := by dsimp [M]; positivity
+  obtain ⟨U, hU, hdom⟩ := exp_dominates_linear d M hd hM
+  let N₀ : ℕ := ⌊Real.exp (U^2)⌋₊ + 1
+  refine ⟨N₀, ?_⟩
+  intro N hN
+  have hN₀ : 0 < N₀ := by dsimp [N₀]; omega
+  have hN1 : 1 ≤ N := by omega
+  have hNp : 0 < (N : ℝ) := by exact_mod_cast (show 0 < N by omega)
+  have hNN : (N₀ : ℝ) ≤ (N : ℝ) := by exact_mod_cast hN
+  have hexp : Real.exp (U^2) < (N₀ : ℝ) := by
+    dsimp [N₀]
+    push_cast
+    exact Nat.lt_floor_add_one _
+  have hlog : U^2 ≤ Real.log (N : ℝ) :=
+    (Real.le_log_iff_exp_le hNp).2 (le_trans hexp.le hNN)
+  let u : ℝ := Real.sqrt (Real.log (N : ℝ))
+  have hu0 : 0 ≤ u := Real.sqrt_nonneg _
+  have hu2 : u^2 = Real.log (N : ℝ) :=
+    Real.sq_sqrt (Real.log_nonneg (by exact_mod_cast hN1))
+  have huU : U ≤ u := by
+    by_contra hn
+    have hpos : 0 < U - u := by linarith
+    have hpos' : 0 < U + u := by linarith
+    nlinarith [mul_pos hpos hpos']
+  have hu1 : 1 ≤ u := le_trans hU huU
+  have hD := hdom u huU
+  have hr : 1 ≤ (rothNumberNat N : ℝ) := by exact_mod_cast roth_at_least_one N hN1
+  have hr0 : 0 ≤ (rothNumberNat N : ℝ) := by positivity
+  have hbase := roth_sqrt_bound N hN1
+  change (N : ℝ) * Real.exp (-(2 * b * u + a)) <
+    512 * (1000001 * (u / b + 1) + 1) * ((rothNumberNat N : ℝ) + 2) at hbase
+  have hpoly : 512 * (1000001 * (u / b + 1) + 1) ≤
+      512 * (1000001 * (1 / b + 1) + 1) * u := by
+    have he : u / b = (1 / b) * u := by ring
+    rw [he]
+    linarith
+  have hbase' : (N : ℝ) * Real.exp (-(2 * b * u + a)) <
+      1536 * (1000001 * (1 / b + 1) + 1) * u * (rothNumberNat N : ℝ) := by
+    calc
+      _ < 512 * (1000001 * (u / b + 1) + 1) * ((rothNumberNat N : ℝ) + 2) := hbase
+      _ ≤ 512 * (1000001 * (1 / b + 1) + 1) * u *
+          (3 * (rothNumberNat N : ℝ)) :=
+        mul_le_mul hpoly (by linarith) (by positivity) (by positivity)
+      _ = _ := by ring
+  have hmult := mul_lt_mul_of_pos_right hbase' (Real.exp_pos a)
+  have hleft : Real.exp (-(2 * b * u + a)) * Real.exp a =
+      Real.exp (-(2 * b * u)) := by rw [← Real.exp_add]; congr 1; ring
+  have hmain : (N : ℝ) * Real.exp (-(2 * b * u)) <
+      Real.exp (d * u) * (rothNumberNat N : ℝ) := by
+    calc
+      _ = ((N : ℝ) * Real.exp (-(2 * b * u + a))) * Real.exp a := by
+        rw [mul_assoc, hleft]
+      _ < (1536 * (1000001 * (1 / b + 1) + 1) * u *
+          (rothNumberNat N : ℝ)) * Real.exp a := hmult
+      _ = (M * u) * (rothNumberNat N : ℝ) := by dsimp [M]; ring
+      _ ≤ _ := mul_le_mul_of_nonneg_right hD hr0
+  change (N : ℝ) * Real.exp (-C * u) ≤ _
+  have hc : Real.exp (-C * u) * Real.exp (d * u) =
+      Real.exp (-(2 * b * u)) := by
+    rw [← Real.exp_add]
+    congr 1
+    dsimp [d]
+    ring
+  apply (mul_le_mul_right (Real.exp_pos (d * u))).mp
+  calc
+    _ = (N : ℝ) * Real.exp (-(2 * b * u)) := by rw [mul_assoc, hc]
+    _ ≤ Real.exp (d * u) * (rothNumberNat N : ℝ) := hmain.le
+    _ = _ := mul_comm _ _
+
+/-- Target theorem: an unconditional strict improvement of the
+leading exponential coefficient of the EHPS lower bound. -/
+theorem erdos142_leading_constant_improvement :
+    ∃ C : ℝ, 0 < C ∧ C < 2 * Real.sqrt (Real.log (24 / 7)) ∧
+      ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N →
+        (N : ℝ) * Real.exp (-C * Real.sqrt (Real.log (N : ℝ))) ≤
+          (rothNumberNat N : ℝ) := by
+  let lo := 2 * Real.sqrt (Real.log (250 / 73))
+  let hi := 2 * Real.sqrt (Real.log (24 / 7))
+  have hlt : lo < hi := leading_constant_strict
+  have hlo : 0 ≤ lo := by dsimp [lo]; positivity
+  let C := (lo + hi) / 2
+  have hC : lo < C := by dsimp [C]; linarith
+  have hChi : C < hi := by dsimp [C]; linarith
+  exact ⟨C, lt_of_le_of_lt hlo hC, hChi, roth_eventual_of_constant C hC⟩
+
+
 end
 
 end QuandleResearch.Erdos142
