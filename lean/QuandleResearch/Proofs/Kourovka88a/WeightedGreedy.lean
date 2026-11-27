@@ -172,4 +172,117 @@ theorem answer_of_weightedStages_short (pick : WeightedSelector) (X : Conjugator
   intro i hi
   exact commWord_ne_one (hshort i commWord hi (le_of_eq weightedLength_commWord))
 
+
+/-- The actual rank-indexed relators, extracted from the recursive stages. -/
+noncomputable def weightedRankRelator (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ) : F :=
+  weightedRelator pick X i (weightedStages pick X i)
+
+/-- A recursive stage is exactly the normal closure of its preceding
+height-one rank relators. No geometric or survival assumptions are used. -/
+theorem weightedStages_eq_stage (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) :
+    weightedStages pick X n = stage (weightedRankRelator pick X) n := by
+  induction n with
+  | zero =>
+    change (⊥ : Subgroup F) =
+      Subgroup.normalClosure {w | ∃ j < 0, weightedRankRelator pick X j = w}
+    apply le_antisymm bot_le
+    apply Subgroup.normalClosure_le_normal
+    rintro w ⟨j, hj, _⟩
+    omega
+  | succ n ih =>
+    change adjoin (weightedStages pick X n) (weightedRankRelator pick X n) =
+      stage (weightedRankRelator pick X) (n+1)
+    apply le_antisymm
+    · apply Subgroup.normalClosure_le_normal
+      intro w hw
+      rcases hw with hw | hw
+      · have hm : w ∈ weightedStages pick X n := hw
+        rw [ih] at hm
+        exact stage_mono _ (Nat.le_succ n) hm
+      · have heq : w = weightedRankRelator pick X n := hw
+        subst w
+        exact relator_mem_next_stage _ n
+    · apply Subgroup.normalClosure_le_normal
+      rintro w ⟨j, hj, rfl⟩
+      by_cases h : j < n
+      · apply (le_adjoin (weightedStages pick X n) (weightedRankRelator pick X n))
+        rw [ih]
+        exact Subgroup.subset_normalClosure ⟨j, h, rfl⟩
+      · have heq : j = n := by omega
+        subst j
+        exact relator_mem_adjoin _ _
+
+/-- All integer-height relators at an actual rank. A stationary rank
+contributes only the identity at every height. -/
+noncomputable def weightedRankHeightRelator (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ) (k : ℤ) : F := by
+  classical
+  let N := weightedStages pick X i
+  exact if h : ∃ w : F, ¬ Good N w then
+    let c := (pick N h).val
+    heightRelator (X i N c) c k
+  else 1
+
+theorem weightedRankHeightRelator_one (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ) :
+    weightedRankHeightRelator pick X i 1 = weightedRankRelator pick X i := by
+  rfl
+
+/-- In any normal subgroup, membership at height one implies membership
+at every integer height for the same actual rank. -/
+theorem weightedRankHeightRelator_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (i : ℕ) (M : Subgroup F) [M.Normal]
+    (h1 : weightedRankRelator pick X i ∈ M) (k : ℤ) :
+    weightedRankHeightRelator pick X i k ∈ M := by
+  classical
+  let N := weightedStages pick X i
+  by_cases h : ∃ w : F, ¬ Good N w
+  · rw [weightedRankRelator, weightedRelator_eq pick X i N h] at h1
+    have hk := heightRelator_mem_of_one M (X i N (pick N h).val)
+      (pick N h).val h1 k
+    simpa only [weightedRankHeightRelator, dite_eq_left h] using hk
+  · have heq : weightedRankHeightRelator pick X i k = 1 := by
+      simp only [weightedRankHeightRelator, dite_eq_right h]
+    rw [heq]
+    exact Subgroup.one_mem M
+
+/-- Presentation using all ranks below n and all integral heights. This
+is the algebraic presentation needed by the graded-diagram argument. -/
+def weightedHeightStage (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) : Subgroup F :=
+  Subgroup.normalClosure
+    {w | ∃ i < n, ∃ k : ℤ, weightedRankHeightRelator pick X i k = w}
+
+/-- Exact equality of the all-height presentation and the recursively
+defined stage, not merely an equality of their quotient cardinalities. -/
+theorem weightedHeightStage_eq (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) :
+    weightedHeightStage pick X n = weightedStages pick X n := by
+  rw [weightedStages_eq_stage]
+  apply le_antisymm
+  · apply Subgroup.normalClosure_le_normal
+    rintro w ⟨i, hi, k, rfl⟩
+    apply weightedRankHeightRelator_mem
+    exact Subgroup.subset_normalClosure ⟨i, hi, rfl⟩
+  · unfold stage
+    apply Subgroup.normalClosure_le_normal
+    rintro w ⟨i, hi, rfl⟩
+    apply Subgroup.subset_normalClosure
+    exact ⟨i, hi, 1, weightedRankHeightRelator_one pick X i⟩
+
+/-- The remaining diagram input can now refer directly to the
+all-height presentation, rather than to the implementation of recursion.
+This is still a conditional reduction, not a proof of survival. -/
+theorem answer_of_heightStages_short (pick : WeightedSelector)
+    (X : ConjugatorChoice)
+    (hshort : ∀ i w, w ∈ weightedHeightStage pick X i →
+      weightedLength w ≤ 2 + 2 * 10 ^ 80 → w = 1) : answer := by
+  apply answer_of_weightedStages_short pick X
+  intro i w hw hlen
+  apply hshort i w _ hlen
+  rw [weightedHeightStage_eq]
+  exact hw
+
 end QuandleResearch.Issue070
