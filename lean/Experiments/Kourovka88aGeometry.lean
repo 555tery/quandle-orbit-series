@@ -15211,6 +15211,9 @@ theorem gubaTypeMinimal_no_compatible_coefficient_cuts
   · rw [weightedHeightStage_eq]
     change _ ∈ N
     apply (QuotientGroup.eq_one_iff _).mp
+    change q ((Peiffer.evaluation rel [((b₁,(j,u)),true),((b₂,(j,v)),true)])⁻¹ *
+      Peiffer.evaluation rel
+        [((a₁,(j,d)),true),((Peiffer.evaluation rel m*a₂,(j,-f)),true)]) = 1
     rw [map_mul,map_inv]
     have hrel (k : ℤ) : q (rel (j,k)) =
         q L*(q C)^k*(q L)⁻¹*((q a)^k)⁻¹ := by
