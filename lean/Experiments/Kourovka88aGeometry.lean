@@ -1858,7 +1858,8 @@ theorem boundaryRibbon_vertex_mem_of_label (rows : I → RawWord) (w : F)
     FreeGroup.mk (((boundaryRibbon rows w s hs).vertexBoundary d).map
       (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) ∈ N := by
   obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
-  rw [discOccurrence_at] at hi
+  have hi' : (boundaryIdentity s)[idx].1.2 = some i := by
+    simpa only [discOccurrence_at] using hi
   let z := discAt (markedRows rows w) (boundaryIdentity s) idx
     ⟨0, Nat.zero_lt_of_lt k.isLt⟩
   have hz : (boundaryRibbon rows w s hs).rotation.SameCycle z
@@ -1873,7 +1874,7 @@ theorem boundaryRibbon_vertex_mem_of_label (rows : I → RawWord) (w : F)
     (discAt (markedRows rows w) (boundaryIdentity s) idx
       ⟨0, Nat.zero_lt_of_lt k.isLt⟩)).map
       (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) ∈ N
-  rw [boundaryRibbon_interior_read rows w s hs idx i hi (Nat.zero_lt_of_lt k.isLt)]
+  rw [boundaryRibbon_interior_read rows w s hs idx i hi' (Nat.zero_lt_of_lt k.isLt)]
   cases (boundaryIdentity s)[idx].2
   · change FreeGroup.mk (FreeGroup.invRev (rows i)) ∈ N
     rw [← FreeGroup.inv_mk]
