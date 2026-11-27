@@ -4813,4 +4813,105 @@ theorem exists_internal_edge_free_compression {D : Type} [Fintype D]
 #print axioms exists_internal_edge_free_compression
 
 
+
+/-! ## Algebraic invariant for actual interior contractions
+
+Work over an arbitrary group, hence in particular over the quotient by
+all lower-rank relators. Contracting distinct interior vertices is valid
+with the original labels. Adjacent inverse loops are also harmless.
+For a nonadjacent loop the analogous unrestricted statement is false:
+the two intervening words can be conjugated relative to one another.
+-/
+
+/-- Distinct interior endpoint relations remain true under the
+actual edge splice, while the relations at unaffected vertices
+remain unchanged. -/
+theorem interior_edgeSplice_product_one {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (a : D) (ha : keep a) (hb : keep (P.edge a))
+    (hn : ¬ P.rotation.SameCycle a (P.edge a))
+    (d : D) (hd : keep d) :
+    cycleProduct (P.edgeSplice a).rotation v d = 1 := by
+  classical
+  have hn' : ¬ P.rotation.SameCycle (P.rotation a) (P.edge a) := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  have hra : P.rotation.SameCycle a (P.rotation a) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have hm : cycleProduct (P.edgeSplice a).rotation v (P.rotation a) = 1 := by
+    change cycleProduct (cutAt P.rotation (P.rotation a) (P.edge a))
+      v (P.rotation a) = 1
+    rw [cycleProduct_cutAt_merge P.rotation v _ _ hn',
+      hint _ ((hkeep _ _ hra).mp ha), hint _ hb, mul_one]
+  by_cases hs : (P.edgeSplice a).rotation.SameCycle (P.rotation a) d
+  · exact (cycleProduct_eq_one_of_sameCycle (P.edgeSplice a).rotation v hs).mp hm
+  · have hda : ¬ P.rotation.SameCycle d (P.rotation a) := by
+      intro h
+      exact hs ((P.edgeSplice_sameVertex_iff a hn _ _).mpr (Or.inl h.symm))
+    have hdb : ¬ P.rotation.SameCycle d (P.edge a) := by
+      intro h
+      exact hs ((P.edgeSplice_sameVertex_iff a hn _ _).mpr
+        (Or.inr ⟨Or.inl hra.symm,Or.inr h⟩))
+    change cycleProduct (cutAt P.rotation (P.rotation a) (P.edge a)) v d = 1
+    rw [cycleProduct_cutAt_unchanged P.rotation v _ _ _ hda hdb]
+    exact hint d hd
+
+/-- Full algebraic preservation under an actual non-loop interior
+edge contraction, including the inverse-label invariant. -/
+theorem interior_contractEdge_product_one {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (a : D) (ha : keep a) (hb : keep (P.edge a))
+    (hn : ¬ P.rotation.SameCycle a (P.edge a)) :
+    (∀ d : P.ContractDart a, v ((P.contractEdge a).edge d).val = (v d.val)⁻¹) ∧
+      (∀ d : P.ContractDart a, keep d.val →
+        cycleProduct (P.contractEdge a).rotation (fun e => v e.val) d = 1) := by
+  constructor
+  · intro d
+    rw [P.contractEdge_edge_val]
+    exact he d.val
+  · intro d hd
+    let C := P.spliceCancellation a
+    have hinv : v C.left * v C.right = 1 := by
+      change v a * v (P.edge a) = 1
+      rw [he, mul_inv_cancel]
+    change (((P.contractEdge a).vertexBoundary d).map (fun e => v e.val)).prod = 1
+    rw [show (((P.contractEdge a).vertexBoundary d).map (fun e => v e.val)).prod =
+      (((P.edgeSplice a).vertexBoundary d.val).map v).prod from C.vertex_product v hinv d]
+    exact interior_edgeSplice_product_one P v keep hkeep hint a ha hb hn d.val hd
+
+/-- In the special case of consecutive inverse incidences, deletion
+itself preserves every surviving vertex relation. No commutativity
+or restriction to a particular coefficient group is needed. -/
+theorem adjacent_internal_product_one {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (C : AdjacentCancellation P)
+    (hinv : v C.left * v C.right = 1)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (d : C.Dart) (hd : keep d.val) :
+    cycleProduct C.delete.rotation (fun e => v e.val) d = 1 := by
+  change ((C.delete.vertexBoundary d).map (fun e => v e.val)).prod = 1
+  rw [C.vertex_product v hinv d]
+  exact hint d.val hd
+
+/-- The precise group-theoretic correction needed to erase the ends
+of a nonconsecutive inverse pair. The two surviving intervals must
+retain a conjugation; the naive uncorrected concatenation is not
+justified by the old vertex relation. -/
+theorem internal_loop_twisted_product {K : Type} [Group K] (x u v : K)
+    (h : x * u * x⁻¹ * v = 1) :
+    u * (x⁻¹ * v * x) = 1 := by
+  calc
+    _ = x⁻¹ * (x * u * x⁻¹ * v) * x := by group
+    _ = 1 := by rw [h]; simp
+
+#print axioms interior_edgeSplice_product_one
+#print axioms interior_contractEdge_product_one
+#print axioms adjacent_internal_product_one
+#print axioms internal_loop_twisted_product
+
+
 end QuandleResearch.Issue070
