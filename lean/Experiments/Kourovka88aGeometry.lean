@@ -11513,4 +11513,115 @@ theorem answer_of_heightStages_half_threshold
 #print axioms weightedStages_comm_failure_shorter
 #print axioms answer_of_heightStages_half_threshold
 
+
+/-- The first chosen period, which is defined independently of the
+later stages and is one of the two signed heavy generators. -/
+noncomputable def initialWeightedPeriod (pick : WeightedSelector) : F :=
+  (pick ⊥ ⟨b,heavy_not_good_bot⟩).val
+
+theorem initialWeightedPeriod_signed (pick : WeightedSelector) :
+    initialWeightedPeriod pick = b ∨ initialWeightedPeriod pick = b⁻¹ :=
+  initial_minBad_heavy _ (pick ⊥ ⟨b,heavy_not_good_bot⟩).property
+
+/-- The first relation is available at every subsequent stage. -/
+theorem initialWeightedPeriod_relation (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (hn : 1 ≤ n) :
+    let C := initialWeightedPeriod pick
+    let u := X 0 ⊥ C
+    u*C*u⁻¹*a⁻¹ ∈ weightedStages pick X n := by
+  intro C u
+  apply weightedStages_mono pick X hn
+  have hex : ∃ w : F, ¬ Good (⊥ : Subgroup F) w := ⟨b,heavy_not_good_bot⟩
+  change u*C*u⁻¹*a⁻¹ ∈ adjoin ⊥ (weightedRelator pick X 0 ⊥)
+  rw [weightedRelator_eq pick X 0 ⊥ hex]
+  exact relator_mem_adjoin _ _
+
+/-- For a quotient which already contains the first defining relation,
+survival of the commutator is EXACTLY survival of a single fixed
+two-letter word. No metric hypotheses or later geometric estimates
+are involved in the equivalence. -/
+theorem commWord_mem_iff_initial_period_mem
+    (N : Subgroup F) [N.Normal] (C u : F)
+    (hC : C = b ∨ C = b⁻¹)
+    (hrel : u*C*u⁻¹*a⁻¹ ∈ N) :
+    commWord ∈ N ↔ C*a⁻¹ ∈ N := by
+  let q := QuotientGroup.mk' N
+  have hc : q (u*C*u⁻¹*a⁻¹) = 1 :=
+    (QuotientGroup.eq_one_iff _).mpr hrel
+  constructor
+  · intro hm
+    have he : q commWord = 1 := (QuotientGroup.eq_one_iff _).mpr hm
+    change q (a*b*a⁻¹*b⁻¹) = 1 at he
+    simp only [map_mul,map_inv] at he
+    have hab : Commute (q a) (q b) := by
+      change q a * q b = q b * q a
+      calc
+        _ = (q a*q b*(q a)⁻¹*(q b)⁻¹)*(q b*q a) := by group
+        _ = _ := by rw [he,one_mul]
+    have hu := freeGroup_heavy_commutes_all q hab u
+    have huc : Commute (q u) (q C) := by
+      rcases hC with h | h
+      · rw [h]
+        exact hu
+      · rw [h,map_inv]
+        exact hu.inv_right
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (C*a⁻¹) = 1
+    simp only [map_mul,map_inv] at hc ⊢
+    calc
+      _ = q u*q C*(q u)⁻¹*(q a)⁻¹ := by rw [huc.eq]; group
+      _ = 1 := hc
+  · intro hm
+    have he : q (C*a⁻¹) = 1 := (QuotientGroup.eq_one_iff _).mpr hm
+    simp only [map_mul,map_inv] at he
+    have hca : q C = q a := by
+      calc
+        _ = (q C*(q a)⁻¹)*q a := by group
+        _ = _ := by rw [he,one_mul]
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (a*b*a⁻¹*b⁻¹) = 1
+    simp only [map_mul,map_inv]
+    rcases hC with h | h
+    · rw [h] at hca
+      rw [hca]
+      group
+    · rw [h,map_inv] at hca
+      have hb : q b = (q a)⁻¹ := by
+        rw [← hca,inv_inv]
+      rw [hb]
+      group
+
+theorem weightedStages_comm_iff_initial_period
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (hn : 1 ≤ n) :
+    commWord ∈ weightedStages pick X n ↔
+      initialWeightedPeriod pick*a⁻¹ ∈ weightedStages pick X n := by
+  let N := weightedStages pick X n
+  let : N.Normal := weightedStages_normal pick X n
+  exact commWord_mem_iff_initial_period_mem N (initialWeightedPeriod pick)
+    (X 0 ⊥ (initialWeightedPeriod pick)) (initialWeightedPeriod_signed pick)
+    (initialWeightedPeriod_relation pick X n hn)
+
+/-- The exact Kourovka target now needs only the survival of one
+specific word, fixed before the entire recursive process starts.
+It does not require any injectivity ball, torsion-freeness or survival
+of other pure powers of the light generator. -/
+theorem answer_of_initial_period_survival (pick : WeightedSelector)
+    (X : ConjugatorChoice)
+    (hsurvive : ∀ n ≥ 1,
+      initialWeightedPeriod pick*a⁻¹ ∉ weightedStages pick X n) : answer := by
+  apply answer_of_weightedStages pick X
+  intro n hn
+  by_cases h : 1 ≤ n
+  · exact hsurvive n h ((weightedStages_comm_iff_initial_period pick X n h).mp hn)
+  · have h0 : n = 0 := by omega
+    subst n
+    exact commWord_ne_one hn
+
+#print axioms initialWeightedPeriod_signed
+#print axioms initialWeightedPeriod_relation
+#print axioms commWord_mem_iff_initial_period_mem
+#print axioms weightedStages_comm_iff_initial_period
+#print axioms answer_of_initial_period_survival
+
 end QuandleResearch.Issue070
