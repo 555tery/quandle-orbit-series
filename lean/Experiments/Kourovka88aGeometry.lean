@@ -13446,7 +13446,7 @@ theorem guba_oneDart_no_monogons (n : ℕ)
     | succ v =>
       have hlt : v < s.length := by simpa [boundaryIdentity] using hv
       have hp := hpos s[v] (List.getElem_mem hlt)
-      have hidx : (boundaryIdentity s)[⟨v+1,hv⟩] = markOccurrence s[v] := by
+      have hidx : (boundaryIdentity s)[v+1]'hv = markOccurrence s[v] := by
         simp [boundaryIdentity]
       rw [hidx]
       change FreeGroup.IsCyclicallyReduced (orientedWord (rows s[v].1.2) s[v].2)
@@ -13752,7 +13752,7 @@ theorem ribbon_nonbigon_dart_bound {D : Type} [Fintype D]
     have hcard : S.card = (P.faceBoundary a).length := by
       rw [← P.face_incidenceDegree]
       unfold incidenceDegree S
-      exact (Fintype.card_subtype _).symm
+      exact (Fintype.card_subtype (fun d : D => P.faceOf d = P.faceOf a)).symm
     by_cases ha : P.face (P.face a) = a
     · have hdeg := ribbon_face_length_ge_two P a (h1 a)
       have he : (∑ d ∈ S, weight d) = 3 * S.card := by
@@ -13963,7 +13963,9 @@ theorem ribbon_long_direct_strip {D : Type} [Fintype D]
   have hindicator : (fun e => if stop e then (1 : ℕ) else 0) =
       ribbonEndIndicator P := by
     funext e
-    by_cases h : P.face (P.face e) = e <;> simp [stop,ribbonEndIndicator,h]
+    by_cases h : P.face (P.face e) = e
+    · simp only [stop,ribbonEndIndicator,h,not_true_eq_false,if_false,if_true]
+    · simp only [stop,ribbonEndIndicator,h,not_false_eq_true,if_false,if_true]
   rw [hindicator,hsum] at hn
   have hnon : blocks ≠ [] := by
     intro h
@@ -13977,7 +13979,7 @@ theorem ribbon_long_direct_strip {D : Type} [Fintype D]
     | nil => rfl
     | cons b bs ih =>
       simp only [List.map_cons,List.sum_cons,List.flatMap_cons,List.map_append,rawWeight_append]
-      exact congrArg (fun n => weight b+n) ih
+      simpa only [weight,List.map_append,rawWeight_append] using congrArg (fun n => weight b+n) ih
   obtain ⟨b,hb,hmax⟩ := list_weight_max weight blocks hnon
   have hle := list_sum_map_le_length_mul weight blocks (weight b) hmax
   have hlen : blocks.length ≤ K+1 := by omega
@@ -14086,7 +14088,7 @@ theorem aligned_opposite_long_sides_merge (P S C : F) (k l : ℤ) :
   rw [heightRelator,zpow_add C k l,zpow_add a k l]
   have ha : Commute (a^k) (a^l) := (Commute.refl a).zpow_zpow k l
   have hc : Commute (C^k) (C^l) := (Commute.refl C).zpow_zpow k l
-  rw [← ha.eq,← hc.eq]
+  rw [ha.eq,hc.eq]
   group
 
 #print axioms aligned_opposite_long_sides_merge
