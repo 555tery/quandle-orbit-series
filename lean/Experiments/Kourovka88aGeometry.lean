@@ -15051,4 +15051,86 @@ theorem gubaTypeMinimal_no_coefficient_pair_replacement
 #print axioms exists_gubaTypeMinimal_ribbon_expression
 #print axioms gubaTypeMinimal_no_coefficient_pair_replacement
 
+
+/-- The two occurrences of a coefficient pair need not be consecutive.
+Transport the second occurrence across the intervening block by
+multiplying its conjugator by the evaluation of that block. The
+intervening occurrences are retained verbatim. Only the two heights
+can change, and the lower-rank correction is supplied by the common
+full-type replacement principle. -/
+theorem gubaTypeMinimal_no_separated_coefficient_pair
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (j : Fin n)
+    (p m r : Peiffer.Sequence F (RankHeight n))
+    (a₁ a₂ b₁ b₂ : F) (d f u v : ℤ)
+    (hm : GubaTypeMinimalExpression pick X n w
+      (p++([((a₁,(j,d)),true)]++m++[((a₂,(j,-f)),true)])++r))
+    (hmod : (Peiffer.evaluation (rankHeightRel pick X n)
+      [((b₁,(j,u)),true),((b₂,(j,v)),true)])⁻¹ *
+      Peiffer.evaluation (rankHeightRel pick X n)
+      [((a₁,(j,d)),true),
+       ((Peiffer.evaluation (rankHeightRel pick X n) m*a₂,(j,-f)),true)] ∈
+        weightedHeightStage pick X j.val)
+    (hstrict : u.natAbs + v.natAbs < d.natAbs + f.natAbs) : False := by
+  let rel := rankHeightRel pick X n
+  let b : Peiffer.Sequence F (RankHeight n) :=
+    [((a₁,(j,d)),true)]++m++[((a₂,(j,-f)),true)]
+  let t : Peiffer.Sequence F (RankHeight n) :=
+    [((b₁,(j,u)),true),((b₂,(j,v)),true)]++m
+  let A : Peiffer.Sequence F (RankHeight n) :=
+    [((a₁,(j,d)),true),((Peiffer.evaluation rel m*a₂,(j,-f)),true)]
+  let B : Peiffer.Sequence F (RankHeight n) :=
+    [((b₁,(j,u)),true),((b₂,(j,v)),true)]
+  have hb : Peiffer.evaluation rel b =
+      Peiffer.evaluation rel A * Peiffer.evaluation rel m := by
+    have hs (x : Peiffer.Occurrence F (RankHeight n)) :
+        Peiffer.evaluation rel [x] = Peiffer.term rel x := by
+      simp [Peiffer.evaluation]
+    change Peiffer.evaluation rel
+      ([((a₁,(j,d)),true)]++m++[((a₂,(j,-f)),true)]) =
+      Peiffer.evaluation rel
+        ([((a₁,(j,d)),true)]++
+          [((Peiffer.evaluation rel m*a₂,(j,-f)),true)]) *
+        Peiffer.evaluation rel m
+    simp only [peiffer_evaluation_append,hs,Peiffer.term,Bool.cond_true]
+    group
+  have ht : Peiffer.evaluation rel t =
+      Peiffer.evaluation rel B * Peiffer.evaluation rel m :=
+    peiffer_evaluation_append rel B m
+  have hnormal : (weightedHeightStage pick X j.val).Normal := by
+    rw [weightedHeightStage_eq]
+    exact weightedStages_normal pick X j.val
+  letI := hnormal
+  have hc : (Peiffer.evaluation rel B)⁻¹ * Peiffer.evaluation rel A ∈
+      weightedHeightStage pick X j.val := hmod
+  have hconj : (Peiffer.evaluation rel m)⁻¹ *
+      ((Peiffer.evaluation rel B)⁻¹ * Peiffer.evaluation rel A) *
+        Peiffer.evaluation rel m ∈ weightedHeightStage pick X j.val := by
+    simpa only [inv_inv] using hnormal.conj_mem _ hc (Peiffer.evaluation rel m)⁻¹
+  apply gubaTypeMinimal_block_no_reduction_mod_lower pick X n w p b r t hm
+    (2*j.val) (by omega)
+  · rw [show (2*j.val)/2 = j.val by omega]
+    change (Peiffer.evaluation rel t)⁻¹ * Peiffer.evaluation rel b ∈ _
+    rw [ht,hb]
+    convert hconj using 1 <;> group
+  · intro k hk hkn
+    have hdiv : j.val ≤ k/2 := by omega
+    by_cases h : k%2 = 0
+    · have hne : j.val ≠ k/2 := ne_of_lt (by omega)
+      simp [b,t,gubaTypeCoordinate,h,rankHeightSum_append,rankHeightSum,hne]
+    · simp [b,t,gubaTypeCoordinate,h,rankCount_append,rankCount,Nat.add_assoc,
+        Nat.add_comm,Nat.add_left_comm]
+  · rw [gubaTypeCoordinate_height,gubaTypeCoordinate_height]
+    simp only [b,t,rankHeightSum_append]
+    have ha : rankHeightSum [((a₁,(j,d)),true)] j.val = d.natAbs := by
+      simp [rankHeightSum]
+    have hf : rankHeightSum [((a₂,(j,-f)),true)] j.val = f.natAbs := by
+      simp [rankHeightSum,Int.natAbs_neg]
+    have hu : rankHeightSum [((b₁,(j,u)),true),((b₂,(j,v)),true)] j.val =
+      u.natAbs + v.natAbs := by simp [rankHeightSum]
+    rw [ha,hf,hu]
+    omega
+
+#print axioms gubaTypeMinimal_no_separated_coefficient_pair
+
 end QuandleResearch.Issue070
