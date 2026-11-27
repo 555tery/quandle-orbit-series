@@ -11700,7 +11700,7 @@ def affinePerm {K : Type} [Field K] (t s : K) (ht : t ≠ 0) :
   toFun x := t*x+s
   invFun y := (y-s)/t
   left_inv x := by field_simp; ring
-  right_inv y := by field_simp <;> ring
+  right_inv y := by field_simp; ring
 
 def affineFreeMap {K : Type} [Field K] (t : K) (ht : t ≠ 0) :
     F →* Equiv.Perm K :=
@@ -11712,7 +11712,7 @@ theorem affineFreeMap_a {K : Type} [Field K] (t : K) (ht : t ≠ 0) (x : K) :
 
 theorem affineFreeMap_b {K : Type} [Field K] (t : K) (ht : t ≠ 0) (x : K) :
     affineFreeMap t ht b x = t*x+1-t := by
-  simp [affineFreeMap,b,FreeGroup.lift_apply_of,affinePerm] <;> ring
+  simp [affineFreeMap,b,FreeGroup.lift_apply_of,affinePerm]; ring
 
 /-- The polynomial evaluates the image of 1; the full affine
 function is determined by its multiplier and this value. -/
@@ -11730,6 +11730,7 @@ theorem affineFreeMap_positive {K : Type} [Field K] (t : K) (ht : t ≠ 0)
       change FreeGroup.mk ((i,true)::xs.map (fun j => (j,true))) =
         FreeGroup.of i * FreeGroup.mk (xs.map (fun j => (j,true)))
       rw [← FreeGroup.mk_eq_of,FreeGroup.mul_mk]
+      rfl
     rw [he,map_mul,Equiv.Perm.mul_apply]
     change (affineFreeMap t ht (FreeGroup.of i))
       (affineFreeMap t ht (positiveWord xs) x) = _
@@ -11943,14 +11944,17 @@ theorem first_positive_second_minBad (u : F)
       change q w = 1
       rw [he]
       simp only [map_mul,map_inv,ha,hb]
-      group
+      rw [mul_comm (q u) (Multiplicative.ofAdd 1),mul_assoc (Multiplicative.ofAdd 1),
+        mul_inv_cancel,mul_one,mul_inv_cancel]
   have hbad : ¬ Good N (b*a⁻¹) := by
-    apply zero_character_bad N q hker _ _ hw
-    · intro k hk
+    have hf : ∀ k : ℤ, (q a)^k = 1 → k = 0 := by
+      intro k hk
       rw [ha] at hk
       change k * 1 = 0 at hk
       omega
-    · rw [map_mul,map_inv,hb,ha,mul_inv_cancel]
+    have hzero : q (b*a⁻¹) = 1 := by
+      rw [map_mul,map_inv,hb,ha,mul_inv_cancel]
+    exact zero_character_bad N q hker hf _ hw hzero
   have hbGood : Good N b := by
     refine ⟨u,1,?_⟩
     rw [zpow_one]
@@ -12046,7 +12050,6 @@ theorem guba_longRaw_bbba (m : ℕ) :
     (longRaw_prefix q (show 1 ≤ (10^20 : ℕ) by norm_num))
   refine ⟨u++v,?_⟩
   rw [← hv]
-  change longRaw q 1 ++ v = _
   simp [longRaw,longBlock,hu]
 
 /-- In the specialized greedy chain the first stage is exactly the
@@ -12318,11 +12321,13 @@ theorem oneDart_rankMinimal_defect_exact_type
   have hES : S.EulerEquality :=
     (P.edgeSplice_euler_iff z hn).mpr (boundaryRibbon_euler rows w s hs)
   have hCS : S.Connected := guba22_edgeSplice_connected P hc z hn
+  have hedge : ∀ d, read (P.edge d) = reverseLetter (read d) :=
+    relatorRibbon_edge_read (chosenSection (Fin 2))
+      (markedRows rows w) (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)
   have he : ∀ d, v (S.edge d) = (v d)⁻¹ := by
     intro d
     change FreeGroup.mk [read (P.edge d)] = (FreeGroup.mk [read d])⁻¹
-    rw [relatorRibbon_edge_read (chosenSection (Fin 2))
-      (markedRows rows w) (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)]
+    rw [hedge]
     exact signedLetterValue_reverse _
   have hv (Q : RibbonMap _) (d : _) :
       cycleProduct Q.rotation v d = FreeGroup.mk ((Q.vertexBoundary d).map read) := by
@@ -12349,7 +12354,7 @@ theorem oneDart_rankMinimal_defect_exact_type
   have heidx : idx e ≠ boundaryOccurrence s := by
     intro h
     exact hn ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
-  obtain ⟨omit,y,homit,hylabel,hy⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
+  obtain ⟨deletedIndex,y,homit,hylabel,hy⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
   obtain ⟨f,hf,hsep,_,hprod⟩ :=
     guba23_component_exact_vertex_product S v he hCS hES z
   let value : F × _ → F := fun t => t.1 * cycleProduct S.rotation v t.2 * t.1⁻¹
@@ -12398,7 +12403,7 @@ theorem oneDart_rankMinimal_defect_exact_type
           exact hval
         rw [hval']
   obtain ⟨l,hl,hcover,hev⟩ := build f hf hsep
-  have hnot : omit ∉ l.map Prod.fst := by
+  have hnot : deletedIndex ∉ l.map Prod.fst := by
     intro hmem
     obtain ⟨t,ht,hti⟩ := List.mem_map.mp hmem
     obtain ⟨_,d,hd,hdi⟩ := hcover t ht
@@ -12409,7 +12414,7 @@ theorem oneDart_rankMinimal_defect_exact_type
       rw [homit,hdi,hti]
     exact (outside d.2 (hf d hd)).2 hsame
   have hlt := rank_type_lt_of_omitted_index s (l.map Prod.snd)
-    (l.map Prod.fst) hl (indexed_rankCount_eq s l (fun t ht => (hcover t ht).1)) omit hnot
+    (l.map Prod.fst) hl (indexed_rankCount_eq s l (fun t ht => (hcover t ht).1)) deletedIndex hnot
   obtain ⟨tail,htail⟩ := cycleBoundary_cons P.rotation e
   change P.vertexBoundary e = e::tail at htail
   have hread : (S.vertexBoundary z).map read =
@@ -12419,8 +12424,7 @@ theorem oneDart_rankMinimal_defect_exact_type
     exact h
   have hcancel : FreeGroup.mk [read z,read e] = 1 := by
     change FreeGroup.mk [read z,read (P.edge z)] = 1
-    rw [relatorRibbon_edge_read (chosenSection (Fin 2))
-      (markedRows rows w) (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)]
+    rw [hedge]
     change FreeGroup.mk ([read z] ++ [reverseLetter (read z)]) = 1
     rw [← FreeGroup.mul_mk,signedLetterValue_reverse,mul_inv_cancel]
   have hval : cycleProduct S.rotation v z = FreeGroup.mk (tail.map read) := by
@@ -12459,17 +12463,16 @@ theorem oneDart_rankMinimal_defect_exact_type
       (y :: l.map Prod.snd) = w := by
     change Peiffer.term (rankHeightRel pick X n) y *
       Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) = w
-    rw [hyval,heval]
-    group
-  refine ⟨tail,htail,omit,y,l.map Prod.snd,hylabel,heval,hfull,hlt,homit,hyval,?_⟩
+    rw [hyval,heval,mul_assoc,mul_inv_cancel,mul_one]
+  refine ⟨tail,htail,deletedIndex,y,l.map Prod.snd,hylabel,heval,hfull,hlt,homit,hyval,?_⟩
   intro hm
-  let L := (omit,y)::l
+  let L := (deletedIndex,y)::l
   have hnd : (L.map Prod.fst).Nodup := by
-    change (omit :: l.map Prod.fst).Nodup
+    change (deletedIndex :: l.map Prod.fst).Nodup
     exact List.nodup_cons.mpr ⟨hnot,hl⟩
   have hlabels (x : Fin s.length × Peiffer.Occurrence F (RankHeight n))
       (hx : x ∈ L) : x.2.1.2 = s[x.1.val].1.2 := by
-    change x ∈ (omit,y)::l at hx
+    change x ∈ (deletedIndex,y)::l at hx
     rcases List.mem_cons.mp hx with hx | hx
     · subst x
       exact hylabel
@@ -12607,7 +12610,7 @@ theorem oneDart_defect_lower_iff_top_count
       (FreeGroup.mk (l.map read) ∈ weightedHeightStage pick X j ↔
         rankCount s j = if s[i.val].1.2.1.val = j then 1 else 0) := by
   intro rows P z read hc hz
-  obtain ⟨l,hl,i,y,t,hy,he,_,_,hidx,_,hmin⟩ :=
+  obtain ⟨l,hl,i,y,t,hy,_,_,_,hidx,_,hmin⟩ :=
     oneDart_rankMinimal_defect_exact_type pick X (j+1) w s hs hw hc hz
   obtain ⟨ht,hprofile⟩ := hmin hm
   have hcount := hprofile j
