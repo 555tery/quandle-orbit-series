@@ -308,8 +308,8 @@ theorem guba_rankHeightRows_active (pick : WeightedSelector)
   classical
   unfold rankHeightRows
   rw [← gubaState_stage pick i.1.val]
-  rw [dif_pos h, ← activeLongWord_eval pick i.1.val h]
-  exact literalHeightWord_positive_sides _ _ _ hk
+  simp only [dite_eq_left h]
+  exact literalHeightWord_positive_sides (activeLongWord pick i.1.val h) _ _ hk
 
 /-- An inactive rank or zero height has no nonempty row. Thus every
 interior dart comes from an active rank at nonzero height. -/
@@ -325,8 +325,8 @@ theorem guba_rankHeightRows_nonempty (pick : WeightedSelector)
   · refine ⟨h, ?_⟩
     intro hk
     apply hrow
-    rw [dif_pos h, hk, literalHeightWord_zero]
-  · exact False.elim (hrow (dif_neg h))
+    rw [dite_eq_left h, hk, literalHeightWord_zero]
+  · exact False.elim (hrow (dite_eq_right h))
 
 /-- Read any nonempty interior occurrence at its original zero corner.
 Unlike a statement about evaluation in the group, this preserves the
@@ -345,9 +345,8 @@ theorem boundaryRibbon_interior_read (rows : I → RawWord) (w : F)
       orientedWord (rows i) (boundaryIdentity s)[j].2 := by
   have hr := vertex_read_at_zero (chosenSection (Fin 2)) (markedRows rows w)
     (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) j hp
-  refine hr.trans ?_
-  rw [hi]
-  rfl
+  exact hr.trans (congrArg (fun label =>
+    orientedWord (markedRows rows w label) (boundaryIdentity s)[j].2) hi)
 
 /-- Weight of a signed row is independent of the orientation of the
 occurrence. The inverse orientation uses Mathlib's exact inverse word. -/
@@ -368,16 +367,12 @@ theorem boundaryRibbon_inverse_read (rows : I → RawWord) (w : F)
       (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) =
       FreeGroup.invRev (ds.map
         (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s))) := by
-  induction ds with
-  | nil => rfl
-  | cons d ds ih =>
-    simp only [List.map_cons, List.reverse_cons, List.map_append, ih,
-      FreeGroup.invRev_cons]
-    have he := relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
-      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
-    change discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
-      ((boundaryRibbon rows w s hs).edge d) = _ at he
-    rw [he] <;> rfl
+  rw [List.map_reverse, List.map_map, FreeGroup.invRev, List.map_map]
+  apply congrArg List.reverse
+  apply List.map_congr_left
+  intro d _
+  exact relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+    (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
 
 #print axioms guba_rankHeightRows_active
 #print axioms guba_rankHeightRows_nonempty
@@ -443,8 +438,10 @@ theorem boundaryRibbon_paired_positive_eq (rows : I → RawWord) (w : F)
   have he := boundaryRibbon_inverse_read rows w s hs ds
   rw [← hpair,hz,ht] at he
   have hm := FreeGroup.invRev_injective he
-  have hf := congrArg (List.map Prod.fst) hm
-  simpa only [List.map_map, Function.comp_def, List.map_id_fun] using hf.symm
+  have hf := congrArg (List.map (Prod.fst : Letter → Fin 2)) hm
+  simp only [List.map_map] at hf
+  change t.map (fun x => x) = z.map (fun x => x) at hf
+  simpa only [List.map_id'] using hf.symm
 
 /-- Weighted bound for a directly paired segment lying in opposite
 long sides. The two factor decompositions specify the locations in
