@@ -1929,4 +1929,53 @@ theorem refined_vertex_read_of_agreement {D : Type} [Fintype D]
 #print axioms rankRibbon_lower_vertex_mem
 #print axioms refined_vertex_read_of_agreement
 
+
+/-- The actual refined rank ribbon supplies all interior relations
+from its original labels. Only rank bounds and preservation of the
+lower-rank rotations are required, not a separate word-reading
+certificate at every interior corner. -/
+theorem rankRibbon_refined_two_boundary_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (tau : Equiv.Perm
+      (DiscDarts (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s))) :
+    let P := boundaryRibbon (rankHeightRows pick X n) w s hs
+    let read := discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+    ∀ (a : DiscDarts (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)),
+      SmallPresentationStatements.PermutationCycles.SplitRefinement P.rotation tau →
+      (¬tau.SameCycle a (P.edge a)) →
+      (∀ d, (P.withRotation tau).SameComponent a d →
+        ¬tau.SameCycle a d → ¬tau.SameCycle (P.edge a) d →
+        (∃ i : RankHeight n,
+          (boundaryIdentity s)[discOccurrence
+            (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s) d].1.2 =
+              some i ∧ i.1.val < j) ∧
+        (∀ e, P.rotation.SameCycle d e → tau e = P.rotation e)) →
+      FreeGroup.mk (((P.withRotation tau).vertexBoundary (tau a)).map read ++
+        ((P.withRotation tau).vertexBoundary (P.edge a)).map read) ∈
+        weightedHeightStage pick X j := by
+  intro P read a href hn hint
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  have hE : P.EulerEquality := boundaryRibbon_euler _ w s hs
+  have hE' : (P.withRotation tau).EulerEquality :=
+    P.splitRefinement_preserves_euler href hE
+  have he : ∀ d, read (P.edge d) = reverseLetter (read d) :=
+    relatorRibbon_edge_read (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+      (boundaryIdentity_evaluation _ w s hs)
+  apply edgeSplice_boundary_mem_normal (P.withRotation tau) read N a hn hE' he
+  intro d hc h1 h2
+  obtain ⟨⟨i,hi,hlt⟩,hag⟩ := hint d hc h1 h2
+  rw [refined_vertex_read_of_agreement P tau d hag]
+  exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt
+
+#print axioms rankRibbon_refined_two_boundary_mem
+
 end QuandleResearch.Issue070
