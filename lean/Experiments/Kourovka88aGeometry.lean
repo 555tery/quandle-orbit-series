@@ -1212,8 +1212,10 @@ theorem rankMinimal_no_separated_merge_mod_lower (pick : WeightedSelector)
   apply rankMinimal_block_no_reduction_mod_lower pick X n w p b r t
     hsplit j.val j.isLt hmod
   · intro d hd _
-    simp [b,t,rankCount_append,rankCount_singleton,ne_of_lt hd]
-  · simp [b,t,rankCount_append,rankCount_singleton] <;> omega
+    simp only [b,t,rankCount_append,rankCount_singleton]
+    simp [ne_of_lt hd]
+  · simp only [b,t,rankCount_append,rankCount_singleton]
+    simp <;> omega
 
 #print axioms rankCount_singleton
 #print axioms rankMinimal_no_separated_merge_mod_lower
