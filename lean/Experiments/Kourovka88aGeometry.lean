@@ -1169,7 +1169,7 @@ theorem rankMinimal_no_separated_merge_mod_lower (pick : WeightedSelector)
   let t : Peiffer.Sequence F (RankHeight n) :=
     [((u,(j,k+l)),true)] ++ m
   let N := weightedStages pick X j.val
-  letI : N.Normal := weightedStages_normal pick X j.val
+  let : N.Normal := weightedStages_normal pick X j.val
   let q := QuotientGroup.mk' N
   have hb : (u*a^k)⁻¹ * (Peiffer.evaluation rel m * v) ∈ N := by
     simpa only [N, rel, weightedHeightStage_eq] using hbase
@@ -1217,7 +1217,7 @@ theorem rankMinimal_no_separated_merge_mod_lower (pick : WeightedSelector)
     simp only [b,t,rankCount_append,rankCount_singleton]
     simp [ne_of_lt hd]
   · simp only [b,t,rankCount_append,rankCount_singleton]
-    simp <;> omega
+    simp
 
 #print axioms rankCount_singleton
 #print axioms rankMinimal_no_separated_merge_mod_lower
@@ -1300,7 +1300,7 @@ theorem lowerRank_rotated_row_mem (pick : WeightedSelector)
     (hword : orientedWord (rankHeightRows pick X j i) sign = p ++ r) :
     FreeGroup.mk (r ++ p) ∈ weightedHeightStage pick X j := by
   let N := weightedHeightStage pick X j
-  letI : N.Normal := by
+  let : N.Normal := by
     unfold N
     rw [← rankHeight_normalClosure]
     infer_instance
@@ -1332,7 +1332,7 @@ theorem lowerRank_region_boundary_mem (pick : WeightedSelector)
         (P.vertexBoundary e).map read = r ++ p) :
     FreeGroup.mk ((P.vertexBoundary d).map read) ∈ weightedHeightStage pick X j := by
   let N := weightedHeightStage pick X j
-  letI : N.Normal := by
+  let : N.Normal := by
     unfold N
     rw [← rankHeight_normalClosure]
     infer_instance
@@ -1373,7 +1373,7 @@ theorem activePeriod_region_quadrilateral_weight (pick : WeightedSelector)
   rw [hboundary, weightedHeightStage_eq] at hb
   have hn := weightedStages_normal pick (gubaConjugatorChoice pick) i
   rw [← gubaState_stage pick i] at hn
-  letI : (gubaState pick i).1.Normal := hn
+  let : (gubaState pick i).1.Normal := hn
   apply minBad_factor_quadrilateral_weight
     (pick (gubaState pick i).1 h).property p v r u s t hword
   rw [gubaState_stage pick i]
