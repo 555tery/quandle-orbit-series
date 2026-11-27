@@ -10124,4 +10124,126 @@ theorem guba21_actual_separating_cut_induction
 #print axioms guba21_separating_profiles_strict
 #print axioms guba21_actual_separating_cut_induction
 
+
+/-- A literal split of a canonical free-group word has no hidden
+cancellation in either part or across the split. Derive this from
+Mathlib's norm inequalities, without a second reduction algorithm. -/
+theorem canonical_split_norm (z : F) (L R : RawWord)
+    (h : L ++ R = z.toWord) :
+    FreeGroup.norm (FreeGroup.mk L) = L.length ∧
+    FreeGroup.norm (FreeGroup.mk R) = R.length := by
+  have hprod : FreeGroup.mk L * FreeGroup.mk R = z := by
+    rw [← FreeGroup.mul_mk,h,FreeGroup.mk_toWord]
+  have hlen : FreeGroup.norm z = L.length + R.length := by
+    change z.toWord.length = _
+    rw [← h,List.length_append]
+  have hl : FreeGroup.norm (FreeGroup.mk L) ≤ L.length :=
+    FreeGroup.norm_mk_le
+  have hr : FreeGroup.norm (FreeGroup.mk R) ≤ R.length :=
+    FreeGroup.norm_mk_le
+  have hp := FreeGroup.norm_mul_le (FreeGroup.mk L) (FreeGroup.mk R)
+  rw [hprod,hlen] at hp
+  exact ⟨by omega,by omega⟩
+
+/-- For every genuine single cut of the canonical outer word, both
+new peripheral readings are nonidentity and the two inverse readings
+multiply in reverse order to the original boundary. Their free-group
+norms add exactly. Separation of the ribbon is not needed here. -/
+theorem guba21_boundary_cut_reduced_factors
+    (rows : I → RawWord) (w : F) (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    let P := boundaryRibbon rows w s hs
+    let a := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ b, a ≠ b → P.rotation.SameCycle a b →
+      let Q := P.vertexCut a b
+      let u := (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹
+      let v := (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹
+      u ≠ 1 ∧ v ≠ 1 ∧ v * u = w ∧
+        FreeGroup.norm u + FreeGroup.norm v = FreeGroup.norm w := by
+  classical
+  intro P a read b hne hsame Q u v
+  let L := (Q.vertexBoundary a).map read
+  let R := (Q.vertexBoundary b).map read
+  have hcat : L ++ R = (w⁻¹).toWord := by
+    change (Q.vertexBoundary a).map read ++
+      (Q.vertexBoundary b).map read = _
+    rw [← List.map_append]
+    change (((P.vertexCut a b).vertexBoundary a ++
+      (P.vertexCut a b).vertexBoundary b).map read) = _
+    rw [← vertexCut_partition P a b hne hsame]
+    exact (boundaryRibbon_read rows w s hs hw).trans
+      (FreeGroup.toWord_inv w).symm
+  obtain ⟨hl,hr⟩ := canonical_split_norm w⁻¹ L R hcat
+  have hL : 0 < L.length := by
+    change 0 < ((Q.vertexBoundary a).map read).length
+    rw [List.length_map]
+    exact List.length_pos_iff.mpr (cycleBoundary_ne_nil Q.rotation a)
+  have hR : 0 < R.length := by
+    change 0 < ((Q.vertexBoundary b).map read).length
+    rw [List.length_map]
+    exact List.length_pos_iff.mpr (cycleBoundary_ne_nil Q.rotation b)
+  have hu : FreeGroup.norm u = L.length := by
+    change FreeGroup.norm (FreeGroup.mk L)⁻¹ = L.length
+    rw [FreeGroup.norm_inv_eq,hl]
+  have hv : FreeGroup.norm v = R.length := by
+    change FreeGroup.norm (FreeGroup.mk R)⁻¹ = R.length
+    rw [FreeGroup.norm_inv_eq,hr]
+  have hprod : FreeGroup.mk L * FreeGroup.mk R = w⁻¹ := by
+    rw [← FreeGroup.mul_mk,hcat,FreeGroup.mk_toWord]
+  refine ⟨?_,?_,?_,?_⟩
+  · intro he
+    rw [he,FreeGroup.norm_one] at hu
+    omega
+  · intro he
+    rw [he,FreeGroup.norm_one] at hv
+    omega
+  · change (FreeGroup.mk R)⁻¹ * (FreeGroup.mk L)⁻¹ = w
+    rw [← mul_inv_rev,hprod,inv_inv]
+  · rw [hu,hv]
+    have hlen := congrArg List.length hcat
+    rw [List.length_append] at hlen
+    change L.length + R.length = FreeGroup.norm w⁻¹ at hlen
+    rw [FreeGroup.norm_inv_eq] at hlen
+    exact hlen
+
+/-- The separating-cut induction rule now needs only the actual
+geometric separation, not independent hypotheses asserting that the
+two peripheral words are nontrivial. It also records the exact
+boundary factorization and norm conservation. -/
+theorem guba21_separating_cut_canonical_induction
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let a := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ b, a ≠ b → P.rotation.SameCycle a b →
+      let Q := P.vertexCut a b
+      ¬ Q.SameComponent a b →
+      let u := (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹
+      let v := (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹
+      u ≠ 1 ∧ v ≠ 1 ∧ v * u = w ∧
+      FreeGroup.norm u + FreeGroup.norm v = FreeGroup.norm w ∧
+      ∃ l r : Peiffer.Sequence F (RankHeight n),
+        RankMinimalExpression pick X n u l ∧
+        RankMinimalExpression pick X n v r ∧
+        (∀ j, rankCount s j = rankCount l j + rankCount r j) ∧
+        descendingCountLT n rankCount l s ∧
+        descendingCountLT n rankCount r s := by
+  intro rows P a read b hne hsame Q hsep u v
+  obtain ⟨hu,hv,hprod,hnorm⟩ :=
+    guba21_boundary_cut_reduced_factors rows w s hs hw b hne hsame
+  refine ⟨hu,hv,hprod,hnorm,?_⟩
+  exact guba21_actual_separating_cut_induction pick X n w s hm hw hs
+    b hne hsame hsep hu hv
+
+#print axioms canonical_split_norm
+#print axioms guba21_boundary_cut_reduced_factors
+#print axioms guba21_separating_cut_canonical_induction
+
 end QuandleResearch.Issue070
