@@ -472,30 +472,21 @@ theorem gubaState_stage (pick : WeightedSelector) (i : ℕ) :
   | zero => rfl
   | succ i ih =>
     classical
-    by_cases h : ∃ w : F, ¬ Good (gubaState pick i).1 w
-    · have h' : ∃ w : F, ¬ Good (weightedStages pick (gubaConjugatorChoice pick) i) w :=
-        ih ▸ h
-      simp only [gubaState, weightedStages, weightedRelator, dite_eq_left h,
-        dite_eq_left h', gubaConjugatorChoice]
-      -- Transport the chosen period along the equality of preceding subgroups.
-      rw [← ih]
-    · have h' : ¬ ∃ w : F, ¬ Good (weightedStages pick (gubaConjugatorChoice pick) i) w :=
-        ih ▸ h
-      simp only [gubaState, weightedStages, weightedRelator, dite_eq_right h,
-        dite_eq_right h']
-      rw [← ih]
-      apply le_antisymm
-      · exact le_adjoin _ _
-      · have hn := weightedStages_normal pick (gubaConjugatorChoice pick) i
-        rw [← ih] at hn
-        letI : (gubaState pick i).1.Normal := hn
-        apply Subgroup.normalClosure_le_normal
-        intro w hw
-        rcases hw with hw | hw
-        · exact hw
-        · have he : w = 1 := hw
-          subst w
-          exact Subgroup.one_mem _
+    let step : Subgroup F → Subgroup F := fun N =>
+      adjoin N (weightedRelator pick (gubaConjugatorChoice pick) i N)
+    calc
+      (gubaState pick (i+1)).1 = step (gubaState pick i).1 := by
+        by_cases h : ∃ w : F, ¬ Good (gubaState pick i).1 w
+        · simp only [gubaState, step, weightedRelator, dite_eq_left h,
+            gubaConjugatorChoice]
+        · simp only [gubaState, step, weightedRelator, dite_eq_right h]
+          have hn := weightedStages_normal pick (gubaConjugatorChoice pick) i
+          rw [← ih] at hn
+          let _ : (gubaState pick i).1.Normal := hn
+          exact (adjoin_eq_of_mem _ 1 (Subgroup.one_mem _)).symm
+      _ = step (weightedStages pick (gubaConjugatorChoice pick) i) :=
+        congrArg step ih
+      _ = weightedStages pick (gubaConjugatorChoice pick) (i+1) := rfl
 
 theorem gubaState_weight_mono (pick : WeightedSelector) :
     Monotone (fun i => (gubaState pick i).2) := by
