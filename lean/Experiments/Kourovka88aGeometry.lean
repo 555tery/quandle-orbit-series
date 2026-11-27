@@ -11043,9 +11043,10 @@ theorem rankMinimal_top_quotient_exact
     apply hnew
     rw [weightedHeightStage_eq]
     change w ∈ N
-    apply (QuotientGroup.eq_one_iff _).mp
-    rw [hn] at he
-    simpa using he
+    have hq : q w = 1 := by
+      rw [hn] at he
+      simpa only [List.map_nil,List.prod_nil,map_one] using he
+    exact (QuotientGroup.eq_one_iff _).mp hq
   · intro t ht
     rw [hl]
     apply rankMinimal_top_quotient_lower_bound pick X j w s hm t
@@ -11123,6 +11124,7 @@ theorem topRank_minimal_no_transported_merge
     q w = topHeightProduct q R (p ++ [(u,k)] ++ m ++ [(v,l)] ++ r) →
     topHeightProduct q R m * q v ≠ q u * q (a^k) := by
   intro N q R he halign
+  let : N.Normal := weightedStages_normal pick X j
   let t := p ++ [(u,k+l)] ++ m ++ r
   have hmerge := topHeightProduct_merge q R
     (weightedRankHeightRelator_add pick X j) u v k l m halign
@@ -11163,6 +11165,7 @@ theorem short_quotient_equality_lifts (N : Subgroup F) [N.Normal] (B : ℕ)
     (he : QuotientGroup.mk' N x = QuotientGroup.mk' N y) : x = y := by
   have hm : x⁻¹ * y ∈ N := by
     apply (QuotientGroup.eq_one_iff _).mp
+    change QuotientGroup.mk' N (x⁻¹ * y) = 1
     rw [map_mul,map_inv,he,inv_mul_cancel]
   have hinv : weightedLength x⁻¹ = weightedLength x := by
     simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
