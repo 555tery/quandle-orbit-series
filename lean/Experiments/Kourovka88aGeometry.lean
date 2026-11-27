@@ -345,15 +345,17 @@ theorem boundaryRibbon_interior_read (rows : I → RawWord) (w : F)
       orientedWord (rows i) (boundaryIdentity s)[j].2 := by
   have hr := vertex_read_at_zero (chosenSection (Fin 2)) (markedRows rows w)
     (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) j hp
-  change _ = _ at hr
-  rw [hi] at hr
-  exact hr
+  refine hr.trans ?_
+  rw [hi]
+  rfl
 
 /-- Weight of a signed row is independent of the orientation of the
 occurrence. The inverse orientation uses Mathlib's exact inverse word. -/
 theorem orientedWord_rawWeight (v : RawWord) (sign : Bool) :
     rawWeight (orientedWord v sign) = rawWeight v := by
-  cases sign <;> simp [orientedWord, rawWeight_invRev]
+  cases sign
+  · exact rawWeight_invRev v
+  · rfl
 
 /-- Each actual paired dart has the inverse signed letter. For a list of
 paired darts, reversing the order therefore reads exactly the inverse
@@ -375,8 +377,7 @@ theorem boundaryRibbon_inverse_read (rows : I → RawWord) (w : F)
       (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
     change discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
       ((boundaryRibbon rows w s hs).edge d) = _ at he
-    rw [he]
-    rfl
+    rw [he] <;> rfl
 
 #print axioms guba_rankHeightRows_active
 #print axioms guba_rankHeightRows_nonempty
