@@ -136,4 +136,7 @@ example : answer ↔
 #print axioms heightRelator_merge
 #print axioms heightRelator_merge_cancel
 
+#print axioms weightedRankHeightRelator_add
+#print axioms weightedRankHeightRelator_zero
+
 end QuandleResearch.Issue070
