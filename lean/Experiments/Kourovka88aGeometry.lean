@@ -10970,7 +10970,7 @@ theorem topRank_project_filling (pick : WeightedSelector)
         q ((l.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod) := by
   classical
   let N := weightedStages pick X j
-  letI : N.Normal := weightedStages_normal pick X j
+  let : N.Normal := weightedStages_normal pick X j
   let q := QuotientGroup.mk' N
   change ∃ l : List (F × ℤ), l.length = rankCount s j ∧
     q (Peiffer.evaluation (rankHeightRel pick X (j+1)) s) =
@@ -10997,12 +10997,12 @@ theorem topRank_project_filling (pick : WeightedSelector)
       rfl
     by_cases hi : i.val = j
     · refine ⟨(u,k)::l,?_,?_⟩
-      · rw [hcount,if_pos hi,List.length_cons,hl]
+      · rw [hcount,ite_eq_left hi,List.length_cons,hl]
         omega
       · rw [hsplit,hi,map_mul,he]
         simp only [List.map_cons,List.prod_cons,map_mul]
     · refine ⟨l,?_,?_⟩
-      · rw [hcount,if_neg hi,zero_add]
+      · rw [hcount,ite_eq_right hi,zero_add]
         exact hl
       · have hij : i.val < j := by omega
         have hm : weightedRankHeightRelator pick X i.val k ∈ N := by
@@ -11033,7 +11033,7 @@ theorem rankMinimal_top_quotient_exact
         q w = q ((t.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod) →
         l.length ≤ t.length := by
   let N := weightedStages pick X j
-  letI : N.Normal := weightedStages_normal pick X j
+  let : N.Normal := weightedStages_normal pick X j
   let q := QuotientGroup.mk' N
   obtain ⟨l,hl,he⟩ := topRank_project_filling pick X j s hpos
   change q (Peiffer.evaluation (rankHeightRel pick X (j+1)) s) = _ at he
