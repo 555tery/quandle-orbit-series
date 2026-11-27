@@ -6745,4 +6745,115 @@ theorem guba13_short_section_exact_bound (P L q1 q2 p1 p2 B : ℚ)
 #print axioms guba13_short_section_exact_bound
 
 
+
+/-! ## Repair of the local numerical budget without changing the presentation
+
+The scan of the Russian original (Izv. Akad. Nauk SSSR 50 (1986),
+pp. 883, 900, 902, 906) confirms the parameters and the inequality
+in Lemma 13. Only the boundary-to-cell estimate needs a larger
+constant here: take c = 1/1000 and use c^3 in place of omega^(3/2)
+in the applications of Lemma 13. Keep omega itself unchanged in
+all earlier lemmas. The following conditional arithmetic lemmas
+check the resulting budget for Lemmas 14, 17--19 and 22.
+The preferred contiguity system and the geometric input bounds
+are still obligations, not established by this numerical repair.
+-/
+
+/-- Both boundary-section cases of Lemma 13 satisfy the relaxed
+perimeter bound, even including the first-kind factor 1+epsilon. -/
+theorem guba13_relaxed_bound (P L q1 q2 p1 p2 B : ℚ)
+    (hB : 0 ≤ B)
+    (hP : P < 3*10^11*L)
+    (hdegree : (1/10^17 : ℚ)*L ≤ q1)
+    (hsides : p1+p2 ≤ 2*(1/10^19)*L)
+    (htransfer : (9/10 : ℚ)*q1 ≤ p1+p2+q2)
+    (hshort : q2 ≤ (1+1/120)*(1/10^38 : ℚ)*B) :
+    P < (1/1000 : ℚ)^3 * B := by
+  norm_num at hP hdegree hsides htransfer hshort ⊢
+  linarith only [hB,hP,hdegree,hsides,htransfer,hshort]
+
+/-- The relaxed principal-cell weight bound, with the unchanged
+cell-to-cell contributions in Lemma 14. -/
+theorem guba14_relaxed_budget (V Hcell Hmixed Hboundary : ℝ)
+    (hV : 0 ≤ V)
+    (hcell : Hcell ≤ 300*(1/10^7)*V)
+    (hmixed : Hmixed ≤ 450*(1/10^7)*V)
+    (hboundary : Hboundary ≤ 2*12^2*3*(1/1000 : ℝ)^2*V) :
+    Hcell+Hmixed+Hboundary ≤ (1/1000 : ℝ)*V := by
+  norm_num at hcell hmixed hboundary ⊢
+  linarith only [hV,hcell,hmixed,hboundary]
+
+/-- The two numerical factors needed for Lemmas 17 and 18 remain
+valid with the relaxed boundary constant. -/
+theorem guba17_18_relaxed_factors :
+    (9/10 : ℝ)⁻¹*(1+2*(1/10^19)*(1/10^17)⁻¹) < 2 ∧
+    (9/10 : ℝ)⁻¹*(1/1000) ≤ 1 := by
+  norm_num
+
+/-- With the relaxed bounds for H0 and D0 the outer weight is still
+at least 96 percent. The nine-category partition is a geometric
+hypothesis. No change to the group parameters is made. -/
+theorem guba19_relaxed_budget (V M N K D E F H0 P K0 G0 D0 : ℝ)
+    (hM : 0 ≤ M) (hN : 0 ≤ N) (htotal : V = M+N)
+    (hpartition : M ≤ K+D+E+F+H0+P+K0+G0+D0)
+    (hbase : K+D+E+F ≤ (1-99/100)*V)
+    (h14 : H0 ≤ (1/1000 : ℝ)*V)
+    (h15 : K0 ≤ 450*(1/10^17 : ℝ)^(1/2 : ℝ)*V)
+    (h16 : G0 ≤ (8/15)*M)
+    (h17 : D0 ≤ 2*(1/1000 : ℝ)*M)
+    (h18 : P ≤ 300*(1/10^11 : ℝ)^(1/2 : ℝ)*M + H0) :
+    (96/100 : ℝ)*V ≤ N := by
+  have root_bound (x y : ℝ) (hx : 0 ≤ x) (hy : 0 ≤ y)
+      (hxy : x ≤ y^2) : x^(1/2 : ℝ) ≤ y := by
+    have h := Real.rpow_le_rpow hx hxy (by norm_num : 0 ≤ (1/2 : ℝ))
+    rw [← Real.rpow_natCast_mul hy 2 (1/2 : ℝ)] at h
+    norm_num at h
+    exact h
+  have hV : 0 ≤ V := by linarith
+  have hb : (1/10^17 : ℝ)^(1/2 : ℝ) ≤ 1/10^8 :=
+    root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
+  have ht : (1/10^11 : ℝ)^(1/2 : ℝ) ≤ 1/200000 :=
+    root_bound _ _ (by norm_num) (by norm_num) (by norm_num)
+  have hK : K0 ≤ 450*(1/10^8 : ℝ)*V :=
+    h15.trans (mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_left hb (by norm_num)) hV)
+  have hP : P ≤ 300*(1/200000 : ℝ)*M + H0 :=
+    h18.trans (add_le_add_right (mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_left ht (by norm_num)) hM) H0)
+  norm_num at hbase h14 hK hP h16 h17 ⊢
+  linarith only [hpartition,hbase,h14,hK,hP,h16,h17,htotal,hV,hM]
+
+/-- A first-to-second-kind arc remains sufficiently short even
+counting BOTH connecting sides in Lemma 22. -/
+theorem guba22_relaxed_arc_bound (B q1 q2 p1 p2 : ℚ)
+    (hB : 0 ≤ B)
+    (hsecond : q2 ≤ (1/10^38 : ℚ)*B)
+    (hside1 : p1 ≤ (1+2*(1/10^19 : ℚ))*(1/1000 : ℚ)^3*B)
+    (hside2 : p2 ≤ (1+2*(1/10^19 : ℚ))*(1/1000 : ℚ)^3*B)
+    (htransfer : (9/10 : ℚ)*q1 ≤ q2+p1+p2) :
+    q1 ≤ 3*(1/1000 : ℚ)^3*B := by
+  norm_num at hsecond hside1 hside2 htransfer ⊢
+  linarith only [hB,hsecond,hside1,hside2,htransfer]
+
+/-- The loss from at most 2*6*12 excluded arcs fits into the
+relaxed outer-weight margin. This is only the numerical final
+step of Lemma 22, conditional on the actual disjoint coverage
+and multiplicity estimates in a common length scale. -/
+theorem guba22_relaxed_pruning_budget (B total bad good : ℚ)
+    (hB : 0 ≤ B)
+    (htotal : (96/100 : ℚ)*B ≤ total)
+    (hbad : bad ≤ 2*6*12*3*(1/1000 : ℚ)^3*B)
+    (hsplit : total ≤ good+bad) :
+    (95/100 : ℚ)*B ≤ good := by
+  norm_num at htotal hbad ⊢
+  linarith only [hB,htotal,hbad,hsplit]
+
+#print axioms guba13_relaxed_bound
+#print axioms guba14_relaxed_budget
+#print axioms guba17_18_relaxed_factors
+#print axioms guba19_relaxed_budget
+#print axioms guba22_relaxed_arc_bound
+#print axioms guba22_relaxed_pruning_budget
+
+
 end QuandleResearch.Issue070
