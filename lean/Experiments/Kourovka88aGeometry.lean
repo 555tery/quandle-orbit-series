@@ -1651,4 +1651,103 @@ theorem refined_two_boundary_region_mem (pick : WeightedSelector)
 #print axioms edgeSplice_boundary_mem_normal
 #print axioms refined_two_boundary_region_mem
 
+
+/-! ## Construct the two intervals from the actual cut
+
+The two new boundary cycles concatenate to the old boundary, since
+the inverse switch merges them back. In particular interval coverage
+is a theorem, not an extra assumption on the operation.
+-/
+
+theorem vertexCut_partition {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b : D) (hne : a ≠ b)
+    (hsame : P.rotation.SameCycle a b) :
+    P.vertexBoundary a =
+      (P.vertexCut a b).vertexBoundary a ++
+        (P.vertexCut a b).vertexBoundary b := by
+  have hsplit : ¬ (P.vertexCut a b).rotation.SameCycle a b :=
+    SmallPresentationStatements.PermutationCycles.cutAt_not_sameCycle_of_sameCycle
+      P.rotation a b hne hsame
+  have hm := SmallPresentationStatements.PermutationCycles.cycleBoundary_cutAt_merge
+    (P.vertexCut a b).rotation a b hsplit
+  change ((P.vertexCut a b).vertexCut a b).vertexBoundary a =
+    (P.vertexCut a b).vertexBoundary a ++ (P.vertexCut a b).vertexBoundary b at hm
+  rw [P.vertexCut_twice] at hm
+  exact hm
+
+/-- A cut leaves the complete based traversal of a disjoint vertex unchanged. -/
+theorem vertexCut_other_vertex_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b c : D)
+    (ha : ¬ P.rotation.SameCycle c a)
+    (hb : ¬ P.rotation.SameCycle c b) :
+    (P.vertexCut a b).vertexBoundary c = P.vertexBoundary c :=
+  SmallPresentationStatements.PermutationCycles.cycleBoundary_cutAt_unchanged
+    P.rotation a b c ha hb
+
+/-- For two original distinct vertices, cutting each at two actual
+corners gives a genuine split refinement of the original diagram.
+Both literal partitions are retained, including the first after
+the second cut. -/
+theorem exists_two_vertex_cut_refinement {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b c d : D)
+    (hab : a ≠ b) (hcd : c ≠ d)
+    (h1 : P.rotation.SameCycle a b)
+    (h2 : P.rotation.SameCycle c d)
+    (hdisj : ¬ P.rotation.SameCycle a c) :
+    ∃ tau : Equiv.Perm D,
+      SmallPresentationStatements.PermutationCycles.SplitRefinement P.rotation tau ∧
+      P.vertexBoundary a = (P.withRotation tau).vertexBoundary a ++
+        (P.withRotation tau).vertexBoundary b ∧
+      P.vertexBoundary c = (P.withRotation tau).vertexBoundary c ++
+        (P.withRotation tau).vertexBoundary d ∧
+      ¬ tau.SameCycle a c := by
+  let S := P.vertexCut a b
+  have hca : ¬ P.rotation.SameCycle c a := fun h => hdisj h.symm
+  have hcb : ¬ P.rotation.SameCycle c b := fun h => hdisj (h1.trans h.symm)
+  have hcread : S.vertexBoundary c = P.vertexBoundary c :=
+    vertexCut_other_vertex_read P a b c hca hcb
+  have h2' : S.rotation.SameCycle c d := by
+    apply (S.mem_vertexBoundary_iff c d).mp
+    rw [hcread]
+    exact (P.mem_vertexBoundary_iff c d).mpr h2
+  have hca' : ¬ S.rotation.SameCycle c a := by
+    intro h
+    have hm := (S.mem_vertexBoundary_iff c a).mpr h
+    rw [hcread] at hm
+    exact hca ((P.mem_vertexBoundary_iff c a).mp hm)
+  have hcb' : ¬ S.rotation.SameCycle c b := by
+    intro h
+    have hm := (S.mem_vertexBoundary_iff c b).mpr h
+    rw [hcread] at hm
+    exact hcb ((P.mem_vertexBoundary_iff c b).mp hm)
+  let T := S.vertexCut c d
+  have haread : T.vertexBoundary a = S.vertexBoundary a :=
+    vertexCut_other_vertex_read S c d a
+      (fun h => hca' h.symm) (fun h => hca' (h2'.trans h.symm))
+  have hbread : T.vertexBoundary b = S.vertexBoundary b :=
+    vertexCut_other_vertex_read S c d b
+      (fun h => hcb' h.symm) (fun h => hcb' (h2'.trans h.symm))
+  have hpart1 := vertexCut_partition P a b hab h1
+  have hpart2 := vertexCut_partition S c d hcd h2'
+  have href : SmallPresentationStatements.PermutationCycles.SplitRefinement
+      P.rotation T.rotation :=
+    SmallPresentationStatements.PermutationCycles.SplitRefinement.cut
+      (SmallPresentationStatements.PermutationCycles.SplitRefinement.single
+        P.rotation a b hab h1) c d hcd h2'
+  refine ⟨T.rotation, href, ?_, ?_, ?_⟩
+  · change P.vertexBoundary a = T.vertexBoundary a ++ T.vertexBoundary b
+    rw [haread, hbread]
+    exact hpart1
+  · change P.vertexBoundary c = T.vertexBoundary c ++ T.vertexBoundary d
+    rw [← hcread]
+    exact hpart2
+  · intro h
+    have hm := (T.mem_vertexBoundary_iff a c).mpr h
+    rw [haread] at hm
+    exact hca' ((S.mem_vertexBoundary_iff a c).mp hm).symm
+
+#print axioms vertexCut_partition
+#print axioms vertexCut_other_vertex_read
+#print axioms exists_two_vertex_cut_refinement
+
 end QuandleResearch.Issue070
