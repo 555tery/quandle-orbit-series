@@ -9166,18 +9166,13 @@ the original occurrence indices, even when every retained occurrence
 has a different conjugating base or sign. Indices, not row labels,
 are used so repeated copies of one rank-height relator are counted
 with their true multiplicities. -/
-theorem rankMinimal_no_omitted_indices
-    (pick : WeightedSelector) (X : ConjugatorChoice)
-    (n : ℕ) (w : F)
-    (s t : Peiffer.Sequence F (RankHeight n))
-    (hs : RankMinimalExpression pick X n w s)
-    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+theorem rank_type_lt_of_omitted_index
+    {n : ℕ} (s t : Peiffer.Sequence F (RankHeight n))
     (l : List (Fin s.length)) (hl : l.Nodup)
-    (hcounts : ∀ j, rankCount t j = rankCount (l.map (fun i => s[i.val])) j) :
-    ∀ i : Fin s.length, i ∈ l := by
+    (hcounts : ∀ j, rankCount t j = rankCount (l.map (fun i => s[i.val])) j)
+    (i : Fin s.length) (hi : i ∉ l) :
+    descendingCountLT n rankCount t s := by
   classical
-  intro i
-  by_contra hi
   have hsub : List.Subperm l (List.finRange s.length) :=
     hl.subperm (fun x _ => List.mem_finRange x)
   obtain ⟨u,hu,hlsub⟩ := List.subperm_iff.mp hsub
@@ -9214,6 +9209,23 @@ theorem rankMinimal_no_omitted_indices
     · refine ⟨(get i).1.2.1.val,(get i).1.2.1.isLt,?_⟩
       have h := hsplit (get i).1.2.1.val
       omega
+  exact hlt
+
+#print axioms rank_type_lt_of_omitted_index
+
+theorem rankMinimal_no_omitted_indices
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (l : List (Fin s.length)) (hl : l.Nodup)
+    (hcounts : ∀ j, rankCount t j = rankCount (l.map (fun i => s[i.val])) j) :
+    ∀ i : Fin s.length, i ∈ l := by
+  classical
+  intro i
+  by_contra hi
+  have hlt := rank_type_lt_of_omitted_index s t l hl hcounts i hi
   obtain ⟨j,hj,hstrict,habove⟩ := hlt
   exact (Nat.not_lt_of_ge (hs.2 t ht j hj
     (fun k hjk hkn => (habove k hjk hkn).symm))) hstrict
@@ -9692,6 +9704,113 @@ theorem guba23_refined_component_exact_occurrences
       _ = _ := by rw [hprod,mul_one]
 
 #print axioms guba23_refined_component_exact_occurrences
+
+
+
+/-- Transitivity of the graded order follows by comparing the
+highest differing ranks. No assumption on lower-rank counts. -/
+theorem descending_count_trans {A : Type} (n : ℕ) (count : A → ℕ → ℕ)
+    {u t s : A} (hut : descendingCountLT n count u t)
+    (hts : descendingCountLT n count t s) :
+    descendingCountLT n count u s := by
+  obtain ⟨i,hi,hu,huabove⟩ := hut
+  obtain ⟨j,hj,ht,htabove⟩ := hts
+  rcases lt_trichotomy i j with hij | hij | hji
+  · refine ⟨j,hj,?_,?_⟩
+    · rw [huabove j hij hj]
+      exact ht
+    · intro k hk hkn
+      exact (huabove k (lt_trans hij hk) hkn).trans (htabove k hk hkn)
+  · subst j
+    exact ⟨i,hi,lt_trans hu ht,fun k hk hkn =>
+      (huabove k hk hkn).trans (htabove k hk hkn)⟩
+  · refine ⟨i,hi,?_,?_⟩
+    · rw [← htabove i hji hi]
+      exact hu
+    · intro k hk hkn
+      exact (huabove k hk hkn).trans (htabove k (lt_trans hji hk) hkn)
+
+/-- A genuine smaller-type filling can always be replaced by a
+rank-minimal filling of the same boundary, still below the parent
+type. This does not assert that the geometric region itself was
+minimal, and hence only permits induction on its boundary value. -/
+theorem rankMinimal_exists_below_type
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (hlt : descendingCountLT n rankCount t s) :
+    ∃ u : Peiffer.Sequence F (RankHeight n),
+      RankMinimalExpression pick X n w u ∧ descendingCountLT n rankCount u s := by
+  obtain ⟨u,hu,hmin⟩ := exists_descending_count_min n
+    (fun v : Peiffer.Sequence F (RankHeight n) =>
+      Peiffer.evaluation (rankHeightRel pick X n) v = w ∧
+        descendingCountLT n rankCount v s)
+    rankCount ⟨t,ht,hlt⟩
+  refine ⟨u,⟨hu.1,?_⟩,hu.2⟩
+  intro v hv j hj habove
+  by_contra! h
+  have hvu : descendingCountLT n rankCount v u :=
+    ⟨j,hj,h,fun k hk hkn => (habove k hk hkn).symm⟩
+  exact (Nat.not_lt_of_ge (hmin v
+    ⟨hv,descending_count_trans n rankCount hvu hu.2⟩ j hj habove)) h
+
+/-- A cut component omitting one original cell index admits an
+actual rank-minimal filling of its literal boundary, of strictly
+smaller type than the parent. This is the boundary-value induction
+interface; conclusions about the geometry of the original region
+still require a separate substitution argument. -/
+theorem guba21_cut_boundary_smaller_type
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (tau : Equiv.Perm (DiscDarts (markedRows (rankHeightRows pick X n) w)
+      (boundaryIdentity s))) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let Q := P.withRotation tau
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ a, SplitRefinement P.rotation tau →
+      (∀ d, Q.SameComponent a d → ¬ tau.SameCycle a d →
+        idx d ≠ boundaryOccurrence s ∧
+        Q.vertexBoundary d = P.vertexBoundary d) →
+      (∃ i : Fin s.length, ∀ d, Q.SameComponent a d → ¬ tau.SameCycle a d →
+        (idx d).val ≠ i.val+1) →
+      ∃ u : Peiffer.Sequence F (RankHeight n),
+        RankMinimalExpression pick X n
+          (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹ u ∧
+        descendingCountLT n rankCount u s := by
+  classical
+  intro rows P Q read idx a href hint homit
+  obtain ⟨i,hi⟩ := homit
+  obtain ⟨l,hn,hlabels,_,heval⟩ :=
+    guba23_refined_component_exact_occurrences rows w s hs tau a href hint
+  have hnot : i ∉ l.map Prod.fst := by
+    intro hm
+    obtain ⟨x,hx,hxi⟩ := List.mem_map.mp hm
+    obtain ⟨_,d,hd,hd',hdi⟩ := hlabels x hx
+    exact hi d hd hd' (hdi.trans (congrArg (fun k : Fin s.length => k.val+1) hxi))
+  have counts (b : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+      (hb : ∀ x ∈ b, x.2.1.2 = s[x.1.val].1.2) :
+      ∀ j, rankCount (b.map Prod.snd) j =
+        rankCount ((b.map Prod.fst).map (fun k => s[k.val])) j := by
+    induction b with
+    | nil => intro j; rfl
+    | cons x xs ih =>
+      intro j
+      change rankCount ([x.2] ++ xs.map Prod.snd) j =
+        rankCount ([s[x.1.val]] ++ (xs.map Prod.fst).map (fun k => s[k.val])) j
+      simp only [rankCount_append,rankCount_singleton,hb x List.mem_cons_self,
+        ih (fun y hy => hb y (List.mem_cons_of_mem _ hy)) j]
+  have hlt := rank_type_lt_of_omitted_index s (l.map Prod.snd)
+    (l.map Prod.fst) hn (counts l (fun x hx => (hlabels x hx).1)) i hnot
+  apply rankMinimal_exists_below_type pick X n _ s (l.map Prod.snd) _ hlt
+  simpa only [rows,rankHeightRows_eval] using heval
+
+#print axioms descending_count_trans
+#print axioms rankMinimal_exists_below_type
+#print axioms guba21_cut_boundary_smaller_type
 
 
 end QuandleResearch.Issue070
