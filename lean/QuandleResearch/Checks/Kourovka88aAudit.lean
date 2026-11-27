@@ -208,4 +208,10 @@ example : answer ↔
 #print axioms activeLongWord_overlap_bound
 #print axioms activeLongWord_overlap_bound_both
 
+#print axioms rawWeight_invRev
+#print axioms literalHeightWord_positive_sides
+#print axioms literalHeightWord_weight
+#print axioms positiveWeight_eq_rawWeight_map
+#print axioms positive_side_inverse_weight
+
 end QuandleResearch.Issue070
