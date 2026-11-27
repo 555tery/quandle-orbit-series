@@ -7148,4 +7148,91 @@ theorem coefficient_two_block_relation {D : Type} [Fintype D]
 #print axioms coefficient_two_block_relation
 
 
+
+/-- A coefficient component with just one peripheral block has
+trivial block reading in the lower quotient. This is the single
+exceptional vertex form of the boundary theorem. -/
+theorem coefficient_one_block_mem {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hstep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (tau : Equiv.Perm D)
+    (hE : P.EulerEquality) (href : SplitRefinement P.rotation tau)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hprotected : ∀ d, keep d →
+      (P.withRotation tau).vertexBoundary d = P.vertexBoundary d)
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (hcomp : ∀ d e, (P.withRotation tau).SameComponent d e ↔
+      (P.coefficientRegions keep hstep).SameComponent d e)
+    (a : D) (u : List D)
+    (ha : (P.withRotation tau).vertexBoundary a = a :: u)
+    (hcover : ∀ d, (P.coefficientRegions keep hstep).SameComponent a d →
+      ¬ keep d → d ∈ a :: u) :
+    FreeGroup.mk ((a :: u).map read) ∈ N := by
+  let Q := P.withRotation tau
+  have hm := component_boundary_mem_normal Q read N hedge
+    (P.splitRefinement_preserves_euler href hE) a (by
+      intro d hd hne
+      have hk : keep d := by
+        by_contra hn
+        apply hne
+        apply (Q.mem_vertexBoundary_iff a d).mp
+        rw [show Q.vertexBoundary a = a :: u from ha]
+        exact hcover d ((hcomp a d).mp hd) hn
+      rw [show Q.vertexBoundary d = P.vertexBoundary d from hprotected d hk]
+      exact hint d hk)
+  rw [show Q.vertexBoundary a = a :: u from ha] at hm
+  exact hm
+
+/-- A positive-weight literal factor of a minimal bad period
+cannot be trivial in its preceding quotient. Compare with the
+empty replacement word using the already proved minimality lemma. -/
+theorem minBad_positive_factor_not_mem {N : Subgroup F} [N.Normal]
+    {c : F} (hc : MinBad N c) (p v r : RawWord)
+    (hword : c.toWord = p ++ v ++ r) (hv : 0 < rawWeight v) :
+    FreeGroup.mk v ∉ N := by
+  intro hm
+  have he : QuotientGroup.mk' N (FreeGroup.mk v) =
+      QuotientGroup.mk' N (FreeGroup.mk ([] : RawWord)) := by
+    rw [← FreeGroup.one_eq_mk, map_one]
+    exact (QuotientGroup.eq_one_iff _).mpr hm
+  have hz := minBad_factor_weight_min hc p v r [] hword he
+  change rawWeight v ≤ 0 at hz
+  omega
+
+/-- A genuine minimal-period block of positive weight cannot
+exhaust all peripheral incidences of its coefficient component.
+There must be a second outlet outside the block, not merely a
+second dart within the same block. -/
+theorem coefficient_minBad_block_has_other_outlet {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hstep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (tau : Equiv.Perm D)
+    (hE : P.EulerEquality) (href : SplitRefinement P.rotation tau)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hprotected : ∀ d, keep d →
+      (P.withRotation tau).vertexBoundary d = P.vertexBoundary d)
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (hcomp : ∀ d e, (P.withRotation tau).SameComponent d e ↔
+      (P.coefficientRegions keep hstep).SameComponent d e)
+    (a : D) (u : List D)
+    (ha : (P.withRotation tau).vertexBoundary a = a :: u)
+    {c : F} (hc : MinBad N c) (p r : RawWord)
+    (hword : c.toWord = p ++ (a :: u).map read ++ r)
+    (hw : 0 < rawWeight ((a :: u).map read)) :
+    ∃ d, (P.coefficientRegions keep hstep).SameComponent a d ∧
+      ¬ keep d ∧ d ∉ a :: u := by
+  classical
+  by_contra hn
+  apply minBad_positive_factor_not_mem hc p ((a :: u).map read) r hword hw
+  apply coefficient_one_block_mem P read N keep hstep tau hE href
+    hedge hprotected hint hcomp a u ha
+  intro d hd hk
+  by_contra hm
+  exact hn ⟨d,hd,hk,hm⟩
+
+#print axioms coefficient_one_block_mem
+#print axioms minBad_positive_factor_not_mem
+#print axioms coefficient_minBad_block_has_other_outlet
+
+
 end QuandleResearch.Issue070
