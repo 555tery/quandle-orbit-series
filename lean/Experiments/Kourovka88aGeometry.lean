@@ -6,6 +6,7 @@ import SmallPresentation.SmallCancellationGeometryBoundaryTheorem
 import SmallPresentation.SmallCancellationGeometryRelativeRestriction
 import SmallPresentation.SmallCancellationGeometryCorridorCuts
 import SmallPresentation.SmallCancellationGeometryEdgeContractionTopology
+import SmallPresentation.SmallCancellationGeometryRelativeRegions
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -2112,5 +2113,110 @@ theorem rankRibbon_protected_cuts_boundary_mem (pick : WeightedSelector)
   exact hag e ((lowerRankDart_sameCycle pick X n j w s hs d e he).mp hd)
 
 #print axioms rankRibbon_protected_cuts_boundary_mem
+
+
+/-! ## Canonical lower-rank regions have no isolated single outlet
+
+Split every vertex not below the threshold into single darts. This
+is the coefficientRegions construction, an actual finite refinement
+of the given ribbon. If a component meets just one such dart, its
+letter is forced to vanish in the lower-stage quotient. Consequently
+under the rank-induction nonvanishing hypothesis every exposed dart
+has another exposed dart in its component.
+-/
+
+theorem fixed_vertex_read_singleton {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D) (ha : P.rotation a = a) :
+    P.vertexBoundary a = [a] := by
+  have hw : SmallPresentationStatements.PermutationCycles.Walk P.rotation a a [a] := by
+    apply SmallPresentationStatements.PermutationCycles.Walk.cons
+    rw [ha]
+    exact SmallPresentationStatements.PermutationCycles.Walk.nil _
+  exact (hw.eq_cycleBoundary (by simp) (by simp)).symm
+
+theorem coefficientRegions_no_unique_outlet {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a : D) (ha : ¬keep a) (hna : FreeGroup.mk [read a] ∉ N) :
+    ∃ b, (P.coefficientRegions keep hkeep).SameComponent a b ∧
+      ¬keep b ∧ b ≠ a := by
+  classical
+  let S := P.coefficientRegions keep hkeep
+  have hS : S.EulerEquality := P.coefficientRegions_euler keep hkeep hE
+  have hfix : S.rotation a = a := by
+    simp [S, RibbonMap.coefficientRegions_rotation, ha]
+  have hread := fixed_vertex_read_singleton S a hfix
+  by_contra hnone
+  have hm := component_boundary_mem_normal S read N (fun d => he d) hS a (by
+    intro d hc hnc
+    have hd : keep d := by
+      by_contra hd
+      have hne : d ≠ a := by
+        intro h
+        subst d
+        exact hnc (.refl _ _)
+      exact hnone ⟨d,hc,hd,hne⟩
+    have hag : ∀ e, P.rotation.SameCycle d e → S.rotation e = P.rotation e := by
+      intro e hde
+      have hk : keep e := by
+        obtain ⟨m, hm⟩ := hde.exists_nat_pow_eq
+        rw [← hm]
+        induction m with
+        | zero => exact hd
+        | succ m ih =>
+          rw [pow_succ', Equiv.Perm.mul_apply]
+          exact (hkeep _).mpr ih
+      simp [S, RibbonMap.coefficientRegions_rotation, hk]
+    change FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary d).map read) ∈ N
+    rw [refined_vertex_read_of_agreement P S.rotation d hag]
+    exact hint d hd)
+  rw [hread] at hm
+  exact hna (by simpa only [List.map_cons, List.map_nil] using hm)
+
+/-- Canonical decomposition at rank j. Every incidence of a higher
+rank or the original boundary is an outlet. The nonvanishing
+condition on its letter is the only algebraic hypothesis here. -/
+theorem rankRibbon_lower_regions_no_unique_outlet (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    let P := boundaryRibbon (rankHeightRows pick X n) w s hs
+    let keep := lowerRankDart pick X n j w s
+    let read := discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+    ∃ hkeep : ∀ d, keep (P.rotation d) ↔ keep d,
+      ∀ a, ¬keep a → FreeGroup.mk [read a] ∉ weightedHeightStage pick X j →
+        ∃ b, (P.coefficientRegions keep hkeep).SameComponent a b ∧
+          ¬keep b ∧ b ≠ a := by
+  intro P keep read
+  have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
+    intro d
+    exact lowerRankDart_sameCycle pick X n j w s hs (P.rotation d) d
+      (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  refine ⟨hkeep, ?_⟩
+  intro a ha hna
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  apply coefficientRegions_no_unique_outlet P read N keep hkeep
+    (boundaryRibbon_euler _ w s hs)
+  · exact relatorRibbon_edge_read (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+      (boundaryIdentity_evaluation _ w s hs)
+  · intro d hd
+    obtain ⟨i,hi,hlt⟩ := hd
+    exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt
+  · exact ha
+  · exact hna
+
+#print axioms fixed_vertex_read_singleton
+#print axioms coefficientRegions_no_unique_outlet
+#print axioms rankRibbon_lower_regions_no_unique_outlet
 
 end QuandleResearch.Issue070
