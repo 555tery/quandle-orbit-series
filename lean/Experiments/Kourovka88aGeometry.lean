@@ -12726,4 +12726,76 @@ theorem answer_of_guba_one_dart_single_arc
 
 #print axioms answer_of_guba_one_dart_single_arc
 
+
+/-- Minimal bad periods are invariant under reversal of orientation.
+The proof uses only closure of goodness under integer powers. -/
+theorem minBad_inverse {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) : MinBad N c⁻¹ := by
+  constructor
+  · intro hg
+    apply hc.1
+    simpa only [zpow_neg_one,inv_inv] using good_integer_power N hg (-1)
+  · intro w hw
+    have he : weightedLength c⁻¹ = weightedLength c := by
+      simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+    rw [he]
+    exact hc.2 w hw
+
+/-- For a corridor with no interior relations, a freely reduced
+inner reading satisfies the local transfer bound with coefficient
+one, rather than rho=.9. Both actual side words are charged.
+There is no small-cancellation or smoothness hypothesis here. -/
+theorem rankZero_quadrilateral_inner_weight
+    (inner outer left right : RawWord)
+    (hred : FreeGroup.IsReduced inner)
+    (hboundary : FreeGroup.mk ((inner ++ right) ++ FreeGroup.invRev (left ++ outer)) = 1) :
+    rawWeight inner ≤ rawWeight outer + rawWeight left + rawWeight right := by
+  have he : FreeGroup.mk inner = FreeGroup.mk (left ++ outer ++ FreeGroup.invRev right) := by
+    simp only [← FreeGroup.mul_mk,← FreeGroup.inv_mk] at hboundary ⊢
+    calc
+      _ = (FreeGroup.mk inner * FreeGroup.mk right *
+        (FreeGroup.mk left * FreeGroup.mk outer)⁻¹) *
+        (FreeGroup.mk left * FreeGroup.mk outer * (FreeGroup.mk right)⁻¹) := by group
+      _ = _ := by rw [hboundary,one_mul]
+  have hi : weightedLength (FreeGroup.mk inner) = rawWeight inner := by
+    rw [weightedLength,FreeGroup.toWord_mk,hred.reduce_eq]
+  have h := weightedLength_mk_le (left ++ outer ++ FreeGroup.invRev right)
+  rw [← he,hi,rawWeight_append,rawWeight_append,rawWeight_invRev] at h
+  omega
+
+/-- Local transfer on a signed cyclic factor of at most one period.
+The lower quotient is the one in which the period is minimal bad.
+Thus this case of the terminal corridor argument needs neither
+Lemma 21 nor the smaller-type perimeter estimate of Lemma 23. -/
+theorem minBad_signed_cyclicFactor_quadrilateral_weight
+    {N : Subgroup F} [N.Normal] {c : F} (hc : MinBad N c)
+    (sg : Bool) (l r p inner q outer left right : RawWord)
+    (hword : (if sg then c else c⁻¹).toWord = l ++ r)
+    (hfactor : r ++ l = p ++ inner ++ q)
+    (hboundary : FreeGroup.mk ((inner ++ right) ++
+      FreeGroup.invRev (left ++ outer)) ∈ N) :
+    rawWeight inner ≤ rawWeight outer + rawWeight left + rawWeight right := by
+  have hmin : MinBad N (if sg then c else c⁻¹) := by
+    cases sg
+    · simpa using minBad_inverse hc
+    · simpa using hc
+  exact minBad_cyclicFactor_quadrilateral_weight hmin l r p inner q outer left right
+    hword hfactor hboundary
+
+/-- Convert the stronger coefficient-one transfer to the exact
+integer inequality used in answer_of_guba_one_dart_single_arc.
+The side budget is the sum, not a bound on just one side. -/
+theorem oneDart_local_transfer_of_short_sides
+    (P : ℕ) (inner outer left right : RawWord)
+    (hlocal : rawWeight inner ≤ rawWeight outer + rawWeight left + rawWeight right)
+    (hsides : 10^19 * (rawWeight left + rawWeight right) ≤ 2 * P) :
+    9 * 10^18 * rawWeight inner ≤ 10^19 * rawWeight outer + 2 * P := by
+  norm_num at hsides ⊢
+  omega
+
+#print axioms minBad_inverse
+#print axioms rankZero_quadrilateral_inner_weight
+#print axioms minBad_signed_cyclicFactor_quadrilateral_weight
+#print axioms oneDart_local_transfer_of_short_sides
+
 end QuandleResearch.Issue070
