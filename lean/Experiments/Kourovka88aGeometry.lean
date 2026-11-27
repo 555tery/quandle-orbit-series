@@ -3366,8 +3366,10 @@ theorem guba_boundary_component_large_row (pick : WeightedSelector)
   have hi' : (boundaryIdentity s)[idx].1.2 = some i := by
     change (boundaryIdentity s)[discOccurrence (markedRows rows w)
       (boundaryIdentity s) (discAt (markedRows rows w) (boundaryIdentity s) idx k)].1.2 = some i at hi
-    rw [discOccurrence_at] at hi
-    exact hi
+    have hidx := discOccurrence_at (markedRows rows w) (boundaryIdentity s) idx k
+    have hlabel := congrArg (fun t : Fin (boundaryIdentity s).length =>
+      (boundaryIdentity s)[t].1.2) hidx
+    exact hlabel.symm.trans hi
   let d0 := discAt (markedRows rows w) (boundaryIdentity s) idx
     ⟨0, Nat.zero_lt_of_lt k.isLt⟩
   have hcyc : P.rotation.SameCycle
@@ -3464,7 +3466,7 @@ theorem coefficient_region_crosses_vertex {D : Type} (P : RibbonMap D)
     by_cases hd : keep d
     · have he : S.rotation d = P.rotation d := by
         rw [show S = P.coefficientRegions keep hkeep from rfl,
-          RibbonMap.coefficientRegions_rotation, if_pos hd]
+          RibbonMap.coefficientRegions_rotation, ite_eq_left hd]
       rw [← he]
       exact hmove (S.component_rotation d)
     · rw [hper (fun h => hd ((hkeep d).mp h)), hper hd]
@@ -3503,8 +3505,11 @@ theorem rankRibbon_outer_region_has_top_outlet (pick : WeightedSelector)
     rintro ⟨i,hi,_⟩
     change (boundaryIdentity s)[discOccurrence (markedRows rows w)
       (boundaryIdentity s) (boundaryDart rows w s hw)].1.2 = some i at hi
-    rw [boundaryDart_occurrence] at hi
-    simp [boundaryOccurrence,boundaryIdentity] at hi
+    have hidx := boundaryDart_occurrence rows w s hw
+    have hlabel := congrArg (fun k : Fin (boundaryIdentity s).length =>
+      (boundaryIdentity s)[k].1.2) hidx
+    have hnone : (boundaryIdentity s)[boundaryOccurrence s].1.2 = none := rfl
+    exact Option.noConfusion (hi.symm.trans (hlabel.trans hnone))
   obtain ⟨b,i,hc,hn,hi,hj⟩ := rankRibbon_boundary_component_has_high_cell
     pick X (j+1) j w s hs hw hnew
   have hb : ¬ keep b := by
@@ -3520,12 +3525,9 @@ theorem rankRibbon_outer_region_has_top_outlet (pick : WeightedSelector)
       boundaryOccurrence s := by
     intro he
     exact hnd ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr he)
-  have hlabel : ∃ i : RankHeight (j+1),
-      (boundaryIdentity s)[discOccurrence (markedRows rows w)
-        (boundaryIdentity s) d].1.2 = some i := by
-    let k := discOccurrence (markedRows rows w) (boundaryIdentity s) d
-    have hk' : k ≠ boundaryOccurrence s := hk
-    change ∃ i, (boundaryIdentity s)[k].1.2 = some i
+  have hinterior (k : Fin (boundaryIdentity s).length)
+      (hk' : k ≠ boundaryOccurrence s) :
+      ∃ i : RankHeight (j+1), (boundaryIdentity s)[k].1.2 = some i := by
     obtain ⟨v,hv⟩ := k
     cases v with
     | zero => exact (hk' (Fin.ext rfl)).elim
@@ -3533,7 +3535,7 @@ theorem rankRibbon_outer_region_has_top_outlet (pick : WeightedSelector)
       have hm : m < s.length := by simpa [boundaryIdentity] using hv
       refine ⟨s[m].1.2,?_⟩
       simp [boundaryIdentity,markOccurrence]
-  obtain ⟨i',hi'⟩ := hlabel
+  obtain ⟨i',hi'⟩ := hinterior _ hk
   have hge : j ≤ i'.1.val := by
     by_contra! hlt
     exact hd ⟨i',hi',hlt⟩
