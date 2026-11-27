@@ -8454,4 +8454,143 @@ theorem bad_period_pure_a_factor_bound {N : Subgroup F} {c : F}
 #print axioms bad_period_pure_a_factor_bound
 
 
+
+/-! ## Rank-one smoothness: special positive conjugators
+
+Cube-freeness bounds zero runs in a prefix by two letters. Joining
+copies can at most double this bound; the bbb separators prevent
+any further increase when the long blocks are concatenated.
+-/
+
+theorem guba_prefix_zero_factor_bound (m : ℕ) (z : List (Fin 2))
+    (hz : z <:+: gubaEvenPrefix m) (ha : ∀ x ∈ z, x = 0) :
+    z.length ≤ 2 := by
+  obtain ⟨p,r,he⟩ := hz
+  have hper : z.HasPeriod 1 := by
+    rw [List.hasPeriod_iff_getElem?]
+    intro i hi
+    have hi' : i < z.length := by omega
+    have hi'' : i+1 < z.length := by omega
+    rw [getElem?_pos z i hi', getElem?_pos z (i+1) hi'']
+    have h1 : z[i] = 0 := ha _ (List.mem_of_getElem (l := z) (i := i) rfl)
+    have h2 : z[i+1] = 0 := ha _ (List.mem_of_getElem (l := z) (i := i+1) rfl)
+    rw [h1,h2]
+  have h := thueFactor_period_bound (prefixEnd (2*m+1)+1) 1 p z r
+    he (by omega) hper
+  omega
+
+theorem zero_prefix_repeat_bound (q : List (Fin 2)) (n : ℕ)
+    (hb : (1 : Fin 2) ∈ q)
+    (hbound : ∀ z : List (Fin 2), z <:+: q → (∀ x ∈ z, x = 0) → z.length ≤ 2)
+    (z : List (Fin 2)) (hz : z <+: (List.replicate n q).flatten)
+    (ha : ∀ x ∈ z, x = 0) :
+    z.length ≤ 2 := by
+  cases n with
+  | zero =>
+    have he : z = [] := List.prefix_nil.mp (by simpa using hz)
+    simp [he]
+  | succ n =>
+    rw [List.replicate_succ,List.flatten_cons] at hz
+    rcases List.prefix_or_prefix_of_prefix hz (List.prefix_append q _) with h | h
+    · exact hbound z h.isInfix ha
+    · exact False.elim (by
+        have he := ha 1 (h.mem hb)
+        exact (by decide : (1 : Fin 2) ≠ 0) he)
+
+theorem zero_factor_repeat_bound (q : List (Fin 2)) (n : ℕ)
+    (hb : (1 : Fin 2) ∈ q)
+    (hbound : ∀ z : List (Fin 2), z <:+: q → (∀ x ∈ z, x = 0) → z.length ≤ 2)
+    (z : List (Fin 2)) (hz : z <:+: (List.replicate n q).flatten)
+    (ha : ∀ x ∈ z, x = 0) :
+    z.length ≤ 4 := by
+  induction n generalizing z with
+  | zero =>
+    have he := hz.length_le
+    simp at he
+    omega
+  | succ n ih =>
+    rw [List.replicate_succ,List.flatten_cons] at hz
+    rcases List.infix_append_iff.mp hz with h | h | ⟨u,v,rfl,hu,hv⟩
+    · exact (hbound z h ha).trans (by omega)
+    · exact ih z h ha
+    · have h1 := hbound u hu.isInfix (fun x hx => ha x (List.mem_append_left _ hx))
+      have h2 := zero_prefix_repeat_bound q n hb hbound v hv
+        (fun x hx => ha x (List.mem_append_right _ hx))
+      rw [List.length_append]
+      omega
+
+theorem zero_factor_longBlock_bound (q : List (Fin 2)) (n : ℕ)
+    (hb : (1 : Fin 2) ∈ q)
+    (hbound : ∀ z : List (Fin 2), z <:+: q → (∀ x ∈ z, x = 0) → z.length ≤ 2)
+    (z : List (Fin 2)) (hz : z <:+: longBlock q n)
+    (ha : ∀ x ∈ z, x = 0) :
+    z.length ≤ 4 := by
+  have empty (u : List (Fin 2)) (hu : u <:+: List.replicate 3 (1 : Fin 2))
+      (hau : ∀ x ∈ u, x = 0) : u = [] := by
+    cases u with
+    | nil => rfl
+    | cons x xs =>
+      have hmem := hu.sublist.subset (List.mem_cons_self : x ∈ x::xs)
+      have hx : x = 1 := List.eq_of_mem_replicate hmem
+      have h0 := hau x List.mem_cons_self
+      exact False.elim ((by decide : (1 : Fin 2) ≠ 0) (hx.symm.trans h0))
+  unfold longBlock at hz
+  rcases List.infix_append_iff.mp hz with h | h | ⟨u,v,rfl,hu,hv⟩
+  · rw [empty z h ha]
+    decide
+  · exact zero_factor_repeat_bound q (n+1) hb hbound z h ha
+  · have he := empty u hu.isInfix (fun x hx => ha x (List.mem_append_left _ hx))
+    subst u
+    exact zero_factor_repeat_bound q (n+1) hb hbound v hv.isInfix (by simpa using ha)
+
+theorem zero_prefix_longBlock_empty (q : List (Fin 2)) (n : ℕ)
+    (z : List (Fin 2)) (hz : z <+: longBlock q n)
+    (ha : ∀ x ∈ z, x = 0) : z = [] := by
+  have h1 : [1 : Fin 2] <+: longBlock q n := by
+    unfold longBlock
+    simp [List.replicate_succ]
+  rcases List.prefix_or_prefix_of_prefix hz h1 with h | h
+  · have hlen := h.length_le
+    cases z with
+    | nil => rfl
+    | cons x xs =>
+      have hx : x = 1 := by
+        simpa using (List.cons_prefix_cons.mp h).1
+      have h0 := ha x List.mem_cons_self
+      exact False.elim ((by decide : (1 : Fin 2) ≠ 0) (hx.symm.trans h0))
+  · exact False.elim ((by decide : (1 : Fin 2) ≠ 0) (ha 1 (h.mem (by simp))))
+
+/-- All zero runs in the actual long conjugator have length at most
+four, regardless of the number of blocks. -/
+theorem guba_longRaw_zero_factor_bound (m n : ℕ)
+    (z : List (Fin 2)) (hz : z <:+: longRaw (gubaEvenPrefix m) n)
+    (ha : ∀ x ∈ z, x = 0) : z.length ≤ 4 := by
+  let q := gubaEvenPrefix m
+  have hb : (1 : Fin 2) ∈ q := by
+    exact List.mem_of_getElem (gubaPrefix_second (2*m+1))
+  have hbound := guba_prefix_zero_factor_bound m
+  induction n generalizing z with
+  | zero =>
+    have h := hz.length_le
+    simp [longRaw] at h
+    omega
+  | succ n ih =>
+    rw [longRaw] at hz
+    rcases List.infix_append_iff.mp hz with h | h | ⟨u,v,rfl,hu,hv⟩
+    · exact ih z h ha
+    · exact zero_factor_longBlock_bound q n hb hbound z h ha
+    · have he := zero_prefix_longBlock_empty q n v hv
+        (fun x hx => ha x (List.mem_append_right _ hx))
+      subst v
+      simp only [List.append_nil] at ha ⊢
+      exact ih u hu.isInfix ha
+
+#print axioms guba_prefix_zero_factor_bound
+#print axioms zero_prefix_repeat_bound
+#print axioms zero_factor_repeat_bound
+#print axioms zero_factor_longBlock_bound
+#print axioms zero_prefix_longBlock_empty
+#print axioms guba_longRaw_zero_factor_bound
+
+
 end QuandleResearch.Issue070
