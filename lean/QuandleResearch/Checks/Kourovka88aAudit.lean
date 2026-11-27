@@ -87,4 +87,22 @@ example : answer ↔
 #print axioms thuePrefix_get
 #print axioms thuePrefix_cubeFree
 
+#print axioms exists_eligiblePrefixEnd_after
+#print axioms nextPrefixEnd_spec
+#print axioms nextPrefixEnd_min
+#print axioms prefixEnd_eligible
+#print axioms prefixEnd_lt_succ
+#print axioms prefixEnd_gt_index
+#print axioms gubaPrefix_odd_length
+#print axioms gubaPrefix_last
+#print axioms gubaPrefix_first
+#print axioms gubaPrefix_second
+#print axioms positiveWord_length_le
+#print axioms exists_gubaEvenPrefix_weight_gt
+#print axioms chooseEvenPrefixIndex_spec
+#print axioms chooseEvenPrefixIndex_min
+#print axioms positiveWord_longRaw
+#print axioms weightedLength_longRaw_twice
+#print axioms weightedLength_longConjugator_twice
+
 end QuandleResearch.Issue070
