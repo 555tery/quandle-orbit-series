@@ -5,6 +5,7 @@ import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
 import SmallPresentation.SmallCancellationGeometryBoundaryTheorem
 import SmallPresentation.SmallCancellationGeometryRelativeRestriction
 import SmallPresentation.SmallCancellationGeometryCorridorCuts
+import SmallPresentation.SmallCancellationGeometryEdgeContractionTopology
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -1544,5 +1545,110 @@ theorem vertexCut_separated_boundary_mem {D : Type} [Fintype D]
 #print axioms vertexCut_interval_read
 #print axioms vertexCut_comm
 #print axioms vertexCut_separated_boundary_mem
+
+
+/-! ## Join two boundary intervals after a sequence of cuts
+
+Unlike a cut of a single vertex, this uses an actual joining edge
+between two distinct boundary vertices of a refined ribbon. The
+splicing operation retains the darts and preserves Euler equality.
+The combined boundary is the literal concatenation of the two
+based intervals. No spherical hypothesis on the refined or spliced
+ribbon is required independently of the original ribbon.
+-/
+
+theorem edgeSplice_vertex_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a : D)
+    (hn : ¬ P.rotation.SameCycle a (P.edge a)) :
+    ((P.edgeSplice a).vertexBoundary (P.rotation a)).map read =
+      (P.vertexBoundary (P.rotation a)).map read ++
+        (P.vertexBoundary (P.edge a)).map read := by
+  have hn' : ¬ P.rotation.SameCycle (P.rotation a) (P.edge a) := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  have he := SmallPresentationStatements.PermutationCycles.cycleBoundary_cutAt_merge
+    P.rotation (P.rotation a) (P.edge a) hn'
+  change (P.edgeSplice a).vertexBoundary (P.rotation a) =
+    P.vertexBoundary (P.rotation a) ++ P.vertexBoundary (P.edge a) at he
+  rw [he, List.map_append]
+
+/-- Two marked vertices joined by an edge can be treated as a single
+exceptional boundary vertex in the nonabelian boundary theorem. -/
+theorem edgeSplice_boundary_mem_normal {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (a : D) (hn : ¬P.rotation.SameCycle a (P.edge a))
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, P.SameComponent a d →
+      ¬P.rotation.SameCycle a d →
+      ¬P.rotation.SameCycle (P.edge a) d →
+      FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N) :
+    FreeGroup.mk ((P.vertexBoundary (P.rotation a)).map read ++
+      (P.vertexBoundary (P.edge a)).map read) ∈ N := by
+  classical
+  let S := P.edgeSplice a
+  have hES : S.EulerEquality := (P.edgeSplice_euler_iff a hn).mpr hE
+  have hs := component_boundary_mem_normal S read N
+    (fun d => he d) hES (P.rotation a) (by
+      intro d hc hnot
+      have ha : P.rotation.SameCycle (P.rotation a) a :=
+        Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _)
+      have hn1 : ¬P.rotation.SameCycle a d := by
+        intro hh
+        exact hnot ((P.edgeSplice_sameVertex_iff a hn _ _).mpr (Or.inl (ha.trans hh)))
+      have hn2 : ¬P.rotation.SameCycle (P.edge a) d := by
+        intro hh
+        exact hnot ((P.edgeSplice_sameVertex_iff a hn _ _).mpr
+          (Or.inr ⟨Or.inl ha, Or.inr hh.symm⟩))
+      have hsame : P.SameComponent a (P.rotation a) := P.component_rotation a
+      have hce : P.SameComponent (P.rotation a) (P.edge a) :=
+        Relation.EqvGen.trans _ _ _ (Relation.EqvGen.symm _ _ hsame) (P.component_edge a)
+      have hc' : P.SameComponent (P.rotation a) d :=
+        P.vertexCut_component_refines (P.rotation a) (P.edge a) hce hc
+      have hread : S.vertexBoundary d = P.vertexBoundary d :=
+        SmallPresentationStatements.PermutationCycles.cycleBoundary_cutAt_unchanged
+          P.rotation (P.rotation a) (P.edge a) d
+          (fun hh => hn1 (ha.symm.trans hh.symm)) (fun hh => hn2 hh.symm)
+      rw [hread]
+      exact hint d (Relation.EqvGen.trans _ _ _ hsame hc') hn1 hn2)
+  change FreeGroup.mk (((P.edgeSplice a).vertexBoundary (P.rotation a)).map read) ∈ N at hs
+  rw [edgeSplice_vertex_read P read a hn] at hs
+  exact hs
+
+/-- A finite sequence of cuts of the original spherical diagram,
+followed by splicing two distinct vertices along an actual edge,
+supplies a boundary relation in the lower-rank presentation.
+The interior readings are hypotheses about the actual resulting
+component, not an independently postulated region. -/
+theorem refined_two_boundary_region_mem (pick : WeightedSelector)
+    (X : ConjugatorChoice) (j : ℕ) {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (tau : Equiv.Perm D)
+    (href : SmallPresentationStatements.PermutationCycles.SplitRefinement P.rotation tau)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (a : D) (hn : ¬tau.SameCycle a (P.edge a))
+    (hint : ∀ d, (P.withRotation tau).SameComponent a d →
+      ¬tau.SameCycle a d → ¬tau.SameCycle (P.edge a) d →
+      ∃ (i : RankHeight j) (sign : Bool) (l r : RawWord),
+        orientedWord (rankHeightRows pick X j i) sign = l ++ r ∧
+        ((P.withRotation tau).vertexBoundary d).map read = r ++ l) :
+    FreeGroup.mk (((P.withRotation tau).vertexBoundary (tau a)).map read ++
+      ((P.withRotation tau).vertexBoundary (P.edge a)).map read) ∈
+        weightedHeightStage pick X j := by
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  have hE' : (P.withRotation tau).EulerEquality :=
+    P.splitRefinement_preserves_euler href hE
+  apply edgeSplice_boundary_mem_normal (P.withRotation tau) read N a hn hE' he
+  intro d hc h1 h2
+  obtain ⟨i,sign,l,r,hw,hr⟩ := hint d hc h1 h2
+  rw [hr]
+  exact lowerRank_rotated_row_mem pick X j i sign l r hw
+
+#print axioms edgeSplice_vertex_read
+#print axioms edgeSplice_boundary_mem_normal
+#print axioms refined_two_boundary_region_mem
 
 end QuandleResearch.Issue070
