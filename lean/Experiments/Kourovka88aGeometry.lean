@@ -1070,7 +1070,7 @@ theorem rankCount_liftRankOccurrence_zero {j n : ℕ} (hjn : j ≤ n)
       exact ne_of_lt (lt_of_lt_of_le x.1.2.1.isLt hjk)
     unfold rankCount at ih ⊢
     simpa only [List.map_cons, List.filter_cons, hne, decide_false, Bool.false_eq_true,
-      if_false] using ih
+      ite_false] using ih
 
 /-- Every lower-stage kernel element can be filled using only
 occurrences strictly below the specified rank. -/
