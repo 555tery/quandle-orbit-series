@@ -1,5 +1,6 @@
 import QuandleResearch.Proofs.Kourovka88a.Greedy
 import Mathlib.GroupTheory.FreeGroup.Reduce
+import Mathlib.Data.List.PeriodicityLemma
 
 /-!
 # Word-level infrastructure for Guba's construction
@@ -931,5 +932,59 @@ theorem guba19_chosen_resolvent (N : Subgroup F) (C : F)
   intro hword hlong
   exact guba19_resolvent _ p z r
     (chosenEvenPrefix_weight_ge N C hbad previousWeight) hword hlong
+
+
+/-! ## Periodic factors of the special prefixes
+
+Mathlib's Fine–Wilf theorem uses ordinary letter count, not Guba's
+weighted metric. Connect its period predicate to the cube-free
+Thue–Morse prefix proved above. These are local word bounds, not
+yet the full resolvent-uniqueness or overlap estimates of the paper.
+-/
+
+/-- A factor of a Thue–Morse prefix with positive period d contains
+strictly fewer than three full periods. -/
+theorem thueFactor_period_bound (n d : ℕ) (p v r : List (Fin 2))
+    (hword : thuePrefix n = p ++ v ++ r)
+    (hd : 0 < d) (hperiod : v.HasPeriod d) :
+    v.length < 3*d := by
+  by_contra! hlong
+  have hlen := congrArg List.length hword
+  simp only [thuePrefix_length, List.length_append] at hlen
+  have hshift (j : ℕ) (hj : j < v.length) :
+      (thuePrefix n)[p.length+j]? = v[j]? := by
+    rw [hword, List.getElem?_append_left (by simp; omega),
+      List.getElem?_append_right (by omega)]
+    rw [show p.length+j-p.length = j by omega]
+  apply thuePrefix_cubeFree n p.length d hd (by omega)
+  intro j hj
+  have hper := List.hasPeriod_iff_getElem?.mp hperiod j (by omega)
+  have heq : (thuePrefix n)[p.length+j]? = (thuePrefix n)[p.length+j+d]? := by
+    rw [hshift j (by omega), show p.length+j+d = p.length+(j+d) by omega,
+      hshift (j+d) (by omega)]
+    exact hper
+  rw [List.getElem?_pos (by rw [thuePrefix_length]; omega),
+    List.getElem?_pos (by rw [thuePrefix_length]; omega)] at heq
+  exact Option.some.inj heq
+
+/-- If two periods of such a factor satisfy the Fine–Wilf threshold,
+the cube-free bound applies to their gcd. -/
+theorem thueFactor_twoPeriods_bound (n d e : ℕ) (p v r : List (Fin 2))
+    (hword : thuePrefix n = p ++ v ++ r)
+    (hd : 0 < d.gcd e)
+    (hp : v.HasPeriod d) (hq : v.HasPeriod e)
+    (hfit : d+e-d.gcd e ≤ v.length) :
+    v.length < 3*(d.gcd e) :=
+  thueFactor_period_bound n (d.gcd e) p v r hword hd (hp.gcd hq hfit)
+
+/-- In particular the same bound holds for the selected even-indexed
+prefixes used to construct the long conjugating words. -/
+theorem gubaEvenPrefix_period_bound (m d : ℕ) (hd : 0 < d)
+    (hperiod : (gubaEvenPrefix m).HasPeriod d) :
+    (gubaEvenPrefix m).length < 3*d := by
+  apply thueFactor_period_bound (prefixEnd (2*m+1)+1) d [] (gubaEvenPrefix m) []
+  · simp [gubaEvenPrefix, gubaPrefix]
+  · exact hd
+  · exact hperiod
 
 end QuandleResearch.Issue070
