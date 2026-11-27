@@ -3,11 +3,15 @@ on:
   push:
     branches: ['lean/kourovka-8-8a']
     paths: ['lean/**', '.github/workflows/kourovka-8-8a.yml']
+  pull_request:
+    branches: ['lean/mathlib-4.36-q57']
+    paths: ['lean/**', '.github/workflows/kourovka-8-8a.yml']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   build:
+    if: github.event_name != 'pull_request' || github.head_ref == 'lean/kourovka-8-8a'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,8 +27,9 @@ jobs:
       - run: lake exe cache get
       - name: Compile exact target and conditional reduction
         run: |
-          lake build QuandleResearch.Questions.Issue070
+          lake build QuandleResearch.Questions.Issue070 QuandleResearch.Proofs.Kourovka88a.Greedy
           lake env lean -DwarningAsError=true QuandleResearch/Questions/Issue070.lean
+          lake env lean -DwarningAsError=true QuandleResearch/Proofs/Kourovka88a/Greedy.lean
       - name: Statement and axiom audit of conditional theorems
         run: |
           set -o pipefail
@@ -35,7 +40,11 @@ jobs:
           log = Path("kourovka-axioms.log").read_text()
           allowed = {"propext", "Classical.choice", "Quot.sound"}
           for name in ["good_iff_quotient", "mem_limit_iff", "limit_normal",
-                       "answer_of_chain", "greedy_cover", "answer_of_greedy_relators"]:
+                       "answer_of_chain", "greedy_cover", "answer_of_greedy_relators",
+                       "nextRelator_eq", "nextRelator_eq_one", "adjoin_eq_of_mem",
+                       "greedyStages_normal", "greedyStages_mono", "greedyStages_progress",
+                       "greedyStages_strict_of_bad", "greedyStages_stationary",
+                       "greedyStages_cover", "answer_of_greedyStages"]:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", log)
               if match:
                   used = {a.strip() for a in match.group(1).split(",") if a.strip()}
