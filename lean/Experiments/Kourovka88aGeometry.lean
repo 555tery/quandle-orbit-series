@@ -1,5 +1,5 @@
 import QuandleResearch.Proofs.Kourovka88a.WeightedGreedy
-import Mathlib.Data.Real.Basic
+import Mathlib.Basic.Real.Basic
 import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
@@ -2253,7 +2253,9 @@ theorem guba23_firstKind_weight (pick : WeightedSelector)
   rw [hp]
   constructor
   · rfl
-  · rw [Nat.mul_comm (10^80 : ℕ) i.2.natAbs]
+  · have hm' : (10^80 : ℕ) * i.2.natAbs ≤
+        i.2.natAbs * weightedLength (pick (gubaState pick i.1.val).1 h).val :=
+      (Nat.mul_comm _ _).le.trans hm
     omega
 
 /-- The final estimate of Lemma 23, with the paper's actual constants:
@@ -2297,8 +2299,8 @@ theorem guba23_row_perimeter_of_coverage (pick : WeightedSelector)
   have hpQ' : (P : ℚ) = (D : ℚ) + (i.2.natAbs : ℚ) := by exact_mod_cast hp
   have hmQ : (10 : ℚ)^80 * (i.2.natAbs : ℚ) ≤ (P : ℚ) := by exact_mod_cast hm
   have hd : (1 - 1 / 10^80) * (P : ℚ) ≤ (D : ℚ) := by
-    norm_num at hmQ ⊢
-    linarith
+    norm_num at hpQ' hmQ ⊢
+    linarith only [hpQ', hmQ]
   have hres := guba23_perimeter_arithmetic (P : ℚ) (D : ℚ) C
     (weightedLength w : ℚ) hpQ hd hcover htransfer
   have hnat : (4 : ℚ) * (P : ℚ) < 5 * (weightedLength w : ℚ) := by linarith
@@ -2321,7 +2323,7 @@ a system or per-arc geometric estimate is asserted.
 
 theorem guba23_sublist_weight {u v : RawWord} (h : u.Sublist v) :
     rawWeight u ≤ rawWeight v := by
-  induction h <;> simp_all [rawWeight] <;> omega
+  induction h <;> (simp_all [rawWeight]; omega)
 
 theorem guba23_flatMap_weight {A : Type} (xs : List A) (f : A → RawWord) :
     rawWeight (xs.flatMap f) = (xs.map (fun x => rawWeight (f x))).sum := by
@@ -2352,7 +2354,7 @@ theorem guba23_arc_transfer_sum (arcs : List (RawWord × RawWord)) (P : ℚ)
     have hq := hlocal q (by simp)
     have ht := ih (fun p hp => hlocal p (by simp [hp]))
     simp only [List.map_cons, List.sum_cons, List.length_cons]
-    push_cast
+    simp only [Nat.cast_add, Nat.cast_one]
     nlinarith only [hq, ht]
 
 /-- The actual signed boundary word bounds the transferred lengths.
@@ -2382,6 +2384,7 @@ theorem guba23_boundary_transfer (arcs : List (RawWord × RawWord))
 /-- Apply the numerical conclusion directly to literal arc readings.
 Only retained coverage, local transfer, the arc count and disjointness
 certificate remain as hypotheses; none is an added axiom. -/
+set_option maxHeartbeats 2000000 in
 theorem guba23_row_perimeter_of_arcs (pick : WeightedSelector)
     (n : ℕ) (i : RankHeight n) (w : F)
     (h : ∃ u : F, ¬ Good (gubaState pick i.1.val).1 u)
@@ -2474,16 +2477,16 @@ theorem guba22_exists_component_representatives {D : Type}
         · exact Finset.mem_insert_self _ _
         · exact Finset.mem_insert_of_mem (hsub ha)
       · intro a ha b hb hab hconn
-        rcases Finset.mem_insert.mp ha with rfl | ha
-        · rcases Finset.mem_insert.mp hb with rfl | hb
-          · exact hab rfl
-          · exact hex ⟨b, hb, Relation.EqvGen.symm _ _ hconn⟩
-        · rcases Finset.mem_insert.mp hb with rfl | hb
-          · exact hex ⟨a, ha, hconn⟩
-          · exact hsep a ha b hb hab hconn
+        rcases Finset.mem_insert.mp ha with had | haR
+        · rcases Finset.mem_insert.mp hb with hbd | hbR
+          · exact hab (had.trans hbd.symm)
+          · exact hex ⟨b, hbR, by simpa only [had] using Relation.EqvGen.symm _ _ hconn⟩
+        · rcases Finset.mem_insert.mp hb with hbd | hbR
+          · exact hex ⟨a, haR, by simpa only [hbd] using hconn⟩
+          · exact hsep a haR b hbR hab hconn
       · intro e he
         rcases Finset.mem_insert.mp he with rfl | he
-        · exact ⟨d, Finset.mem_insert_self _ _, Relation.EqvGen.refl d⟩
+        · exact ⟨_, Finset.mem_insert_self _ _, Relation.EqvGen.refl _⟩
         · obtain ⟨a, ha, hac⟩ := hcov e he
           exact ⟨a, Finset.mem_insert_of_mem ha, hac⟩
 
@@ -2618,7 +2621,7 @@ theorem guba22_coefficient_preserved_read {D : Type} [Fintype D]
         exact (hkeep _).mpr ih
     simp [S, RibbonMap.coefficientRegions_rotation, hk]
   change (((P.withRotation S.rotation).vertexBoundary d).map read) = _
-  exact refined_vertex_read_of_agreement P S.rotation d hag
+  exact congrArg (List.map read) (refined_vertex_read_of_agreement P S.rotation d hag)
 
 /-- If all the coefficient vertices are trivial in a normal quotient
 and the component has only the two indicated outlets, killing the
@@ -2648,9 +2651,9 @@ theorem guba22_two_outlet_mem_of_other {D : Type} [Fintype D]
           (((P.coefficientRegions keep hkeep).vertexBoundary d).map read) ∈ N
         rw [guba22_coefficient_preserved_read P read keep hkeep d hd]
         exact hint d hd
-      · rcases honly d hc hd with rfl | rfl
-        · exact (hnc (.refl _ _)).elim
-        · rw [fixed_vertex_read_singleton S b hSb]
+      · rcases honly d hc hd with hda | hdb
+        · exact (hnc (by rw [hda]; exact .refl _ _)).elim
+        · rw [hdb, fixed_vertex_read_singleton S b hSb]
           simpa only [List.map_cons, List.map_nil] using hmb)
   rw [fixed_vertex_read_singleton S a hSa] at hm
   simpa only [List.map_cons, List.map_nil] using hm
@@ -2981,8 +2984,7 @@ theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
           rw [← hh] <;> exact .refl _ _
         · have hh : y = d := Subtype.ext h.symm
           apply hdy
-          rw [← hh]
-          exact .refl _ _
+          rw [← hh] <;> exact .refl _ _
       rw [hread]
       change q (FreeGroup.mk
         (((P.coefficientRegions keep hkeep).vertexBoundary d.val).map read)) = 1
