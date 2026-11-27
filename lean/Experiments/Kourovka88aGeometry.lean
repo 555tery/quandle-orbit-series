@@ -8832,4 +8832,79 @@ theorem rankMinimal_designated_row_nonempty
 #print axioms rankMinimal_designated_row_nonempty
 
 
+
+/-- The designated occurrence determines a genuine second boundary
+cycle in the existing spherical ribbon, with its exact signed word.
+The occurrence index, rather than the row label, distinguishes it
+from every other copy of the same relator. Marking it does not alter
+the permutations. Connectedness of the two marked vertices and the
+regularity conditions of Guba's annulus still need to be proved. -/
+theorem guba23_designated_boundary_cycle
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w (p ++ [x] ++ r))
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) (p ++ [x] ++ r) = w) :
+    let s := p ++ [x] ++ r
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∃ d : DiscDarts (markedRows rows w) (boundaryIdentity s),
+      (discOccurrence (markedRows rows w) (boundaryIdentity s) d).val = p.length+1 ∧
+      ¬ P.rotation.SameCycle z d ∧
+      (P.vertexBoundary d).map read = orientedWord (rows x.1.2) x.2 ∧
+      (∀ e, P.rotation.SameCycle d e ↔
+        (discOccurrence (markedRows rows w) (boundaryIdentity s) e).val = p.length+1) := by
+  classical
+  intro s rows P z read
+  let j : Fin (boundaryIdentity s).length := ⟨p.length+1,by
+    simp [s,boundaryIdentity]
+    omega⟩
+  have hj : (boundaryIdentity s)[j] = markOccurrence x := by
+    change (s.map markOccurrence)[p.length] = markOccurrence x
+    rw [List.getElem_map]
+    have hx : s[p.length]'(by simp [s]; omega) = x := by
+      dsimp only [s]
+      rw [List.append_assoc, List.getElem_append_right (by omega : p.length ≤ p.length)]
+      simp
+    rw [hx]
+  have hp : 0 < (orientedWord
+      (markedRows rows w (boundaryIdentity s)[j].1.2)
+      (boundaryIdentity s)[j].2).length := by
+    rw [hj, orientedWord_length]
+    change 0 < (rows x.1.2).length
+    exact List.length_pos_iff.mpr (rankMinimal_designated_row_nonempty pick X n w p r x hm)
+  let d := discAt (markedRows rows w) (boundaryIdentity s) j ⟨0,hp⟩
+  have hd : discOccurrence (markedRows rows w) (boundaryIdentity s) d = j :=
+    discOccurrence_at _ _ _ _
+  refine ⟨d,congrArg Fin.val hd,?_,?_,?_⟩
+  · intro h
+    have he := (boundaryDart_sameVertex_iff rows w s hs hw d).mp h
+    rw [hd] at he
+    have hval := congrArg Fin.val he
+    change p.length+1 = 0 at hval
+    omega
+  · have hi : (boundaryIdentity s)[j].1.2 = some x.1.2 := by
+      rw [hj]
+      rfl
+    have hread := boundaryRibbon_interior_read rows w s hs j x.1.2 hi hp
+    change (P.vertexBoundary d).map read = _ at hread
+    rw [hj] at hread
+    exact hread
+  · intro e
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle d e ↔ _
+    rw [disc_sameCycle_iff,hd]
+    constructor
+    · intro h
+      exact congrArg Fin.val h.symm
+    · intro h
+      exact Fin.ext h.symm
+
+#print axioms guba23_designated_boundary_cycle
+
+
 end QuandleResearch.Issue070
