@@ -805,16 +805,16 @@ theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
     have hxa : x.2 = y.2 := intCast_injective_close ha'.1 ha'.2 (congrArg Prod.snd he)
     have ht : (t.val : ℝ) + 1 < (p : ℝ) / 480 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 480)).2
-      exact_mod_cast (show (t.val + 1) * 480 < p offset_mul_lt t.isLt hq)
+      exact_mod_cast (show (t.val + 1) * 480 < p from offset_mul_lt t.isLt hq)
     have ht' : (t'.val : ℝ) + 1 < (p : ℝ) / 480 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 480)).2
-      exact_mod_cast (show (t'.val + 1) * 480 < p offset_mul_lt t'.isLt hq)
+      exact_mod_cast (show (t'.val + 1) * 480 < p from offset_mul_lt t'.isLt hq)
     have hu : (u.val : ℝ) + 1 < (p : ℝ) / 2400 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 2400)).2
-      exact_mod_cast (show (u.val + 1) * 2400 < p offset_mul_lt u.isLt hr)
+      exact_mod_cast (show (u.val + 1) * 2400 < p from offset_mul_lt u.isLt hr)
     have hu' : (u'.val : ℝ) + 1 < (p : ℝ) / 2400 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 2400)).2
-      exact_mod_cast (show (u'.val + 1) * 2400 < p offset_mul_lt u'.isLt hr)
+      exact_mod_cast (show (u'.val + 1) * 2400 < p from offset_mul_lt u'.isLt hr)
     have hrow := cellLift_injective (by positivity : 0 < (p : ℝ) / 480) ht ht' hxs
     have hcol := cellLift_injective (by positivity : 0 < (p : ℝ) / 2400) hu hu' hxa
     have hef : e = f := innerCellCoords_injective (Prod.ext hrow.1 hcol.1)
@@ -1054,7 +1054,7 @@ lemma mem_shortResidues {p R : ℕ} {x : ℤ}
   apply Finset.mem_image.mpr
   refine ⟨i, Finset.mem_range.mpr hib, ?_⟩
   have he : (i : ℤ) - (R : ℤ) = x := by omega
-  rw [he]
+  exact congrArg (fun a : ℤ => (a : ZMod p)) he
 
 lemma shortResidues_card (p R : ℕ) :
     (shortResidues p R).card ≤ 2 * R + 1 := by
@@ -1067,7 +1067,9 @@ def shortBox (p m R : ℕ) : Finset (Fin m → ZMod p × ZMod p) :=
 lemma shortBox_card (p m R : ℕ) :
     (shortBox p m R).card ≤ ((2 * R + 1) * (2 * R + 1)) ^ m := by
   unfold shortBox
-  rw [Fintype.card_piFinset_const, Finset.card_product]
+  rw [Fintype.card_piFinset_const]
+  change ((shortResidues p R).product (shortResidues p R)).card ^ m ≤ _
+  simp only [Finset.card_product]
   exact Nat.pow_le_pow_left
     (Nat.mul_le_mul (shortResidues_card p R) (shortResidues_card p R)) _
 
@@ -1083,8 +1085,8 @@ lemma normalized_square_to_int_bound {p R : ℕ} (hp : 0 < p)
     nlinarith [mul_pos hpos hpos']
   have hleft : -((R : ℝ) / (p : ℝ)) ≤ (x : ℝ) / (p : ℝ) := by
     by_contra hn
-    have hpos : 0 < -(x : ℝ) / (p : ℝ) - (R : ℝ) / (p : ℝ) := by linarith
-    have hpos' : 0 < -(x : ℝ) / (p : ℝ) + (R : ℝ) / (p : ℝ) := by linarith
+    have hpos : 0 < -((x : ℝ) / (p : ℝ)) - (R : ℝ) / (p : ℝ) := by linarith
+    have hpos' : 0 < -((x : ℝ) / (p : ℝ)) + (R : ℝ) / (p : ℝ) := by linarith
     nlinarith [mul_pos hpos hpos']
   have hrc := (div_le_div_iff_of_pos_right hp').mp hright
   rw [← neg_div] at hleft
@@ -1168,7 +1170,8 @@ theorem product_shell_shortBox (p m R : ℕ) [NeZero p]
   intro i
   have hi : (sx i - sz i)^2 + (ax i - az i)^2 ≤
       ∑ i, ((sx i - sz i)^2 + (ax i - az i)^2) :=
-    Finset.single_le_sum (fun a _ => by positivity) (Finset.mem_univ i)
+    Finset.single_le_sum (f := fun a : Fin m => (sx a - sz a)^2 + (ax a - az a)^2)
+      (fun a _ => by positivity) (Finset.mem_univ i)
   have hs2 : ((↑(X (z i) - X (x i) : ℤ) : ℝ) / p)^2 ≤
       ((R : ℝ) / (p : ℝ))^2 := by
     push_cast
