@@ -15594,4 +15594,481 @@ theorem answer_of_guba_full_type_one_dart_single_arc
 #print axioms answer_of_guba_full_type_one_dart_step
 #print axioms answer_of_guba_full_type_one_dart_single_arc
 
+
+
+/-! ## Full-type direct same-rank splice -/
+
+/-- A proper indexed subfamily cannot represent the same word if it preserves all type coordinates at or above the omitted cell's rank-count coordinate. Lower coordinates may change. -/
+theorem gubaTypeMinimal_no_omitted_index_above
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (hs : GubaTypeMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (l : List (Fin s.length)) (hl : l.Nodup)
+    (i : Fin s.length) (hi : i ∉ l)
+    (hcounts : ∀ k, 2*s[i.val].1.2.1.val+1 ≤ k →
+      gubaTypeCoordinate t k =
+      gubaTypeCoordinate (l.map (fun i => s[i.val])) k) : False := by
+  classical
+  let c := 2*s[i.val].1.2.1.val+1
+  have hsub : List.Subperm l (List.finRange s.length) :=
+    hl.subperm (fun x _ => List.mem_finRange x)
+  obtain ⟨u,hu,hlsub⟩ := List.subperm_iff.mp hsub
+  obtain ⟨r,hr⟩ := hlsub.exists_perm_append
+  have hp : List.Perm (List.finRange s.length) (l ++ r) := hu.symm.trans hr
+  have hir : i ∈ r := by
+    have hm := hp.mem_iff.mp (List.mem_finRange i)
+    exact (List.mem_append.mp hm).resolve_left hi
+  let get : Fin s.length → Peiffer.Occurrence F (RankHeight n) := fun k => s[k.val]
+  have hall : (List.finRange s.length).map get = s := by
+    rw [← List.ofFn_eq_map]
+    exact List.ofFn_getElem
+  have hperm : List.Perm s (l.map get ++ r.map get) := by
+    have h := hp.map get
+    rw [hall,List.map_append] at h
+    exact h
+  have hsplit (k : ℕ) (hk : c ≤ k) : gubaTypeCoordinate s k =
+      gubaTypeCoordinate t k + gubaTypeCoordinate (r.map get) k := by
+    calc
+      _ = gubaTypeCoordinate (l.map get ++ r.map get) k :=
+        gubaTypeCoordinate_perm hperm k
+      _ = _ := by rw [gubaTypeCoordinate_append,hcounts k hk]
+  have hpositive : 0 < rankCount (r.map get) (get i).1.2.1.val := by
+    unfold rankCount
+    apply List.length_pos_iff_exists_mem.mpr
+    refine ⟨get i,List.mem_filter.mpr ⟨List.mem_map.mpr ⟨i,hir,rfl⟩,?_⟩⟩
+    simp
+  have hlt : descendingCountLT (2*n)
+      (fun (u : Peiffer.Sequence F (RankHeight n)) k =>
+        if c ≤ k then gubaTypeCoordinate u k else 0) t s := by
+    apply descending_count_lt_of_pointwise
+    · intro k _
+      by_cases hk : c ≤ k
+      · simp only [if_pos hk]
+        have he := hsplit k hk
+        omega
+      · simp only [if_neg hk,le_refl]
+    · have hc : c < 2*n := by
+        have hh := s[i.val].1.2.1.isLt
+        dsimp only [c]
+        omega
+      refine ⟨c,hc,?_⟩
+      simp only [le_refl,ite_true]
+      have he := hsplit c (le_refl c)
+      have hpos : 0 < gubaTypeCoordinate (r.map get) c := by
+        dsimp only [c]
+        rw [gubaTypeCoordinate_count]
+        exact hpositive
+      omega
+  obtain ⟨j,hj,hstrict,habove⟩ := hlt
+  change (if c ≤ j then gubaTypeCoordinate t j else 0) <
+    (if c ≤ j then gubaTypeCoordinate s j else 0) at hstrict
+  have hcj : c ≤ j := by
+    by_contra h
+    simp [h] at hstrict
+  simp only [if_pos hcj] at hstrict
+  have hh := hs.2 t ht j hj (by
+    intro k hjk hkn
+    have he := habove k hjk hkn
+    change (if c ≤ k then gubaTypeCoordinate t k else 0) =
+      (if c ≤ k then gubaTypeCoordinate s k else 0) at he
+    simp only [if_pos (show c ≤ k by omega)] at he
+    exact he.symm)
+  omega
+
+/-- Spherical reassembly contradicts full-type minimality using only the coordinates at or above the omitted cell's rank-count coordinate. -/
+theorem ribbon_gubaTypeMinimal_no_indexed_replacement {D : Type} [Fintype D]
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w s)
+    (R : RibbonMap D) (v : D → F) (z : D)
+    (hc : R.Connected) (hE : R.EulerEquality)
+    (he : ∀ d, v (R.edge d) = (v d)⁻¹)
+    (hroot : cycleProduct R.rotation v z = w⁻¹)
+    (idx : D → ℕ) (omitted : Fin s.length)
+    (hinj : ∀ d e, idx d = idx e → R.rotation.SameCycle d e)
+    (hfactor : ∀ d, ¬ R.rotation.SameCycle z d → ∀ g : F,
+      ∃ (i : Fin s.length) (y : Peiffer.Occurrence F (RankHeight n)),
+        idx d = i.val+1 ∧ i ≠ omitted ∧
+        (∀ k, 2*s[omitted.val].1.2.1.val+1 ≤ k →
+          gubaTypeCoordinate [y] k = gubaTypeCoordinate [s[i.val]] k) ∧
+        Peiffer.term (rankHeightRel pick X n) y =
+          g * cycleProduct R.rotation v d * g⁻¹) : False := by
+  classical
+  obtain ⟨f,hf,hsep,_,hprod⟩ :=
+    guba23_component_exact_vertex_product R v he hc hE z
+  let value : F × D → F := fun t => t.1 * cycleProduct R.rotation v t.2 * t.1⁻¹
+  have build (b : List (F × D))
+      (hb : ∀ t ∈ b, ¬ R.rotation.SameCycle z t.2)
+      (hp : b.Pairwise (fun t u => ¬ R.rotation.SameCycle t.2 u.2)) :
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)),
+        (l.map Prod.fst).Nodup ∧
+        (∀ t ∈ l, t.1 ≠ omitted ∧
+          (∀ k, 2*s[omitted.val].1.2.1.val+1 ≤ k →
+            gubaTypeCoordinate [t.2] k = gubaTypeCoordinate [s[t.1.val]] k) ∧
+          ∃ u ∈ b, idx u.2 = t.1.val+1) ∧
+        Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          (b.map value).prod := by
+    induction b with
+    | nil => exact ⟨[],by simp,by simp,rfl⟩
+    | cons u us ih =>
+      obtain ⟨i,y,hi,hio,hy,hval⟩ := hfactor u.2 (hb u List.mem_cons_self) u.1
+      obtain ⟨l,hl,hcover,hev⟩ := ih
+        (fun t ht => hb t (List.mem_cons_of_mem _ ht)) (List.pairwise_cons.mp hp).2
+      refine ⟨(i,y)::l,?_,?_,?_⟩
+      · simp only [List.map_cons,List.nodup_cons]
+        refine ⟨?_,hl⟩
+        intro hmem
+        obtain ⟨t,ht,hti⟩ := List.mem_map.mp hmem
+        obtain ⟨_,_,q,hq,hqi⟩ := hcover t ht
+        exact (List.pairwise_cons.mp hp).1 q hq
+          (hinj u.2 q.2 (by rw [hi,hqi,hti]))
+      · intro t ht
+        rcases List.mem_cons.mp ht with ht | ht
+        · subst t
+          exact ⟨hio,hy,u,List.mem_cons_self,hi⟩
+        · obtain ⟨hnot,hlabel,q,hq,hqi⟩ := hcover t ht
+          exact ⟨hnot,hlabel,q,List.mem_cons_of_mem _ hq,hqi⟩
+      · change Peiffer.term (rankHeightRel pick X n) y *
+          Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          value u * (us.map value).prod
+        rw [hev,hval]
+  obtain ⟨l,hl,hcover,hev⟩ := build f hf hsep
+  have hval : (f.map value).prod = w := by
+    rw [hroot] at hprod
+    change w⁻¹ * (f.map value).prod = 1 at hprod
+    calc
+      _ = w * (w⁻¹ * (f.map value).prod) := by group
+      _ = w := by rw [hprod,mul_one]
+  have hprofile (b : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+      (hb : ∀ t ∈ b, ∀ k, 2*s[omitted.val].1.2.1.val+1 ≤ k →
+        gubaTypeCoordinate [t.2] k = gubaTypeCoordinate [s[t.1.val]] k)
+      (k : ℕ) (hk : 2*s[omitted.val].1.2.1.val+1 ≤ k) :
+      gubaTypeCoordinate (b.map Prod.snd) k =
+        gubaTypeCoordinate ((b.map Prod.fst).map (fun i => s[i.val])) k := by
+    induction b with
+    | nil => rfl
+    | cons x xs ih =>
+      change gubaTypeCoordinate ([x.2] ++ xs.map Prod.snd) k =
+        gubaTypeCoordinate ([s[x.1.val]] ++ (xs.map Prod.fst).map
+          (fun i => s[i.val])) k
+      rw [gubaTypeCoordinate_append,gubaTypeCoordinate_append,
+        hb x List.mem_cons_self k hk,
+        ih (fun y hy => hb y (List.mem_cons_of_mem _ hy))]
+  apply gubaTypeMinimal_no_omitted_index_above pick X n w s
+    (l.map Prod.snd) hm (hev.trans hval) (l.map Prod.fst) hl omitted
+  · intro h
+    obtain ⟨t,ht,hti⟩ := List.mem_map.mp h
+    exact (hcover t ht).1 hti
+  · exact hprofile l (fun t ht => (hcover t ht).2.1)
+
+/-- Merge two distinct interior cycles of the same rank. The replacement may have arbitrary height: the rank-count decreases first, and every higher coordinate is unchanged. -/
+theorem guba23_gubaTypeMinimal_no_same_rank_height_splice
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ c, ∀ hn : ¬ R.rotation.SameCycle c (R.edge c),
+      ¬ R.rotation.SameCycle z c →
+      ¬ R.rotation.SameCycle z (R.edge c) →
+      ∀ (i i' : Fin s.length) (k : ℤ) (g : F),
+        (idx c).val = i.val+1 →
+        (idx (R.edge c)).val = i'.val+1 →
+        s[i.val].1.2.1 = s[i'.val].1.2.1 →
+        cycleProduct (R.edgeSplice c).rotation (fun d => FreeGroup.mk [read d])
+          (R.rotation c) =
+          g * rankHeightRel pick X n (s[i.val].1.2.1,k) * g⁻¹ → False := by
+  classical
+  intro rows R z read idx c hn hzc hze i i' k g hi hi' hrank hmerge
+  let S := R.edgeSplice c
+  let e := R.edge c
+  let f := R.rotation c
+  let v : _ → F := fun d => FreeGroup.mk [read d]
+  have hc : R.Connected := guba23_gubaTypeMinimal_ribbon_connected pick X n w s hm hw hs
+  have hCS : S.Connected := guba22_edgeSplice_connected R hc c hn
+  have hES : S.EulerEquality :=
+    (R.edgeSplice_euler_iff c hn).mpr (boundaryRibbon_euler rows w s hs)
+  have he : ∀ d, v (S.edge d) = (v d)⁻¹ := by
+    intro d
+    change FreeGroup.mk [read (R.edge d)] = (FreeGroup.mk [read d])⁻¹
+    have hedge : read (R.edge d) = reverseLetter (read d) :=
+      relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+        (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
+    rw [hedge]
+    exact signedLetterValue_reverse _
+  have hv (Q : RibbonMap _) (d : _) :
+      cycleProduct Q.rotation v d = FreeGroup.mk ((Q.vertexBoundary d).map read) := by
+    change ((Q.vertexBoundary d).map v).prod = _
+    rw [rawWord_eval_prod,List.map_map]
+    rfl
+  have oldSame (d t : _) : R.rotation.SameCycle d t ↔ idx d = idx t :=
+    disc_sameCycle_iff _ _ _ _
+  have liftSame (d t : _) (h : R.rotation.SameCycle d t) : S.rotation.SameCycle d t :=
+    (R.edgeSplice_sameVertex_iff c hn d t).mpr (Or.inl h)
+  have hcf : R.rotation.SameCycle c f :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have hfe : S.rotation.SameCycle f e := by
+    apply cutAt_sameCycle_of_not_sameCycle
+    simpa only [f,e,Equiv.Perm.sameCycle_apply_left] using hn
+  have hfc : S.rotation.SameCycle f c := liftSame f c hcf.symm
+  have hfz : ¬ S.rotation.SameCycle f z := by
+    intro h
+    rcases (R.edgeSplice_sameVertex_iff c hn f z).mp h with h | h
+    · exact hzc (h.symm.trans hcf.symm)
+    · rcases h.2 with h | h
+      · exact hzc h
+      · exact hze h
+  have hroot : cycleProduct S.rotation v z = w⁻¹ := by
+    rw [guba23_splice_keep_vertex_product R v c z hn hfz,hv,
+      boundaryRibbon_read rows w s hs hw,← FreeGroup.inv_mk,FreeGroup.mk_toWord]
+  have heidx : idx e ≠ boundaryOccurrence s := by
+    intro h
+    exact hze ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
+  obtain ⟨omitted,_,ho,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
+  have hom : omitted = i' := Fin.ext (by
+    change (idx e).val = i'.val+1 at hi'
+    omega)
+  subst i'
+  let rep : _ → _ := fun d => if S.rotation.SameCycle f d then c else d
+  have hrep (d : _) : S.rotation.SameCycle (rep d) d := by
+    by_cases h : S.rotation.SameCycle f d
+    · change S.rotation.SameCycle (if S.rotation.SameCycle f d then c else d) d
+      rw [ite_eq_left h]
+      exact hfc.symm.trans h
+    · change S.rotation.SameCycle (if S.rotation.SameCycle f d then c else d) d
+      rw [ite_eq_right h]
+  apply ribbon_gubaTypeMinimal_no_indexed_replacement pick X n w s hm S v z hCS hES he hroot
+    (fun d => (idx (rep d)).val) omitted
+  · intro d t h
+    have hidx : idx (rep d) = idx (rep t) := Fin.ext h
+    exact (hrep d).symm.trans ((liftSame _ _ ((oldSame _ _).mpr hidx)).trans (hrep t))
+  · intro d hd u
+    by_cases h : S.rotation.SameCycle f d
+    · have hio : i ≠ omitted := by
+        intro hh
+        have hidx : idx c = idx e := Fin.ext (by rw [hi,ho,hh])
+        exact hn ((oldSame c e).mpr hidx)
+      obtain ⟨t,ht⟩ := guba22_cycleProduct_conjugator S.rotation v f d h
+      refine ⟨i,((u*t*g,(s[i.val].1.2.1,k)),true),?_,hio,?_,?_⟩
+      · change (idx (if S.rotation.SameCycle f d then c else d)).val = i.val+1
+        rw [ite_eq_left h,hi]
+      · intro m hm'
+        by_cases hmod : m%2 = 0
+        · have hsame := congrArg Fin.val hrank
+          have hne : s[i.val].1.2.1.val ≠ m/2 := by omega
+          have hx : rankCount [((u*t*g,(s[i.val].1.2.1,k)),true)] (m/2) = 0 := by
+            rw [rankCount_singleton]
+            simp [hne]
+          have hy : rankCount [s[i.val]] (m/2) = 0 := by
+            rw [rankCount_singleton]
+            simp [hne]
+          rw [gubaTypeCoordinate_zero_of_count_zero _ m hx,
+            gubaTypeCoordinate_zero_of_count_zero _ m hy]
+        · simp only [gubaTypeCoordinate,hmod,ite_false,rankCount_singleton]
+      · change (u*t*g) * rankHeightRel pick X n (s[i.val].1.2.1,k) *
+          (u*t*g)⁻¹ = u * cycleProduct S.rotation v d * u⁻¹
+        rw [ht,hmerge]
+        group
+    · have hidx : idx d ≠ boundaryOccurrence s := by
+        intro hh
+        exact hd (liftSame z d ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr hh))
+      obtain ⟨j,y,hj,hy,hval⟩ := guba23_vertex_factor_as_occurrence rows w s hs d u hidx
+      have hjo : j ≠ omitted := by
+        intro hh
+        have hidx' : idx e = idx d := Fin.ext (by rw [ho,hj,hh])
+        exact h (hfe.trans (liftSame e d ((oldSame e d).mpr hidx')))
+      refine ⟨j,y,?_,hjo,?_,?_⟩
+      · change (idx (if S.rotation.SameCycle f d then c else d)).val = j.val+1
+        rw [ite_eq_right h]
+        exact hj
+      · intro m _
+        have hr : y.1.2.1.val = s[j.val].1.2.1.val :=
+          congrArg (fun t : RankHeight n => t.1.val) hy
+        have hh : y.1.2.2.natAbs = s[j.val].1.2.2.natAbs :=
+          congrArg (fun t : RankHeight n => t.2.natAbs) hy
+        by_cases hm' : m%2 = 0
+        · simp only [gubaTypeCoordinate,hm',ite_true,rankHeightSum,List.filter_cons,
+            hr,List.filter_nil]
+          split <;> simp [hh]
+        · simp only [gubaTypeCoordinate,hm',ite_false,rankCount_singleton,hr]
+      · rw [guba23_splice_keep_vertex_product R v c d hn h,hv]
+        have hrel : (fun i => FreeGroup.mk (rows i)) = rankHeightRel pick X n := by
+          funext i
+          exact rankHeightRows_eval pick X n i
+        rw [hrel] at hval
+        exact hval
+
+/-- Long-side exclusion for a full-type minimizer, with actual rank labels on both cells. -/
+theorem guba23_no_heavy_direct_long_side_walks_full_type
+    (pick : WeightedSelector)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick (gubaConjugatorChoice pick) n w s)
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let val := fun d => FreeGroup.mk [read d]
+    ∀ (c x y : _) (L M ds dt : List _)
+      (i j : Fin n) (k m : ℤ) (index index' : Fin s.length)
+      (hi : ∃ a : F, ¬ Good (gubaState pick i.val).1 a)
+      (hj : ∃ a : F, ¬ Good (gubaState pick j.val).1 a)
+      (p z r u t v : List (Fin 2)),
+      ¬ R.rotation.SameCycle c (R.edge c) →
+      ¬ R.rotation.SameCycle root c →
+      ¬ R.rotation.SameCycle root (R.edge c) →
+      (idx c).val = index.val+1 → s[index.val].1.2.1 = i →
+      (idx (R.edge c)).val = index'.val+1 → s[index'.val].1.2.1 = j →
+      activeLongWord pick i.val hi = p ++ z ++ r →
+      activeLongWord pick j.val hj = u ++ t ++ v →
+      dt = (ds.map R.edge).reverse →
+      ds.map read = z.map (fun a => (a,true)) →
+      dt.map read = FreeGroup.invRev (t.map (fun a => (a,true))) →
+      min (positiveWeight (activeLongWord pick i.val hi))
+        (positiveWeight (activeLongWord pick j.val hj)) <
+          240*10^17*positiveWeight z →
+      Walk R.rotation x (R.rotation c) L →
+      Walk R.rotation y (R.edge c) M →
+      cycleProduct R.rotation val x = rankHeightRel pick X n (i,k) →
+      cycleProduct R.rotation val y = rankHeightRel pick X n (j,m) →
+      (L.map val).prod = positiveWord (p++z) →
+      (M.map val).prod = positiveWord (activeLongWord pick j.val hj) *
+        ((pick (gubaState pick j.val).1 hj).val)^m * (positiveWord v)⁻¹ →
+      False := by
+  classical
+  intro X rows R root read idx val c x y L M ds dt i j k m index index' hi hj p z r u t v
+    hn hrc hre hidx hlabel hidx' hlabel' hfirst hsecond hpair hz ht hheavy hL hM hx hy hp hq
+  have hzt : z = t :=
+    boundaryRibbon_paired_positive_eq rows w s hs ds dt z t hpair hz ht
+  subst t
+  obtain ⟨hij,hpu,hrv⟩ := activeLongWord_heavy_factor_cut_eq pick i.val j.val hi hj
+    p z r u v hfirst hsecond hheavy
+  have hij' : i = j := Fin.ext hij
+  subst j
+  subst u
+  subst v
+  let P := positiveWord (p++z)
+  let S := positiveWord r
+  let C := (pick (gubaState pick i.val).1 hi).val
+  have hX : positiveWord (activeLongWord pick i.val hi) = P*S := by
+    change positiveWord (activeLongWord pick i.val hi) =
+      positiveWord (p++z) * positiveWord r
+    rw [← positiveWord_append]
+    exact congrArg positiveWord hfirst
+  have hrel (b : ℤ) : rankHeightRel pick X n (i,b) = heightRelator (P*S) C b := by
+    rw [guba_rankHeightRel_active pick n i hi b,hX]
+  rw [hrel] at hx hy
+  have hq' : (M.map val).prod = (P*S)*C^m*S⁻¹ := by
+    change (M.map val).prod = positiveWord (activeLongWord pick i.val hi) *
+      C^m*S⁻¹ at hq
+    rwa [hX] at hq
+  obtain ⟨g,hg⟩ := ribbon_height_splice_of_walks R val c x y L M P S C k m
+    hn hL hM hx hy hp hq'
+  rw [← hrel] at hg
+  apply guba23_gubaTypeMinimal_no_same_rank_height_splice pick X n w s hm hw hs
+    c hn hrc hre index index' (k+m) g hidx hidx' (hlabel.trans hlabel'.symm)
+  simpa only [hlabel] using hg
+
+/-- Literal long-side cuts with actual rank labels, in the same full-type-minimal ribbon used by the final reduction. -/
+theorem guba23_no_heavy_direct_long_side_cuts_full_type
+    (pick : WeightedSelector)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick (gubaConjugatorChoice pick) n w s)
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let val := fun d => FreeGroup.mk [read d]
+    ∀ (c x y : _) (A U B M N : List _)
+      (i j : Fin n) (k m : ℤ) (index index' : Fin s.length)
+      (hi : ∃ a : F, ¬ Good (gubaState pick i.val).1 a)
+      (hj : ∃ a : F, ¬ Good (gubaState pick j.val).1 a)
+      (p z r u t v : List (Fin 2)),
+      ¬ R.rotation.SameCycle c (R.edge c) →
+      ¬ R.rotation.SameCycle root c →
+      ¬ R.rotation.SameCycle root (R.edge c) →
+      (idx c).val = index.val+1 → s[index.val].1.2.1 = i →
+      (idx (R.edge c)).val = index'.val+1 → s[index'.val].1.2.1 = j →
+      activeLongWord pick i.val hi = p ++ z ++ r →
+      activeLongWord pick j.val hj = u ++ t ++ v →
+      R.vertexBoundary x = (A ++ (U++[c])) ++ B →
+      R.vertexBoundary y = M ++ (((U++[c]).map R.edge).reverse ++ N) →
+      A.map read = p.map (fun a => (a,true)) →
+      (U++[c]).map read = z.map (fun a => (a,true)) →
+      ((U++[c]).map R.edge).reverse.map read =
+        FreeGroup.invRev (t.map (fun a => (a,true))) →
+      min (positiveWeight (activeLongWord pick i.val hi))
+        (positiveWeight (activeLongWord pick j.val hj)) <
+          240*10^17*positiveWeight z →
+      FreeGroup.mk ((R.vertexBoundary x).map read) = rankHeightRel pick X n (i,k) →
+      FreeGroup.mk ((R.vertexBoundary y).map read) = rankHeightRel pick X n (j,m) →
+      FreeGroup.mk (M.map read) = positiveWord (activeLongWord pick j.val hj) *
+        ((pick (gubaState pick j.val).1 hj).val)^m * (positiveWord v)⁻¹ →
+      False := by
+  classical
+  intro X rows R root read idx val c x y A U B M N i j k m index index' hi hj p z r u t v
+    hn hrc hre hidx hlabel hidx' hlabel' hfirst hsecond hxpart hypart hA hz ht hheavy hx hy hM
+  let L := A ++ (U++[c])
+  let ds := U++[c]
+  let dt := (ds.map R.edge).reverse
+  have hwx : Walk R.rotation x x (R.vertexBoundary x) := cycleBoundary_walk _ _
+  rw [hxpart] at hwx
+  obtain ⟨a,hL,_⟩ := walk_split_departures R.rotation L B x x hwx
+  have hLpart : L = (A++U)++[c] := by simp only [L,List.append_assoc]
+  rw [hLpart] at hL
+  obtain ⟨b,_,hcwalk⟩ := walk_split_departures R.rotation (A++U) [c] x a hL
+  obtain ⟨d,hd,hda⟩ := walk_predecessor_mem R.rotation hcwalk (by simp)
+  have hdc : d = c := List.mem_singleton.mp hd
+  subst d
+  rw [← hLpart,← hda] at hL
+  have hwy : Walk R.rotation y y (R.vertexBoundary y) := cycleBoundary_walk _ _
+  rw [hypart] at hwy
+  obtain ⟨e,hMwalk,hrest⟩ := walk_split_departures R.rotation M (dt++N) y y hwy
+  have hdt : dt = R.edge c :: (U.map R.edge).reverse := by
+    simp [dt,ds,List.map_append,List.reverse_append]
+  rw [hdt] at hrest
+  have he : e = R.edge c := by
+    change Walk R.rotation e y (R.edge c :: ((U.map R.edge).reverse ++ N)) at hrest
+    cases hrest
+    rfl
+  rw [he] at hMwalk
+  have hread (l : List _) : (l.map val).prod = FreeGroup.mk (l.map read) := by
+    rw [rawWord_eval_prod,List.map_map]
+    rfl
+  have hleft : cycleProduct R.rotation val x = rankHeightRel pick X n (i,k) :=
+    (hread (R.vertexBoundary x)).trans hx
+  have hright : cycleProduct R.rotation val y = rankHeightRel pick X n (j,m) :=
+    (hread (R.vertexBoundary y)).trans hy
+  have hp : (L.map val).prod = positiveWord (p++z) := by
+    rw [hread]
+    change FreeGroup.mk ((A++(U++[c])).map read) = positiveWord (p++z)
+    rw [List.map_append,hA,hz]
+    simp only [positiveWord,List.map_append]
+  exact guba23_no_heavy_direct_long_side_walks_full_type pick n w s hm hw hs
+    c x y L M ds dt i j k m index index' hi hj p z r u t v
+    hn hrc hre hidx hlabel hidx' hlabel' hfirst hsecond rfl hz ht hheavy hL hMwalk hleft hright
+      hp ((hread M).trans hM)
+
+#print axioms gubaTypeMinimal_no_omitted_index_above
+#print axioms ribbon_gubaTypeMinimal_no_indexed_replacement
+#print axioms guba23_gubaTypeMinimal_no_same_rank_height_splice
+#print axioms guba23_no_heavy_direct_long_side_walks_full_type
+#print axioms guba23_no_heavy_direct_long_side_cuts_full_type
+
 end QuandleResearch.Issue070
