@@ -17518,4 +17518,147 @@ theorem gubaType_aligned_loop_minimal_power_filling
 #print axioms gubaTypeMinimal_conjugate_exists_below_type
 #print axioms gubaType_aligned_loop_minimal_power_filling
 
+
+/-- The actual prefix and suffix of a heavy positive factor are
+the inverse-reversals of the corresponding negative suffix and
+prefix. Unlike an existential common-factor statement, this
+identifies the GIVEN cuts. -/
+theorem activeLongWord_aligned_raw_cuts
+    (pick : WeightedSelector) (i : ℕ)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (l z r l' r' : RawWord)
+    (hpos : (activeLongWord pick i hi).map (fun x => (x,true)) = l++z++r)
+    (hneg : FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true))) =
+      l'++FreeGroup.invRev z++r')
+    (hheavy : positiveWeight (activeLongWord pick i hi) < 240*10^17*rawWeight z) :
+    l' = FreeGroup.invRev r ∧ r' = FreeGroup.invRev l := by
+  have hback := congrArg FreeGroup.invRev hneg
+  rw [FreeGroup.invRev_invRev,FreeGroup.invRev_append,FreeGroup.invRev_append,
+    FreeGroup.invRev_invRev] at hback
+  have hback' : (activeLongWord pick i hi).map (fun x => (x,true)) =
+      FreeGroup.invRev r' ++ z ++ FreeGroup.invRev l' := by
+    simpa only [List.append_assoc] using hback
+  obtain ⟨p,u,q,hword,hp,hu,hq⟩ := read_factor_lift
+    (fun a : Fin 2 => (a,true)) (activeLongWord pick i hi) l z r hpos
+  obtain ⟨p',u',q',hword',hp',hu',hq'⟩ := read_factor_lift
+    (fun a : Fin 2 => (a,true)) (activeLongWord pick i hi)
+    (FreeGroup.invRev r') z (FreeGroup.invRev l') hback'
+  have he : u = u' := by
+    have h := congrArg (List.map (Prod.fst : Letter → Fin 2)) (hu.trans hu'.symm)
+    simp only [List.map_map] at h
+    change u.map (fun x => x) = u'.map (fun x => x) at h
+    simpa only [List.map_id'] using h
+  subst u'
+  have hweight : positiveWeight u = rawWeight z := by
+    rw [positiveWeight_eq_rawWeight_map,hu]
+  have hheavy' : min (positiveWeight (activeLongWord pick i hi))
+      (positiveWeight (activeLongWord pick i hi)) < 240*10^17*positiveWeight u := by
+    rw [min_self,hweight]
+    exact hheavy
+  obtain ⟨_,hpp,hqq⟩ := activeLongWord_heavy_factor_cut_eq pick i i hi hi
+    p u q p' q' hword hword' hheavy'
+  have hL : l = FreeGroup.invRev r' := by rw [← hp,hpp,hp']
+  have hR : r = FreeGroup.invRev l' := by rw [← hq,hqq,hq']
+  constructor
+  · rw [hR,FreeGroup.invRev_invRev]
+  · rw [hL,FreeGroup.invRev_invRev]
+
+set_option maxRecDepth 8192 in
+/-- A heavy directly paired factor between the opposite long
+blocks of the SAME indexed cell gives a smaller-type minimal
+filling of an actual coefficient power. All the contour
+hypotheses of the previous loop theorem are now derived
+from the literal four-block certificate. -/
+theorem gubaType_actual_self_long_pair_minimal_power_filling
+    (pick : WeightedSelector) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w)
+    (hw : w ≠ 1) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ (x c : _) (i : Fin s.length)
+      (h : ∃ v : F, ¬ Good (gubaState pick s[i.val].1.2.1.val).1 v)
+      (bs : List (List _)) (l U r l' r' : List _),
+      (idx x).val = i.val+1 →
+      R.vertexBoundary x = bs.flatMap id →
+      GubaFourBlockRead read bs (activeLongWord pick s[i.val].1.2.1.val h)
+        (pick (gubaState pick s[i.val].1.2.1.val).1 h).val s[i.val].1.2.2 →
+      bs[0]? = some (l++(U++[c])++r) →
+      bs[2]? = some (l'++(((U++[c]).map R.edge).reverse)++r') →
+      R.rotation c ≠ R.edge c →
+      positiveWeight (activeLongWord pick s[i.val].1.2.1.val h) <
+        240*10^17*rawWeight ((U++[c]).map read) →
+      ∃ u : Peiffer.Sequence F (RankHeight n),
+        descendingCountLT (2*n) gubaTypeCoordinate u s ∧
+        (GubaTypeMinimalExpression pick X n
+          ((pick (gubaState pick s[i.val].1.2.1.val).1 h).val ^ (-s[i.val].1.2.2)) u ∨
+          GubaTypeMinimalExpression pick X n (a^s[i.val].1.2.2) u) := by
+  classical
+  intro X rows R idx read x c i h bs l U r l' r' hidx hxb hread hb hc hne hheavy
+  let ds := U++[c]
+  let dt := (ds.map R.edge).reverse
+  let C := (pick (gubaState pick s[i.val].1.2.1.val).1 h).val
+  let k := s[i.val].1.2.2
+  obtain ⟨U₁,V₁,W₁,A₁,hbs,hU,hV,hW,hA⟩ := hread
+  rw [hbs] at hb hc
+  change some U₁ = some (l++ds++r) at hb
+  change some W₁ = some (l'++dt++r') at hc
+  have hu : U₁ = l++ds++r := Option.some.inj hb
+  have hv : W₁ = l'++dt++r' := Option.some.inj hc
+  have hpair := boundaryRibbon_inverse_read rows w s hs ds
+  change dt.map read = FreeGroup.invRev (ds.map read) at hpair
+  rw [hu] at hU
+  simp only [List.map_append] at hU
+  rw [hv] at hW
+  simp only [List.map_append,hpair] at hW
+  obtain ⟨hl',hr'⟩ := activeLongWord_aligned_raw_cuts pick
+    s[i.val].1.2.1.val h (l.map read) (ds.map read) (r.map read)
+    (l'.map read) (r'.map read) hU.symm hW.symm hheavy
+  have hdt : dt = R.edge c :: (U.map R.edge).reverse := by
+    simp [dt,ds,List.map_append,List.reverse_append]
+  let L := l++U
+  let M := r++V₁++l'
+  let N := (U.map R.edge).reverse++r'++A₁
+  have hrow : R.vertexBoundary x = (L++[c])++(M++(R.edge c::N)) := by
+    rw [hxb,hbs,hu,hv,hdt]
+    simp only [L,M,N,ds,List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil,
+      List.cons_append,List.append_assoc]
+  have hxc : R.rotation.SameCycle x c := by
+    apply (R.mem_vertexBoundary_iff x c).mp
+    rw [hrow]
+    simp
+  have hxe : R.rotation.SameCycle x (R.edge c) := by
+    apply (R.mem_vertexBoundary_iff x (R.edge c)).mp
+    rw [hrow]
+    simp
+  have hloop : R.rotation.SameCycle c (R.edge c) := hxc.symm.trans hxe
+  have hxi : R.rotation.SameCycle x (R.rotation c) :=
+    hxc.trans (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))
+  have hi : (idx (R.rotation c)).val = i.val+1 := by
+    have he := (disc_sameCycle_iff _ _ _ _).mp hxi
+    change idx x = idx (R.rotation c) at he
+    rwa [← he]
+  let A := (l.map read)++ds.map read
+  let B := r.map read
+  have hleft : (L++[c]).map read = A := by
+    simp only [L,A,ds,List.map_append,List.append_assoc]
+  have hmid : M.map read = B++rawIntPow C.toWord k++FreeGroup.invRev B := by
+    simp only [M,B,C,k,List.map_append,hV,hl']
+  have hright : (R.edge c::N).map read =
+      FreeGroup.invRev A++FreeGroup.invRev (rawIntPow a.toWord k) := by
+    have hN : R.edge c::N = dt++r'++A₁ := by
+      rw [hdt]
+      simp only [N,List.cons_append]
+    rw [hN,List.map_append,List.map_append,hpair,hr',hA]
+    simp only [A,FreeGroup.invRev_append]
+  exact gubaType_aligned_loop_minimal_power_filling pick X n w s hs hw
+    x c i L M N A B C k hloop hne hi hrow hleft hmid hright
+
+#print axioms activeLongWord_aligned_raw_cuts
+#print axioms gubaType_actual_self_long_pair_minimal_power_filling
+
 end QuandleResearch.Issue070
