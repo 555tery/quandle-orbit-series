@@ -30,6 +30,7 @@ Reuse the upstream surjective normal evaluation and its list evaluation lemma. -
 theorem exists_peiffer_expression (rel : I → F) (w : F)
     (hw : w ∈ Subgroup.normalClosure (Set.range rel)) :
     ∃ s : Peiffer.Sequence F I, Peiffer.evaluation rel s = w := by
+  classical
   obtain ⟨v, hv⟩ := normalEvaluation_surjective rel ⟨w, hw⟩
   refine ⟨v.toWord, ?_⟩
   rw [← Peiffer.evaluation_mk, FreeGroup.mk_toWord]
