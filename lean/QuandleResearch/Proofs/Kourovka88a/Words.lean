@@ -1364,8 +1364,10 @@ theorem gubaEvenPrefix_dividing_period (m d : ℕ)
     omega
   have hcases : k = 0 ∨ k = 1 ∨ k = 2 := by omega
   rcases hcases with rfl | rfl | rfl
-  · simp at hk
-    omega
+  · have hz : (gubaEvenPrefix m).length = 0 := by
+      simpa only [Nat.mul_zero] using hk
+    rw [hz] at ho
+    contradiction
   · simpa using hk.symm
   · rw [hk, Nat.mul_mod_left] at ho
     contradiction
