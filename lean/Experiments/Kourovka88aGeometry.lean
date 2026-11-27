@@ -8133,17 +8133,10 @@ theorem good_raw_rotation_iff (N : Subgroup F) (l r : RawWord) :
     Good N (FreeGroup.mk (r ++ l)) ↔ Good N (FreeGroup.mk (l ++ r)) := by
   have he : FreeGroup.mk l * FreeGroup.mk (r ++ l) *
       (FreeGroup.mk l)⁻¹ = FreeGroup.mk (l ++ r) := by
-    rw [← FreeGroup.mul_mk]
-    calc
-      FreeGroup.mk (l ++ (r ++ l)) * (FreeGroup.mk l)⁻¹ =
-          FreeGroup.mk (l ++ r) := by
-        rw [← List.append_assoc, ← FreeGroup.mul_mk]
-        group
-  have hh : Good N (FreeGroup.mk (l ++ r)) ↔
-      Good N (FreeGroup.mk (r ++ l)) := by
-    rw [← he]
-    exact good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))
-  exact hh.symm
+    rw [← FreeGroup.mul_mk, ← List.append_assoc, ← FreeGroup.mul_mk]
+    simp
+  simpa only [he] using
+    (good_conjugate_iff N (FreeGroup.mk l) (FreeGroup.mk (r ++ l))).symm
 
 /-- At two distinct active ranks, sufficiently long common literal
 periodic readings cannot start with cyclic rotations of both selected
@@ -8388,7 +8381,8 @@ theorem periodic_factor_contains_period_letters (c p z r : RawWord)
   rw [hmod,hpre] at he
   have hzt : t < z.length := lt_of_lt_of_le ht hz
   have hread : w[p.length+t]? = z[t]? := by
-    change (p ++ (z ++ r))[p.length+t]? = z[t]?
+    dsimp only [w]
+    rw [List.append_assoc]
     rw [List.getElem?_append_right (by omega : p.length ≤ p.length+t)]
     rw [show p.length+t-p.length = t by omega]
     exact List.getElem?_append_left hzt
