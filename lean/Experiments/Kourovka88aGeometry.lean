@@ -4732,4 +4732,85 @@ theorem exists_internal_edge_removal {D : Type} [Fintype D]
 #print axioms exists_internal_edge_removal
 
 
+
+/-- Finite iteration of the internal-edge surgery. The terminal
+ribbon retains all peripheral darts and their exact vertex readings,
+and every remaining edge has a peripheral endpoint. The statement
+is purely topological; it does not preserve interior coefficient
+relations or the decomposition into original face cycles. -/
+theorem exists_internal_edge_free_compression {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality) :
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D),
+      Q.EulerEquality ∧ (P.Connected → Q.Connected) ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) →
+        (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) ∧
+      (∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e))) ∧
+      (∀ d, keep (f d) → ¬ keep (f (Q.edge d))) := by
+  classical
+  have main : ∀ (n : ℕ) (A : Type) [Fintype A] (R : RibbonMap A)
+      (interior : A → Prop), Fintype.card A = n →
+      (∀ d e, R.rotation.SameCycle d e → (interior d ↔ interior e)) →
+      R.EulerEquality →
+      ∃ (B : Type) (_ : Fintype B) (T : RibbonMap B) (j : B ↪ A),
+        T.EulerEquality ∧ (R.Connected → T.Connected) ∧
+        (∀ d, j (T.edge d) = R.edge (j d)) ∧
+        (∀ d, ¬ interior d → ∃ e, j e = d) ∧
+        (∀ d, ¬ interior (j d) →
+          (T.vertexBoundary d).map j = R.vertexBoundary (j d)) ∧
+        (∀ d e, T.rotation.SameCycle d e → (interior (j d) ↔ interior (j e))) ∧
+        (∀ d, interior (j d) → ¬ interior (j (T.edge d))) := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | ind n ih =>
+      intro A inst R interior hcard hinv heuler
+      by_cases hex : ∃ a, interior a ∧ interior (R.edge a)
+      · obtain ⟨a,ha,ha'⟩ := hex
+        obtain ⟨C,instC,U,g,hlt,hU,hconnU,hedgeU,hsurvU,hreadU,hcyclesU⟩ :=
+          exists_internal_edge_removal R interior hinv heuler a ha ha'
+        let inside : C → Prop := fun d => interior (g d)
+        have hn : Fintype.card C < n := by omega
+        obtain ⟨B,instB,T,j,hT,hconn,hedge,hsurv,hread,hcycles,hterminal⟩ :=
+          ih (Fintype.card C) hn C U inside rfl hcyclesU hU
+        let f : B ↪ A := j.trans g
+        refine ⟨B,instB,T,f,hT,?_,?_,?_,?_,hcycles,hterminal⟩
+        · intro hc
+          exact hconn (hconnU hc)
+        · intro d
+          change g (j (T.edge d)) = R.edge (g (j d))
+          rw [hedge,hedgeU]
+        · intro d hd
+          obtain ⟨c,hc⟩ := hsurvU d hd
+          have hci : ¬ inside c := by
+            change ¬ interior (g c)
+            rw [hc]
+            exact hd
+          obtain ⟨b,hb⟩ := hsurv c hci
+          exact ⟨b,(congrArg g hb).trans hc⟩
+        · intro d hd
+          change (T.vertexBoundary d).map (fun b => g (j b)) =
+            R.vertexBoundary (g (j d))
+          calc
+            _ = ((T.vertexBoundary d).map j).map g := by
+              rw [List.map_map]
+              rfl
+            _ = (U.vertexBoundary (j d)).map g :=
+              congrArg (List.map g) (hread d hd)
+            _ = _ := hreadU (j d) hd
+      · refine ⟨A,inst,R,Function.Embedding.refl A,heuler,
+          fun h => h,fun _ => rfl,?_,?_,hinv,?_⟩
+        · intro d _
+          exact ⟨d,rfl⟩
+        · intro d _
+          exact List.map_id _
+        · intro d hd hd'
+          exact hex ⟨d,hd,hd'⟩
+  exact main (Fintype.card D) D P keep rfl hkeep hE
+
+#print axioms exists_internal_edge_free_compression
+
+
 end QuandleResearch.Issue070
