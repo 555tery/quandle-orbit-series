@@ -14505,7 +14505,10 @@ theorem guba23_no_heavy_direct_long_side_walks
   let S := positiveWord r
   let C := (pick (gubaState pick i.val).1 hi).val
   have hX : positiveWord (activeLongWord pick i.val hi) = P*S := by
-    rw [hfirst,positiveWord_append]
+    change positiveWord (activeLongWord pick i.val hi) =
+      positiveWord (p++z) * positiveWord r
+    rw [← positiveWord_append]
+    exact congrArg positiveWord (hfirst.trans (List.append_assoc p z r).symm)
   have hrel (b : ℤ) : rankHeightRel pick X n (i,b) = heightRelator (P*S) C b := by
     rw [guba_rankHeightRel_active pick n i hi b,hX]
   rw [hrel] at hx hy
