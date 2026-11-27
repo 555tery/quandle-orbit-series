@@ -237,11 +237,11 @@ theorem weightedRankHeightRelator_mem (pick : WeightedSelector)
     (h1 : weightedRankRelator pick X i ∈ M) (k : ℤ) :
     weightedRankHeightRelator pick X i k ∈ M := by
   classical
-  let N := weightedStages pick X i
-  by_cases h : ∃ w : F, ¬ Good N w
-  · rw [weightedRankRelator, weightedRelator_eq pick X i N h] at h1
-    have hk := heightRelator_mem_of_one M (X i N (pick N h).val)
-      (pick N h).val h1 k
+  by_cases h : ∃ w : F, ¬ Good (weightedStages pick X i) w
+  · rw [weightedRankRelator, weightedRelator_eq pick X i _ h] at h1
+    have hk := heightRelator_mem_of_one M
+      (X i (weightedStages pick X i) (pick (weightedStages pick X i) h).val)
+      (pick (weightedStages pick X i) h).val h1 k
     simpa only [weightedRankHeightRelator, dite_eq_left h] using hk
   · have heq : weightedRankHeightRelator pick X i k = 1 := by
       simp only [weightedRankHeightRelator, dite_eq_right h]
@@ -266,7 +266,7 @@ theorem weightedHeightStage_eq (pick : WeightedSelector)
     rintro w ⟨i, hi, k, rfl⟩
     apply weightedRankHeightRelator_mem
     exact Subgroup.subset_normalClosure ⟨i, hi, rfl⟩
-  · unfold stage
+  · unfold stage weightedHeightStage
     apply Subgroup.normalClosure_le_normal
     rintro w ⟨i, hi, rfl⟩
     apply Subgroup.subset_normalClosure
