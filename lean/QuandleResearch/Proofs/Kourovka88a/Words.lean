@@ -1335,4 +1335,154 @@ theorem samePrefix_resolvent_position (q p s : List (Fin 2))
   rw [hsub]
   exact ⟨by omega,hpos⟩
 
+
+/-! ## Recovering the selected prefix from a positive power
+
+An odd-length cube-free prefix has no proper positive period dividing
+its length. Fine–Wilf then identifies two such prefixes when their
+positive powers agree. All lengths in this section count letters.
+-/
+
+theorem gubaEvenPrefix_odd_length (m : ℕ) :
+    (gubaEvenPrefix m).length % 2 = 1 :=
+  gubaPrefix_odd_length (2*m+1)
+
+theorem gubaEvenPrefix_dividing_period (m d : ℕ)
+    (hd : 0 < d) (hper : (gubaEvenPrefix m).HasPeriod d)
+    (hdvd : d ∣ (gubaEvenPrefix m).length) :
+    d = (gubaEvenPrefix m).length := by
+  have hb := gubaEvenPrefix_period_bound m d hd hper
+  have ho := gubaEvenPrefix_odd_length m
+  obtain ⟨k,hk⟩ := hdvd
+  have hklt : k < 3 := by
+    by_contra! hh
+    have hmul := Nat.mul_le_mul_left d hh
+    rw [← hk] at hmul
+    omega
+  have hcases : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+  rcases hcases with rfl | rfl | rfl
+  · simp at hk
+    omega
+  · simpa using hk.symm
+  · rw [hk, Nat.mul_comm d 2] at ho
+    omega
+
+theorem repeat_take_base (q : List (Fin 2)) (k : ℕ) :
+    ((List.replicate (k+1) q).flatten).take q.length = q := by
+  rw [List.replicate_succ, List.flatten_cons, List.take_append_length]
+
+theorem repeat_hasPeriod (q : List (Fin 2)) (k : ℕ) :
+    ((List.replicate k q).flatten).HasPeriod q.length := by
+  cases k with
+  | zero => simp
+  | succ k =>
+    rw [List.HasPeriod, repeat_take_base]
+    apply List.prefix_iff_exists_append_eq.mpr
+    refine ⟨q, ?_⟩
+    calc
+      q ++ (List.replicate (k+1) q).flatten =
+          (List.replicate ((k+1)+1) q).flatten := by
+            rw [List.replicate_succ, List.flatten_cons]
+      _ = (List.replicate (k+1) q).flatten ++ q := by
+            rw [List.replicate_succ', List.flatten_concat]
+
+theorem repeat_base_infix (q : List (Fin 2)) (k : ℕ) (hk : 0 < k) :
+    q <:+: (List.replicate k q).flatten := by
+  obtain ⟨t,rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hk)
+  refine ⟨[], (List.replicate t q).flatten, ?_⟩
+  simp [List.replicate_succ]
+
+/-- The Fine–Wilf threshold is automatic for a nonempty common power.
+If one exponent is one, its length is a multiple of the other base
+length; otherwise both base lengths are at most half the total. -/
+theorem commonPower_fineWilf_threshold (p q k l : ℕ)
+    (hk : 0 < k) (hl : 0 < l) (heq : k*p = l*q) :
+    p+q-p.gcd q ≤ k*p := by
+  by_cases h1 : k = 1
+  · subst k
+    simp only [one_mul] at heq ⊢
+    have hd : q ∣ p := ⟨l, by simpa [Nat.mul_comm] using heq⟩
+    rw [Nat.gcd_eq_right hd]
+    omega
+  · by_cases h2 : l = 1
+    · subst l
+      simp only [one_mul] at heq
+      have hd : p ∣ q := ⟨k, by simpa [Nat.mul_comm] using heq.symm⟩
+      rw [Nat.gcd_eq_left hd]
+      omega
+    · have hp := Nat.mul_le_mul_right p (show 2 ≤ k by omega)
+      have hq := Nat.mul_le_mul_right q (show 2 ≤ l by omega)
+      omega
+
+/-- Equality of positive powers determines both selected prefix words
+and their exponents. The proof uses the existing Mathlib Fine–Wilf
+theorem, not a new periodicity theorem. -/
+theorem gubaEvenPrefix_commonPower (m n k l : ℕ)
+    (hk : 0 < k) (hl : 0 < l)
+    (heq : (List.replicate k (gubaEvenPrefix m)).flatten =
+      (List.replicate l (gubaEvenPrefix n)).flatten) :
+    gubaEvenPrefix m = gubaEvenPrefix n ∧ k = l := by
+  let p := gubaEvenPrefix m
+  let q := gubaEvenPrefix n
+  let w := (List.replicate k p).flatten
+  have he : w = (List.replicate l q).flatten := heq
+  have hp : 0 < p.length := by
+    have ho := gubaEvenPrefix_odd_length m
+    change p.length % 2 = 1 at ho
+    omega
+  have hq : 0 < q.length := by
+    have ho := gubaEvenPrefix_odd_length n
+    change q.length % 2 = 1 at ho
+    omega
+  have hlen : k*p.length = l*q.length := by
+    have hh := congrArg List.length he
+    simpa [w, repeated_length] using hh
+  have hperP : w.HasPeriod p.length := repeat_hasPeriod p k
+  have hperQ : w.HasPeriod q.length := by
+    rw [he]
+    exact repeat_hasPeriod q l
+  have hthreshold : p.length+q.length-p.length.gcd q.length ≤ w.length := by
+    change _ ≤ (List.replicate k p).flatten.length
+    rw [repeated_length]
+    exact commonPower_fineWilf_threshold _ _ k l hk hl hlen
+  have hg := hperP.gcd hperQ hthreshold
+  have hgp : p.HasPeriod (p.length.gcd q.length) :=
+    hg.infix (repeat_base_infix p k hk)
+  have hqinf : q <:+: w := by
+    rw [he]
+    exact repeat_base_infix q l hl
+  have hgq : q.HasPeriod (p.length.gcd q.length) := hg.infix hqinf
+  have hpos := Nat.gcd_pos_of_pos_left q.length hp
+  have hdP : p.length.gcd q.length = p.length :=
+    gubaEvenPrefix_dividing_period m _ hpos hgp (Nat.gcd_dvd_left _ _)
+  have hdQ : p.length.gcd q.length = q.length :=
+    gubaEvenPrefix_dividing_period n _ hpos hgq (Nat.gcd_dvd_right _ _)
+  have hbase : p.length = q.length := hdP.symm.trans hdQ
+  have hkl : k = l := Nat.mul_right_cancel hp (by simpa only [← hbase] using hlen)
+  have htP : w.take p.length = p := by
+    obtain ⟨t,ht⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hk)
+    change ((List.replicate k p).flatten).take p.length = p
+    rw [ht]
+    exact repeat_take_base p t
+  have htQ : w.take q.length = q := by
+    rw [he]
+    obtain ⟨t,ht⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hl)
+    rw [ht]
+    exact repeat_take_base q t
+  rw [hbase] at htP
+  exact ⟨htP.symm.trans htQ,hkl⟩
+
+/-- The full separator-delimited resolvent determines the underlying
+selected prefix and exponent, even when compared across ranks. -/
+theorem gubaEvenPrefix_resolvent_eq (m n k l : ℕ)
+    (hk : 0 < k) (hl : 0 < l)
+    (heq : resolventRaw (gubaEvenPrefix m) k =
+      resolventRaw (gubaEvenPrefix n) l) :
+    gubaEvenPrefix m = gubaEvenPrefix n ∧ k = l := by
+  simp only [resolventRaw, longBlock, show k-1+1 = k by omega,
+    show l-1+1 = l by omega] at heq
+  have hmid := List.append_inj_left' heq rfl
+  have hpow := List.append_inj_right hmid rfl
+  exact gubaEvenPrefix_commonPower m n k l hk hl hpow
+
 end QuandleResearch.Issue070
