@@ -3,6 +3,7 @@ import SmallPresentation.SmallCancellationDipoleIdentityRibbon
 import SmallPresentation.SmallCancellationGeometryIdentityPlanarity
 import SmallPresentation.SmallCancellationGeometryIdentityVertexWords
 import SmallPresentation.SmallCancellationGeometryBoundaryTheorem
+import SmallPresentation.SmallCancellationGeometryRelativeRestriction
 
 /-!
 # Experimental bridge to the pinned Small-Groups geometry library
@@ -1378,5 +1379,70 @@ theorem activePeriod_region_quadrilateral_weight (pick : WeightedSelector)
   exact weightedStages_mono pick (gubaConjugatorChoice pick) hji hb
 
 #print axioms activePeriod_region_quadrilateral_weight
+
+
+/-! ## Restrict to the actual connected component
+
+The restriction keeps the ordered boundary readings, not only the
+number of vertices. Consequently the boundary theorem can be applied
+to a component of a possibly disconnected spherical ribbon.
+-/
+
+theorem component_vertex_read {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a : D)
+    (d : {d : D // P.SameComponent a d}) :
+    ((P.componentRibbon a).vertexBoundary d).map (fun e => read e.val) =
+      (P.vertexBoundary d.val).map read := by
+  have hm := P.restrict_vertexBoundary (P.SameComponent a)
+    (P.component_membership_edge a) (P.component_membership_rotation a) d
+  change ((P.componentRibbon a).vertexBoundary d).map Subtype.val =
+    P.vertexBoundary d.val at hm
+  rw [← hm, List.map_map]
+  rfl
+
+theorem component_boundary_mem_normal {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hE : P.EulerEquality) (a : D)
+    (hint : ∀ e, P.SameComponent a e → ¬P.rotation.SameCycle a e →
+      FreeGroup.mk ((P.vertexBoundary e).map read) ∈ N) :
+    FreeGroup.mk ((P.vertexBoundary a).map read) ∈ N := by
+  classical
+  let d : {d : D // P.SameComponent a d} := ⟨a, Relation.EqvGen.refl a⟩
+  have hE' : (P.componentRibbon a).EulerEquality := by
+    change Fintype.card (P.componentRibbon a).Vertex +
+      Fintype.card (P.componentRibbon a).Face =
+      Fintype.card (P.componentRibbon a).Edge +
+        2 * Fintype.card (P.componentRibbon a).Component
+    rw [P.componentRibbon_card_components, mul_one]
+    exact P.componentRibbon_sphere hE a
+  have h := ribbon_boundary_mem_normal (P.componentRibbon a)
+    (fun e => read e.val) N
+    (fun e => he e.val) (P.componentRibbon_connected a) hE' d (by
+      intro e hne
+      rw [component_vertex_read]
+      apply hint e.val e.property
+      intro hh
+      exact hne ((P.restrict_sameVertex_iff (P.SameComponent a)
+        (P.component_membership_edge a) (P.component_membership_rotation a) d e).mpr hh))
+  rw [component_vertex_read] at h
+  exact h
+
+/-- The actual boundary component preserves the entire marked word,
+with its original orientation and chosen zero corner. -/
+theorem boundaryComponent_read (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (hw : w ≠ 1) :
+    ((boundaryComponent rows w s hs hw).vertexBoundary
+      ⟨boundaryDart rows w s hw, Relation.EqvGen.refl _⟩).map
+      (fun e => discRead (chosenSection (Fin 2)) (markedRows rows w)
+        (boundaryIdentity s) e.val) = FreeGroup.invRev w.toWord := by
+  rw [boundaryComponent, component_vertex_read]
+  exact boundaryRibbon_read rows w s hs hw
+
+#print axioms component_vertex_read
+#print axioms component_boundary_mem_normal
+#print axioms boundaryComponent_read
 
 end QuandleResearch.Issue070
