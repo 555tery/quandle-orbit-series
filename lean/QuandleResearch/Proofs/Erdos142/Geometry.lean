@@ -827,6 +827,157 @@ theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
   simpa [E, Fintype.card_prod, inner_cell_index_card, Nat.mul_assoc] using hc
 
 
+
+/-! A uniform positive density margin for sufficiently large moduli. -/
+
+theorem finite_block_density (p : ℕ) [NeZero p] (hp : 2400000 ≤ p) :
+    73 * p ^ 2 ≤ 250 * (finiteBlock p).card := by
+  let q := (p - 1) / 480
+  let r := (p - 1) / 2400
+  have hq : q * 480 < p := by dsimp [q]; omega
+  have hr : r * 2400 < p := by dsimp [r]; omega
+  have hqlo : 999 * p ≤ 480000 * q := by dsimp [q]; omega
+  have hrlo : 999 * p ≤ 2400000 * r := by dsimp [r]; omega
+  have hcard := finite_block_card_lower p q r hq hr
+  rw [rectangle_area_units.1, rectangle_area_units.2] at hcard
+  have hq' : 999 * (p : ℝ) ≤ 480000 * (q : ℝ) := by exact_mod_cast hqlo
+  have hr' : 999 * (p : ℝ) ≤ 2400000 * (r : ℝ) := by exact_mod_cast hrlo
+  have hc : 337668 * (q : ℝ) * (r : ℝ) ≤ ((finiteBlock p).card : ℝ) := by
+    exact_mod_cast hcard
+  have hprod := mul_le_mul hq' hr' (by positivity) (by positivity)
+  have hgoal : 73 * (p : ℝ)^2 ≤ 250 * ((finiteBlock p).card : ℝ) := by
+    nlinarith [sq_nonneg (p : ℝ)]
+  exact_mod_cast hgoal
+
+/-! Finite averaging without measure theory.  We avoid all short
+endpoint differences by the choice of slope before choosing a shift.
+No independence or estimate of the number of progressions is assumed. -/
+
+/-- If the union of forbidden sets has cardinality below the size
+of the ambient group, one choice avoids every forbidden set. -/
+theorem exists_avoid_bad {ι G : Type*} [Fintype G] [DecidableEq G]
+    (I : Finset ι) (bad : ι → Finset G) (M : ℕ)
+    (hb : ∀ i ∈ I, (bad i).card ≤ M)
+    (h : I.card * M < Fintype.card G) :
+    ∃ a : G, ∀ i ∈ I, a ∉ bad i := by
+  classical
+  have hcard := Finset.card_biUnion_le_card_mul I bad M hb
+  have hn : ¬ ∀ a : G, a ∈ I.biUnion bad := by
+    intro hall
+    have hsub : (Finset.univ : Finset G) ⊆ I.biUnion bad := fun a _ => hall a
+    have hh := Finset.card_le_card hsub
+    rw [Finset.card_univ] at hh
+    omega
+  obtain ⟨a, ha⟩ := not_forall.mp hn
+  exact ⟨a, fun i hi hm => ha (Finset.mem_biUnion.mpr ⟨i, hi, hm⟩)⟩
+
+/-- Choose a slope avoiding the forbidden set D for every positive
+difference of indices below N, provided multiplication by each such
+difference is a bijection of the ambient finite additive group. -/
+theorem exists_avoiding_slope {G : Type*} [AddCommGroup G] [Fintype G]
+    [DecidableEq G] (N : ℕ) (D : Finset G)
+    (e : ℕ → G ≃ G)
+    (he : ∀ d ∈ Finset.Ico 1 N, ∀ a : G, e d a = d • a)
+    (h : N * D.card < Fintype.card G) :
+    ∃ a : G, ∀ d ∈ Finset.Ico 1 N, d • a ∉ D := by
+  classical
+  let I := Finset.Ico 1 N
+  let bad : ℕ → Finset G := fun d => D.map (e d).symm.toEmbedding
+  have hI : I.card ≤ N := by
+    have hh : I ⊆ Finset.range N := by
+      intro d hd
+      exact Finset.mem_range.mpr (Finset.mem_Ico.mp hd).2
+    simpa using Finset.card_le_card hh
+  have hb : ∀ d ∈ I, (bad d).card ≤ D.card := by
+    intro d _
+    simp [bad]
+  obtain ⟨a, ha⟩ := exists_avoid_bad I bad D.card hb
+    (lt_of_le_of_lt (Nat.mul_le_mul_right _ hI) h)
+  refine ⟨a, ?_⟩
+  intro d hd hm
+  apply ha d hd
+  apply Finset.mem_map.mpr
+  refine ⟨e d a, ?_, ?_⟩
+  · rwa [he d hd a]
+  · simp
+
+/-- Averaging over all shifts: a fiber of the map (i,y) ↦ y-f(i)
+supplies the large preimage. -/
+theorem shift_large_preimage {G : Type*} [AddCommGroup G] [Fintype G]
+    [DecidableEq G] (I : Finset ℕ) (S : Finset G) (f : ℕ → G) (K : ℕ)
+    (h : Fintype.card G * K ≤ I.card * S.card) :
+    ∃ b : G, K ≤ (I.filter fun i => f i + b ∈ S).card := by
+  classical
+  let g : ℕ × G → G := fun v => v.2 - f v.1
+  have h' : (Finset.univ : Finset G).card * K ≤ (I.product S).card := by
+    simpa using h
+  obtain ⟨b, _, hb⟩ := Finset.exists_le_card_fiber_of_mul_le_card_of_maps_to
+    (f := g) (fun _ _ => Finset.mem_univ _) Finset.univ_nonempty h'
+  let T := (I.product S).filter fun v => g v = b
+  let P := I.filter fun i => f i + b ∈ S
+  have hm : Set.MapsTo (Prod.fst : ℕ × G → ℕ) T P := by
+    intro v hv
+    have hmem := Finset.mem_filter.mp (show v ∈ T from hv)
+    have hv' := Finset.mem_product.mp hmem.1
+    have heq : f v.1 + b = v.2 := by
+      have hg : v.2 - f v.1 = b := hmem.2
+      calc
+        f v.1 + b = f v.1 + (v.2 - f v.1) := by rw [hg]
+        _ = v.2 := by abel
+    exact Finset.mem_filter.mpr ⟨hv'.1, by rwa [heq]⟩
+  have hi : (T : Set (ℕ × G)).InjOn (Prod.fst : ℕ × G → ℕ) := by
+    intro v hv w hw he
+    have h₁ := (Finset.mem_filter.mp (show v ∈ T from hv)).2
+    have h₂ := (Finset.mem_filter.mp (show w ∈ T from hw)).2
+    change v.2 - f v.1 = b at h₁
+    change w.2 - f w.1 = b at h₂
+    rw [he] at h₁
+    exact Prod.ext he (sub_right_cancel (h₁.trans h₂.symm))
+  exact ⟨b, le_trans hb (Finset.card_le_card_of_injOn Prod.fst hm hi)⟩
+
+/-- Deterministic transfer to Mathlib's actual extremal function.
+The only shell-specific hypothesis is that every AP in S has its
+endpoint difference in D, including the zero difference. -/
+theorem roth_of_avoiding_slope {G : Type*} [AddCommGroup G] [Fintype G]
+    [DecidableEq G] (N K : ℕ) (S D : Finset G) (a : G)
+    (ha : ∀ d ∈ Finset.Ico 1 N, d • a ∉ D)
+    (hS : ∀ x ∈ S, ∀ y ∈ S, ∀ z ∈ S, x + z = y + y → z - x ∈ D)
+    (h : Fintype.card G * K ≤ N * S.card) :
+    K ≤ rothNumberNat N := by
+  classical
+  obtain ⟨b, hb⟩ := shift_large_preimage (Finset.range N) S
+    (fun n => n • a) K (by simpa using h)
+  let P := (Finset.range N).filter fun i => i • a + b ∈ S
+  have havoid (x z : ℕ) (hxz : x < z) (hz : z < N) :
+      (z • a + b) - (x • a + b) ∉ D := by
+    have hd : z - x ∈ Finset.Ico 1 N := Finset.mem_Ico.mpr ⟨by omega, by omega⟩
+    have he : z • a = x • a + (z - x) • a := by
+      calc
+        z • a = (x + (z - x)) • a := congrArg (fun n : ℕ => n • a) (by omega)
+        _ = _ := add_nsmul a x (z - x)
+    have hdif : (z • a + b) - (x • a + b) = (z - x) • a := by rw [he]; abel
+    rw [hdif]
+    exact ha _ hd
+  have hfree : ThreeAPFree (P : Set ℕ) := by
+    apply threeAPFree_iff_eq_right.mpr
+    intro x hx y hy z hz hAP
+    have hx' := Finset.mem_filter.mp (show x ∈ P from hx)
+    have hy' := Finset.mem_filter.mp (show y ∈ P from hy)
+    have hz' := Finset.mem_filter.mp (show z ∈ P from hz)
+    have he : (x • a + b) + (z • a + b) = (y • a + b) + (y • a + b) := by
+      calc
+        _ = (x + z) • a + (b + b) := by rw [add_nsmul]; abel
+        _ = _ := by rw [hAP, add_nsmul]; abel
+    by_contra hn
+    rcases lt_or_gt_of_ne hn with hlt | hgt
+    · exact havoid x z hlt (Finset.mem_range.mp hz'.1)
+        (hS _ hx'.2 _ hy'.2 _ hz'.2 he)
+    · exact havoid z x hgt (Finset.mem_range.mp hx'.1)
+        (hS _ hz'.2 _ hy'.2 _ hx'.2 (by simpa [add_comm] using he))
+  exact le_trans hb (ThreeAPFree.le_rothNumberNat P hfree
+    (fun _ hx => Finset.mem_range.mp (Finset.mem_filter.mp hx).1) rfl)
+
+
 end
 
 end QuandleResearch.Erdos142
