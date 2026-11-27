@@ -322,10 +322,14 @@ theorem good_conjugate_iff (N : Subgroup F) (u w : F) :
   constructor
   · rintro ⟨x,k,hx⟩
     refine ⟨x*u,k,?_⟩
-    convert hx using 1 <;> group
+    have he : (x*u)*w*(x*u)⁻¹*(a^k)⁻¹ = x*(u*w*u⁻¹)*x⁻¹*(a^k)⁻¹ := by group
+    rw [he]
+    exact hx
   · rintro ⟨x,k,hx⟩
     refine ⟨x*u⁻¹,k,?_⟩
-    convert hx using 1 <;> group
+    have he : (x*u⁻¹)*(u*w*u⁻¹)*(x*u⁻¹)⁻¹*(a^k)⁻¹ = x*w*x⁻¹*(a^k)⁻¹ := by group
+    rw [he]
+    exact hx
 
 theorem minBad_shorter_good {N : Subgroup F} {c : F}
     (hc : MinBad N c) {w : F} (hw : weightedLength w < weightedLength c) :
@@ -391,5 +395,46 @@ theorem minBad_proper_factor_good {N : Subgroup F} {c : F}
       by_contra! hn
       exact hr ((rawWeight_eq_zero_iff r).mp (by omega))
     omega
+
+
+/-- Goodness is closed under taking natural powers in the quotient. -/
+theorem good_pow (N : Subgroup F) [N.Normal] {w : F}
+    (hw : Good N w) (m : ℕ) : Good N (w^m) := by
+  obtain ⟨k,hk⟩ := (good_iff_quotient N w).mp hw
+  apply (good_iff_quotient N (w^m)).mpr
+  refine ⟨k*(m:ℤ), ?_⟩
+  rw [map_pow, zpow_mul, zpow_natCast]
+  exact IsConj.pow m hk
+
+theorem rawWeight_rawNatPow (v : RawWord) (m : ℕ) :
+    rawWeight (rawNatPow v m) = m * rawWeight v := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [rawNatPow, rawWeight_append, ih, Nat.succ_mul]
+
+/-- A minimal bad period cannot literally consist of two or more copies
+of a nonempty word: the shorter word is good, hence so is its power. -/
+theorem minBad_not_literal_power {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) (v : RawWord) (m : ℕ)
+    (hv : v ≠ []) (hm : 2 ≤ m) :
+    c.toWord ≠ rawNatPow v m := by
+  intro heq
+  have hpos : 0 < rawWeight v := by
+    by_contra! hn
+    exact hv ((rawWeight_eq_zero_iff v).mp (by omega))
+  have hle := weightedLength_mk_le v
+  have hweight : weightedLength c = m * rawWeight v := by
+    unfold weightedLength
+    rw [heq, rawWeight_rawNatPow]
+  have hmul : 2 * rawWeight v ≤ m * rawWeight v :=
+    Nat.mul_le_mul_right _ hm
+  have hg : Good N (FreeGroup.mk v) :=
+    minBad_shorter_good hc (by omega)
+  have hpow : c = (FreeGroup.mk v)^m := by
+    rw [← rawNatPow_eval, ← heq, FreeGroup.mk_toWord]
+  apply hc.1
+  rw [hpow]
+  exact good_pow N hg m
 
 end QuandleResearch.Issue070
