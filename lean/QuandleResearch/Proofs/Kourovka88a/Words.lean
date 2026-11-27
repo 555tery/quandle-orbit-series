@@ -1488,4 +1488,40 @@ theorem gubaEvenPrefix_resolvent_eq (m n k l : ℕ)
   have hpow := List.append_inj_right hmid rfl
   exact gubaEvenPrefix_commonPower m n k l hk hl hpow
 
+
+/-- Literal occurrence of a selected resolvent in a selected long word
+forces the same base prefix and the prescribed position. This is
+cross-prefix uniqueness, not yet the full graded overlap lemma. -/
+theorem gubaEvenPrefix_resolvent_occurrence (m n h k : ℕ)
+    (p s : List (Fin 2)) (hk : 0 < k)
+    (heq : longRaw (gubaEvenPrefix m) h =
+      p ++ resolventRaw (gubaEvenPrefix n) k ++ s) :
+    gubaEvenPrefix m = gubaEvenPrefix n ∧ k < h ∧
+      p.length = (longRaw (gubaEvenPrefix m) (k-1)).length := by
+  let q := gubaEvenPrefix m
+  let v := gubaEvenPrefix n
+  have he : longRaw q h = p ++ resolventRaw v k ++ s := heq
+  obtain ⟨j,hj,hpos,hgap⟩ := resolvent_occurrence_gap q v p s
+    (gubaPrefix_no_tripleB (2*m+1)) (gubaPrefix_head_zero (2*m+1))
+    (gubaPrefix_last_zero (2*m+1))
+    (gubaPrefix_no_tripleB (2*n+1)) (gubaPrefix_head_zero (2*n+1))
+    (gubaPrefix_last_zero (2*n+1)) h k hk he
+  obtain ⟨t,ht⟩ := longRaw_resolvent_factor q (j+1) h (by omega) hj
+  rw [show j+1-1 = j by omega] at ht
+  have hh : p ++ (resolventRaw v k ++ s) =
+      longRaw q j ++ (resolventRaw q (j+1) ++ t) := by
+    simpa only [List.append_assoc] using he.symm.trans ht
+  have htail := List.append_inj_right hh hpos
+  have hrl : (resolventRaw v k).length = (resolventRaw q (j+1)).length := by
+    simp only [resolventRaw, List.length_append, longBlock_length,
+      List.length_replicate, show k-1+1 = k by omega,
+      show j+1-1+1 = j+1 by omega]
+    omega
+  have hr := List.append_inj_left htail hrl
+  obtain ⟨hbase,hidx⟩ := gubaEvenPrefix_resolvent_eq n m k (j+1) hk (by omega) hr
+  refine ⟨hbase.symm,by omega,?_⟩
+  change p.length = (longRaw q (k-1)).length
+  rw [show k-1 = j by omega]
+  exact hpos
+
 end QuandleResearch.Issue070
