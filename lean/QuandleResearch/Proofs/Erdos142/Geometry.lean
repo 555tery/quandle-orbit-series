@@ -1408,6 +1408,163 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
   exact hfinal
 
 
+
+/-! Analytic optimization of the integer-parameter estimate. -/
+
+/-- Eliminate the integer radius parameter by rounding an exponential
+upwards. All dependence on dimension is retained explicitly. -/
+theorem roth_exp_parameters (N m : ℕ) (hN : 1 ≤ N) (hm : 0 < m) :
+    (N : ℝ) * Real.exp (-((m : ℝ) * Real.log (250 / 73) +
+      Real.log (N : ℝ) / (m : ℝ))) <
+      512 * ((m : ℝ) * 1000001 + 1) * ((rothNumberNat N : ℝ) + 2) := by
+  have hNp : 0 < (N : ℝ) := by exact_mod_cast (show 0 < N by omega)
+  have hm' : 0 < (m : ℝ) := by exact_mod_cast hm
+  have hn1 : 1 ≤ (N : ℝ) := by exact_mod_cast hN
+  let v : ℝ := Real.log (N : ℝ) / (2 * (m : ℝ))
+  let E : ℝ := Real.exp v
+  have hv : 0 ≤ v := div_nonneg (Real.log_nonneg hn1) (by positivity)
+  have hE : 1 ≤ E := Real.one_le_exp hv
+  let t : ℕ := ⌊E⌋₊ + 1
+  have ht : 0 < t := by dsimp [t]; omega
+  have htl : E < (t : ℝ) := by
+    dsimp [t]
+    push_cast
+    exact Nat.lt_floor_add_one E
+  have htu : (t : ℝ) ≤ 2 * E := by
+    have hh := Nat.floor_le (show 0 ≤ E by linarith)
+    dsimp [t]
+    push_cast
+    linarith
+  have hEpow : (E * E)^m = (N : ℝ) := by
+    dsimp [E]
+    rw [← Real.exp_add, ← Real.exp_nat_mul]
+    have he : (m : ℝ) * (v + v) = Real.log (N : ℝ) := by
+      dsimp [v]
+      field_simp
+      <;> ring
+    rw [he, Real.exp_log hNp]
+  have hbase : E * E < (t : ℝ) * (t : ℝ) := by
+    nlinarith [mul_pos (show 0 < (t : ℝ) - E by linarith)
+      (show 0 < (t : ℝ) + E by linarith)]
+  have hNt' : (N : ℝ) < ((t : ℝ) * (t : ℝ))^m := by
+    rw [← hEpow]
+    exact pow_lt_pow_left₀ hbase (by positivity) (Nat.ne_of_gt hm)
+  have hNt : N < (t * t)^m := by exact_mod_cast hNt'
+  have h := roth_integer_parameters N m t hm ht hNt
+  have ht2 : (t : ℝ)^2 ≤ 4 * Real.exp (Real.log (N : ℝ) / (m : ℝ)) := by
+    have hh := mul_le_mul htu htu (by positivity) (by positivity)
+    have he : E * E = Real.exp (Real.log (N : ℝ) / (m : ℝ)) := by
+      dsimp [E]
+      rw [← Real.exp_add]
+      congr 1
+      dsimp [v]
+      ring
+    nlinarith
+  let a : ℝ := Real.log (250 / 73)
+  have hden : Real.exp (-a) = (73 / 250 : ℝ) := by
+    dsimp [a]
+    rw [Real.exp_neg, Real.exp_log (by norm_num : (0 : ℝ) < 250 / 73)]
+    norm_num
+  have hpow : (73 / 250 : ℝ)^m = Real.exp (-((m : ℝ) * a)) := by
+    rw [← hden, ← Real.exp_nat_mul]
+    congr 1
+    ring
+  have hnon : 0 ≤ (128 : ℝ) * ((m : ℝ) * 1000001 + 1) *
+      ((rothNumberNat N : ℝ) + 2) := by positivity
+  have hh : (N : ℝ) * Real.exp (-((m : ℝ) * a)) <
+      512 * ((m : ℝ) * 1000001 + 1) * ((rothNumberNat N : ℝ) + 2) *
+      Real.exp (Real.log (N : ℝ) / (m : ℝ)) := by
+    rw [hpow] at h
+    calc
+      _ < 128 * ((m : ℝ) * 1000001 + 1) * (t : ℝ)^2 *
+          ((rothNumberNat N : ℝ) + 2) := h
+      _ = (128 * ((m : ℝ) * 1000001 + 1) *
+          ((rothNumberNat N : ℝ) + 2)) * (t : ℝ)^2 := by ring
+      _ ≤ (128 * ((m : ℝ) * 1000001 + 1) *
+          ((rothNumberNat N : ℝ) + 2)) *
+          (4 * Real.exp (Real.log (N : ℝ) / (m : ℝ))) :=
+        mul_le_mul_of_nonneg_left ht2 hnon
+      _ = _ := by ring
+  have hpos := Real.exp_pos (-(Real.log (N : ℝ) / (m : ℝ)))
+  have hmul := mul_lt_mul_of_pos_right hh hpos
+  have hcancel : Real.exp (Real.log (N : ℝ) / (m : ℝ)) *
+      Real.exp (-(Real.log (N : ℝ) / (m : ℝ))) = 1 := by
+    rw [← Real.exp_add, add_neg_cancel, Real.exp_zero]
+  have hleft : Real.exp (-((m : ℝ) * a)) *
+      Real.exp (-(Real.log (N : ℝ) / (m : ℝ))) =
+      Real.exp (-((m : ℝ) * a + Real.log (N : ℝ) / (m : ℝ))) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  simpa only [mul_assoc, hleft, hcancel, mul_one, a] using hmul
+
+/-- Optimize the dimension with one-sided rounding. This formulation
+exhibits the improved leading coefficient without any numerical log
+approximation. The polynomial factor and +2 remain to be absorbed. -/
+theorem roth_sqrt_bound (N : ℕ) (hN : 1 ≤ N) :
+    (N : ℝ) * Real.exp (-(2 * Real.sqrt (Real.log (250 / 73)) *
+      Real.sqrt (Real.log (N : ℝ)) + Real.log (250 / 73))) <
+      512 * (1000001 * (Real.sqrt (Real.log (N : ℝ)) /
+        Real.sqrt (Real.log (250 / 73)) + 1) + 1) *
+        ((rothNumberNat N : ℝ) + 2) := by
+  let a : ℝ := Real.log (250 / 73)
+  let b : ℝ := Real.sqrt a
+  let u : ℝ := Real.sqrt (Real.log (N : ℝ))
+  have ha : 0 < a := Real.log_pos (by norm_num)
+  have hb : 0 < b := Real.sqrt_pos.2 ha
+  have hu : 0 ≤ u := Real.sqrt_nonneg _
+  have hb2 : b^2 = a := Real.sq_sqrt ha.le
+  have hu2 : u^2 = Real.log (N : ℝ) :=
+    Real.sq_sqrt (Real.log_nonneg (by exact_mod_cast hN))
+  let m : ℕ := ⌊u / b⌋₊ + 1
+  have hm : 0 < m := by dsimp [m]; omega
+  have hm' : 0 < (m : ℝ) := by exact_mod_cast hm
+  have hml : u / b < (m : ℝ) := by
+    dsimp [m]
+    push_cast
+    exact Nat.lt_floor_add_one _
+  have hmu : (m : ℝ) ≤ u / b + 1 := by
+    have hh := Nat.floor_le (div_nonneg hu hb.le)
+    dsimp [m]
+    push_cast
+    linarith
+  have hmb : u ≤ (m : ℝ) * b := ((div_lt_iff₀ hb).mp hml).le
+  have hma : (m : ℝ) * a ≤ b * u + a := by
+    have hh := (le_div_iff₀ hb).mp (show (m : ℝ) - 1 ≤ u / b by linarith)
+    have hh' := mul_le_mul_of_nonneg_right hh hb.le
+    nlinarith
+  have hlog : Real.log (N : ℝ) / (m : ℝ) ≤ b * u := by
+    apply (div_le_iff₀ hm').2
+    have hh := mul_le_mul_of_nonneg_right hmb hu
+    nlinarith
+  have hopt : (m : ℝ) * a + Real.log (N : ℝ) / (m : ℝ) ≤
+      2 * b * u + a := by linarith
+  have h := roth_exp_parameters N m hN hm
+  change (N : ℝ) * Real.exp (-((m : ℝ) * a +
+    Real.log (N : ℝ) / (m : ℝ))) < _ at h
+  change (N : ℝ) * Real.exp (-(2 * b * u + a)) <
+    512 * (1000001 * (u / b + 1) + 1) * ((rothNumberNat N : ℝ) + 2)
+  calc
+    _ ≤ (N : ℝ) * Real.exp (-((m : ℝ) * a +
+        Real.log (N : ℝ) / (m : ℝ))) :=
+      mul_le_mul_of_nonneg_left (Real.exp_le_exp.mpr (by linarith)) (by positivity)
+    _ < 512 * ((m : ℝ) * 1000001 + 1) * ((rothNumberNat N : ℝ) + 2) := h
+    _ ≤ _ := by
+      apply mul_le_mul_of_nonneg_right _ (by positivity)
+      linarith
+
+/-- Exact comparison of leading constants: the strict inequality does
+not rely on a floating point evaluation of either logarithm. -/
+theorem leading_constant_strict :
+    2 * Real.sqrt (Real.log (250 / 73)) <
+      2 * Real.sqrt (Real.log (24 / 7)) := by
+  have h := Real.log_lt_log (by norm_num : (0 : ℝ) < 250 / 73)
+    (by norm_num : (250 / 73 : ℝ) < 24 / 7)
+  have ha := Real.log_nonneg (by norm_num : (1 : ℝ) ≤ 250 / 73)
+  have hs := Real.sqrt_lt_sqrt ha h
+  linarith
+
+
 end
 
 end QuandleResearch.Erdos142
