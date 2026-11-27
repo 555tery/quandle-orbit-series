@@ -3391,7 +3391,11 @@ theorem guba_boundary_component_large_row (pick : WeightedSelector)
       ⟨z, Relation.EqvGen.refl z⟩ e).mp h
   · change (boundaryIdentity s)[discOccurrence (markedRows rows w)
       (boundaryIdentity s) d0].1.2 = some i
-    simpa only [d0, discOccurrence_at] using hi'
+    have hidx := discOccurrence_at (markedRows rows w) (boundaryIdentity s) idx
+      ⟨0, Nat.zero_lt_of_lt k.isLt⟩
+    have hlabel := congrArg (fun t : Fin (boundaryIdentity s).length =>
+      (boundaryIdentity s)[t].1.2) hidx
+    exact hlabel.trans hi'
   · have hrow : rows i ≠ [] := by
       intro hnil
       have hpos : 0 < (orientedWord
@@ -3569,13 +3573,17 @@ theorem signed_letter_survives_of_commWord (N : Subgroup F) [N.Normal]
     apply hcomm
     apply (QuotientGroup.eq_one_iff _).mp
     have hqa : QuotientGroup.mk' N a = 1 := (QuotientGroup.eq_one_iff _).mpr h
-    simp [commWord, hqa]
+    change QuotientGroup.mk' N (a * b * a⁻¹ * b⁻¹) = 1
+    simp only [map_mul, map_inv, hqa]
+    group
   have hb : b ∉ N := by
     intro h
     apply hcomm
     apply (QuotientGroup.eq_one_iff _).mp
     have hqb : QuotientGroup.mk' N b = 1 := (QuotientGroup.eq_one_iff _).mpr h
-    simp [commWord, hqb]
+    change QuotientGroup.mk' N (a * b * a⁻¹ * b⁻¹) = 1
+    simp only [map_mul, map_inv, hqb]
+    group
   have hg (i : Fin 2) : FreeGroup.of i ∉ N := by
     fin_cases i
     · exact ha
@@ -3634,8 +3642,9 @@ theorem rankRibbon_outlet_weight_partition (pick : WeightedSelector)
   have hbB := (hB b).mpr hkb
   have hpair : ({a,b} : Finset _) ⊆ guba22_component_support S B a := by
     intro d hd
-    rcases Finset.mem_insert.mp hd with rfl | hd
-    · exact (guba22_mem_component_support S B a a).mpr
+    rcases Finset.mem_insert.mp hd with hda | hd
+    · subst d
+      exact (guba22_mem_component_support S B a a).mpr
         ⟨haB,Relation.EqvGen.refl a⟩
     · have he := Finset.mem_singleton.mp hd
       subst d
