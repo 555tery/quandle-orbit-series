@@ -811,6 +811,7 @@ theorem minBad_intPow_toWord {N : Subgroup F} {c : F}
     (c ^ k).toWord = rawIntPow c.toWord k := by
   cases k with
   | ofNat m =>
+    change (c ^ (m : ℤ)).toWord = rawNatPow c.toWord m
     rw [zpow_natCast]
     exact minBad_natPow_toWord hc m
   | negSucc m =>
