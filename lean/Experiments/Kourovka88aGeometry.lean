@@ -8788,4 +8788,48 @@ theorem guba23_delete_cell_variable_base_minimal
 #print axioms guba23_delete_cell_variable_base_minimal
 
 
+
+/-! ### Faithful cell indexing for the deletion step
+
+A rank-minimal expression contains no trivial row. Consequently the
+outer boundary (when nontrivial) and every interior occurrence have
+a genuine zero corner in the existing ribbon; no zero-length row
+is silently dropped when counting types.
+-/
+
+theorem rankMinimal_no_trivial_occurrence
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ [x] ++ r)) :
+    Peiffer.term (rankHeightRel pick X n) x ≠ 1 := by
+  intro he
+  have hb : Peiffer.evaluation (rankHeightRel pick X n) [x] =
+      Peiffer.evaluation (rankHeightRel pick X n) [] := by
+    simpa [Peiffer.evaluation] using he
+  apply rankMinimal_block_no_reduction pick X n w p [x] r [] hs hb
+    x.1.2.1.val x.1.2.1.isLt
+  · intro k hk _
+    rw [rankCount_singleton]
+    simp [rankCount,ne_of_lt hk]
+  · rw [rankCount_singleton]
+    simp [rankCount]
+
+theorem rankMinimal_designated_row_nonempty
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ [x] ++ r)) :
+    rankHeightRows pick X n x.1.2 ≠ [] := by
+  intro hnil
+  have hrel : rankHeightRel pick X n x.1.2 = 1 := by
+    rw [← rankHeightRows_eval pick X n x.1.2, hnil, ← FreeGroup.one_eq_mk]
+  apply rankMinimal_no_trivial_occurrence pick X n w p r x hs
+  rcases x with ⟨⟨u,i⟩,b⟩
+  cases b <;> simp [Peiffer.term] at hrel ⊢ <;> simp [hrel]
+
+#print axioms rankMinimal_no_trivial_occurrence
+#print axioms rankMinimal_designated_row_nonempty
+
+
 end QuandleResearch.Issue070
