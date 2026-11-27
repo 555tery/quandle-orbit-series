@@ -2890,12 +2890,109 @@ theorem guba22_two_boundary_product {D K : Type} [Fintype D] [Group K]
 termination_by Fintype.card P.Vertex
 decreasing_by
   have hcount := (P.edgeSplice_counts c hn).1
-  dsimp [S] at *
+  change Fintype.card (P.edgeSplice c).Vertex < Fintype.card P.Vertex
   omega
 
 #print axioms guba22_cycleProduct_conjugator
 #print axioms guba22_exists_leaving_edge
 #print axioms guba22_edgeSplice_connected
 #print axioms guba22_two_boundary_product
+
+
+
+/-- Apply the two-boundary theorem to the actual connected coefficient
+region, in the normal quotient containing all its retained rows.
+The boundary outlets are singleton vertices, so the resulting
+conjugacy relates their exact letter values. -/
+theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a b : D) (ha : ¬keep a) (hb : ¬keep b) (hne : a ≠ b)
+    (hab : (P.coefficientRegions keep hkeep).SameComponent a b)
+    (honly : ∀ d, (P.coefficientRegions keep hkeep).SameComponent a d →
+      ¬keep d → d = a ∨ d = b) :
+    ∃ g : F ⧸ N,
+      QuotientGroup.mk' N (FreeGroup.mk [read a]) * g *
+        QuotientGroup.mk' N (FreeGroup.mk [read b]) * g⁻¹ = 1 := by
+  classical
+  let S := P.coefficientRegions keep hkeep
+  let C := S.componentRibbon a
+  let q := QuotientGroup.mk' N
+  let x : {d : D // S.SameComponent a d} := ⟨a, Relation.EqvGen.refl a⟩
+  let y : {d : D // S.SameComponent a d} := ⟨b, hab⟩
+  let v : {d : D // S.SameComponent a d} → F ⧸ N :=
+    fun d => q (FreeGroup.mk [read d.val])
+  have hES : S.EulerEquality := P.coefficientRegions_euler keep hkeep hE
+  have hEC : C.EulerEquality := by
+    change Fintype.card (S.componentRibbon a).Vertex +
+      Fintype.card (S.componentRibbon a).Face =
+      Fintype.card (S.componentRibbon a).Edge +
+        2 * Fintype.card (S.componentRibbon a).Component
+    rw [S.componentRibbon_card_components, mul_one]
+    exact S.componentRibbon_sphere hES a
+  have hSa : S.rotation a = a := by
+    simp [S, RibbonMap.coefficientRegions_rotation, ha]
+  have hSb : S.rotation b = b := by
+    simp [S, RibbonMap.coefficientRegions_rotation, hb]
+  have hfix {d e : D} (hd : S.rotation d = d)
+      (hc : S.rotation.SameCycle d e) : d = e := by
+    obtain ⟨m, hm⟩ := hc.exists_nat_pow_eq
+    rw [← hm]
+    clear hm hc
+    induction m with
+    | zero => rfl
+    | succ m ih =>
+      rw [pow_succ', Equiv.Perm.mul_apply, ← ih, hd]
+  have hxy : ¬ C.rotation.SameCycle x y := by
+    intro h
+    have hh := (S.restrict_sameVertex_iff (S.SameComponent a)
+      (S.component_membership_edge a) (S.component_membership_rotation a) x y).mp h
+    exact hne (hfix hSa hh)
+  have eval (ds : List {d : D // S.SameComponent a d}) :
+      (ds.map v).prod = q (FreeGroup.mk (ds.map (fun d => read d.val))) := by
+    induction ds with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons d ds ih =>
+      change v d * (ds.map v).prod =
+        q (FreeGroup.mk ([read d.val] ++ ds.map (fun e => read e.val)))
+      rw [ih, ← FreeGroup.mul_mk, map_mul]
+      rfl
+  have hread (d : {d : D // S.SameComponent a d}) :
+      cycleProduct C.rotation v d =
+        q (FreeGroup.mk ((S.vertexBoundary d.val).map read)) := by
+    change ((C.vertexBoundary d).map v).prod = _
+    rw [eval, component_vertex_read S read a d]
+  obtain ⟨g, hg⟩ := guba22_two_boundary_product C v
+    (by
+      intro d
+      change q (FreeGroup.mk [read (S.edge d.val)]) =
+        (q (FreeGroup.mk [read d.val]))⁻¹
+      rw [show S.edge d.val = P.edge d.val from rfl, he,
+        signedLetterValue_reverse, map_inv])
+    (S.componentRibbon_connected a) hEC x y hxy (by
+      intro d hdx hdy
+      have hd : keep d.val := by
+        by_contra hn
+        rcases honly d.val d.property hn with h | h
+        · have hh : x = d := Subtype.ext h.symm
+          exact hdx (hh ▸ Equiv.Perm.SameCycle.refl _ _)
+        · have hh : y = d := Subtype.ext h.symm
+          exact hdy (hh ▸ Equiv.Perm.SameCycle.refl _ _)
+      rw [hread]
+      change q (FreeGroup.mk
+        (((P.coefficientRegions keep hkeep).vertexBoundary d.val).map read)) = 1
+      rw [guba22_coefficient_preserved_read P read keep hkeep d.val hd]
+      exact (QuotientGroup.eq_one_iff _).mpr (hint d.val hd))
+  refine ⟨g, ?_⟩
+  rw [hread x, hread y] at hg
+  change q (FreeGroup.mk ((S.vertexBoundary a).map read)) * g *
+    q (FreeGroup.mk ((S.vertexBoundary b).map read)) * g⁻¹ = 1 at hg
+  rw [fixed_vertex_read_singleton S a hSa, fixed_vertex_read_singleton S b hSb] at hg
+  simpa only [List.map_cons, List.map_nil] using hg
+
+#print axioms guba22_two_outlet_inverse_conjugacy
 
 end QuandleResearch.Issue070
