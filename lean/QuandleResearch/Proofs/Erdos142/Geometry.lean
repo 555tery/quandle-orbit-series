@@ -558,7 +558,7 @@ theorem inner_cell_index_card :
       lowerAreaUnits + upperAreaUnits := by
   classical
   simp [Fintype.card_sum, Fintype.card_sigma, Fintype.card_prod,
-    Fin.sum_univ_eq_sum_range, lowerAreaUnits, upperAreaUnits, ← Nat.mul_assoc]
+    Finset.sum_range, lowerAreaUnits, upperAreaUnits, ← Nat.mul_assoc]
 
 lemma horizontal_cell_radius {R k : ℕ} (hk : k < 2 * R)
     {a c : ℝ}
