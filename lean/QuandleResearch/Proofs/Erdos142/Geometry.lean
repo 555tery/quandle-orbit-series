@@ -760,6 +760,11 @@ def finiteBlock (p : ℕ) [NeZero p] : Finset (ZMod p × ZMod p) := by
     (x : ZMod p) = v.1 ∧ (y : ZMod p) = v.2 ∧
       InBlock ((x : ℝ) / (p : ℝ)) ((y : ℝ) / (p : ℝ))
 
+lemma offset_mul_lt {t q p d : ℕ} (ht : t < q) (hq : q * d < p) :
+    (t + 1) * d < p :=
+  lt_of_le_of_lt (Nat.mul_le_mul_right d (Nat.succ_le_of_lt ht)) hq
+
+set_option maxRecDepth 8192 in
 theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
     (hq : q * 480 < p) (hr : r * 2400 < p) :
     (lowerAreaUnits + upperAreaUnits) * q * r ≤ (finiteBlock p).card := by
@@ -775,10 +780,8 @@ theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
       InBlock ((innerPointLifts p e.1 e.2.1.val e.2.2.val).1 / (p : ℝ))
         ((innerPointLifts p e.1 e.2.1.val e.2.2.val).2 / (p : ℝ)) := by
     apply innerPoint_mem p hp
-    · have := e.2.1.isLt
-      omega
-    · have := e.2.2.isLt
-      omega
+    · exact offset_mul_lt e.2.1.isLt hq
+    · exact offset_mul_lt e.2.2.isLt hr
   have hg (e : E × Fin q × Fin r) : g e ∈ finiteBlock p := by
     unfold finiteBlock
     apply Finset.mem_filter.mpr
@@ -802,16 +805,16 @@ theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
     have hxa : x.2 = y.2 := intCast_injective_close ha'.1 ha'.2 (congrArg Prod.snd he)
     have ht : (t.val : ℝ) + 1 < (p : ℝ) / 480 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 480)).2
-      exact_mod_cast (show (t.val + 1) * 480 < p by have := t.isLt; omega)
+      exact_mod_cast (show (t.val + 1) * 480 < p offset_mul_lt t.isLt hq)
     have ht' : (t'.val : ℝ) + 1 < (p : ℝ) / 480 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 480)).2
-      exact_mod_cast (show (t'.val + 1) * 480 < p by have := t'.isLt; omega)
+      exact_mod_cast (show (t'.val + 1) * 480 < p offset_mul_lt t'.isLt hq)
     have hu : (u.val : ℝ) + 1 < (p : ℝ) / 2400 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 2400)).2
-      exact_mod_cast (show (u.val + 1) * 2400 < p by have := u.isLt; omega)
+      exact_mod_cast (show (u.val + 1) * 2400 < p offset_mul_lt u.isLt hr)
     have hu' : (u'.val : ℝ) + 1 < (p : ℝ) / 2400 := by
       apply (lt_div_iff₀ (by norm_num : (0 : ℝ) < 2400)).2
-      exact_mod_cast (show (u'.val + 1) * 2400 < p by have := u'.isLt; omega)
+      exact_mod_cast (show (u'.val + 1) * 2400 < p offset_mul_lt u'.isLt hr)
     have hrow := cellLift_injective (by positivity : 0 < (p : ℝ) / 480) ht ht' hxs
     have hcol := cellLift_injective (by positivity : 0 < (p : ℝ) / 2400) hu hu' hxa
     have hef : e = f := innerCellCoords_injective (Prod.ext hrow.1 hcol.1)
@@ -830,6 +833,7 @@ theorem finite_block_card_lower (p q r : ℕ) [NeZero p]
 
 /-! A uniform positive density margin for sufficiently large moduli. -/
 
+set_option maxRecDepth 8192 in
 theorem finite_block_density (p : ℕ) [NeZero p] (hp : 2400000 ≤ p) :
     73 * p ^ 2 ≤ 250 * (finiteBlock p).card := by
   let q := (p - 1) / 480
@@ -924,7 +928,8 @@ theorem shift_large_preimage {G : Type*} [AddCommGroup G] [Fintype G]
       calc
         f v.1 + b = f v.1 + (v.2 - f v.1) := by rw [hg]
         _ = v.2 := by abel
-    exact Finset.mem_filter.mpr ⟨hv'.1, by rwa [heq]⟩
+    change v.1 ∈ I.filter (fun i => f i + b ∈ S)
+    exact Finset.mem_filter.mpr ⟨hv'.1, by simpa only [heq] using hv'.2⟩
   have hi : (T : Set (ℕ × G)).InjOn (Prod.fst : ℕ × G → ℕ) := by
     intro v hv w hw he
     have h₁ := (Finset.mem_filter.mp (show v ∈ T from hv)).2
@@ -932,7 +937,11 @@ theorem shift_large_preimage {G : Type*} [AddCommGroup G] [Fintype G]
     change v.2 - f v.1 = b at h₁
     change w.2 - f w.1 = b at h₂
     rw [he] at h₁
-    exact Prod.ext he (sub_right_cancel (h₁.trans h₂.symm))
+    exact Prod.ext he (by
+      calc
+        v.2 = (v.2 - f w.1) + f w.1 := by abel
+        _ = (w.2 - f w.1) + f w.1 := by rw [h₁, h₂]
+        _ = w.2 := by abel)
   exact ⟨b, le_trans hb (Finset.card_le_card_of_injOn Prod.fst hm hi)⟩
 
 /-- Deterministic transfer to Mathlib's actual extremal function.
@@ -977,6 +986,54 @@ theorem roth_of_avoiding_slope {G : Type*} [AddCommGroup G] [Fintype G]
   exact le_trans hb (ThreeAPFree.le_rothNumberNat P hfree
     (fun _ hx => Finset.mem_range.mp (Finset.mem_filter.mp hx).1) rfl)
 
+
+
+/-- Pigeonhole selection of a potential shell of width w.
+No concentration theorem or probability measure is required. -/
+theorem exists_potential_shell {G : Type*} (S : Finset G)
+    (F : G → ℝ) (w : ℝ) (L K : ℕ)
+    (hw : 0 < w) (hL : 0 < L)
+    (hF : ∀ x ∈ S, 0 ≤ F x ∧ F x < (L : ℝ) * w)
+    (hcard : L * K ≤ S.card) :
+    ∃ T : Finset G, T ⊆ S ∧ K ≤ T.card ∧
+      ∃ b : ℝ, ∀ x ∈ T, b ≤ F x ∧ F x ≤ b + w := by
+  classical
+  let label : G → ℕ := fun x => ⌊F x / w⌋₊
+  have hmap : ∀ x ∈ S, label x ∈ Finset.range L := by
+    intro x hx
+    apply Finset.mem_range.mpr
+    exact (Nat.floor_lt (div_nonneg (hF x hx).1 hw.le)).2
+      ((div_lt_iff₀ hw).2 (hF x hx).2)
+  have hn : (Finset.range L).Nonempty :=
+    ⟨0, Finset.mem_range.mpr hL⟩
+  obtain ⟨j, _, hj⟩ := Finset.exists_le_card_fiber_of_mul_le_card_of_maps_to
+    hmap hn (by simpa using hcard)
+  let T := S.filter fun x => label x = j
+  refine ⟨T, Finset.filter_subset _ _, hj, (j : ℝ) * w, ?_⟩
+  intro x hx
+  have hm := Finset.mem_filter.mp (show x ∈ T from hx)
+  have hnon := div_nonneg (hF x hm.1).1 hw.le
+  have hlo := Nat.floor_le hnon
+  have hhi := Nat.lt_floor_add_one (F x / w)
+  -- Keep the membership and the index equality separate.
+  have he : ⌊F x / w⌋₊ = j := (Finset.mem_filter.mp (show x ∈ T from hx)).2
+  rw [he] at hlo hhi
+  refine ⟨(le_div_iff₀ hw).mp hlo, ?_⟩
+  have hh := (div_lt_iff₀ hw).mp hhi
+  linarith
+
+/-- A single transfer lemma combining slope avoidance, shift averaging,
+and the exact Mathlib Roth-number statement. -/
+theorem roth_of_short_differences {G : Type*} [AddCommGroup G]
+    [Fintype G] [DecidableEq G] (N K : ℕ) (S D : Finset G)
+    (e : ℕ → G ≃ G)
+    (he : ∀ d ∈ Finset.Ico 1 N, ∀ a : G, e d a = d • a)
+    (hD : N * D.card < Fintype.card G)
+    (hS : ∀ x ∈ S, ∀ y ∈ S, ∀ z ∈ S, x + z = y + y → z - x ∈ D)
+    (hK : Fintype.card G * K ≤ N * S.card) :
+    K ≤ rothNumberNat N := by
+  obtain ⟨a, ha⟩ := exists_avoiding_slope N D e he hD
+  exact roth_of_avoiding_slope N K S D a ha hS hK
 
 end
 
