@@ -537,4 +537,88 @@ theorem gubaState_active_weights_distinct (pick : WeightedSelector)
   lt_of_le_of_lt (gubaState_weight_mono pick (show i+1 ≤ j by omega))
     (gubaState_active_weight_lt pick j hj)
 
+
+/-! ## Overlap estimates for the actual active ranks
+
+Index the positive conjugating words by the stages and their proofs of
+activity. The proof argument is a proposition; it does not introduce a
+new choice of period or of prefix.
+-/
+
+noncomputable def activePrefix (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) : List (Fin 2) :=
+  gubaEvenPrefix (chooseEvenPrefixIndex
+    (pick (gubaState pick i).1 h).val (gubaState pick i).2)
+
+noncomputable def activeLongWord (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) : List (Fin 2) :=
+  longRaw (activePrefix pick i h) (10^20)
+
+theorem activePrefix_weight (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) :
+    positiveWeight (activePrefix pick i h) = (gubaState pick (i+1)).2 :=
+  (gubaState_active_weight pick i h).symm
+
+theorem activePrefix_weight_ge (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) :
+    6*10^80 ≤ positiveWeight (activePrefix pick i h) :=
+  chosenEvenPrefix_weight_ge _ _ (pick (gubaState pick i).1 h).property.1 _
+
+theorem activePrefix_ne (pick : WeightedSelector) {i j : ℕ}
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w) (hij : i ≠ j) :
+    activePrefix pick i hi ≠ activePrefix pick j hj := by
+  intro he
+  have hw := congrArg positiveWeight he
+  rw [activePrefix_weight, activePrefix_weight] at hw
+  rcases lt_or_gt_of_ne hij with hlt | hgt
+  · exact (ne_of_lt (gubaState_active_weights_distinct pick hlt hj)) hw
+  · exact (ne_of_gt (gubaState_active_weights_distinct pick hgt hi)) hw
+
+/-- The literal word used for an active rank evaluates to the chosen
+conjugator in the algebraic presentation. -/
+theorem activeLongWord_eval (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) :
+    positiveWord (activeLongWord pick i h) =
+      gubaConjugatorChoice pick i (gubaState pick i).1
+        (pick (gubaState pick i).1 h).val :=
+  rfl
+
+/-- A common factor in actual active conjugators is short whenever
+the ranks differ or the two positions differ. No additional
+strict-prefix-growth hypothesis is required. -/
+theorem activeLongWord_overlap_bound (pick : WeightedSelector) (i j : ℕ)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (p z r u v : List (Fin 2))
+    (hfirst : activeLongWord pick i hi = p ++ z ++ r)
+    (hsecond : activeLongWord pick j hj = u ++ z ++ v)
+    (hdiff : i ≠ j ∨ p.length ≠ u.length) :
+    240*10^17*positiveWeight z ≤ positiveWeight (activeLongWord pick i hi) := by
+  have hd : activePrefix pick i hi ≠ activePrefix pick j hj ∨
+      p.length ≠ u.length := by
+    rcases hdiff with h | h
+    · exact Or.inl (activePrefix_ne pick hi hj h)
+    · exact Or.inr h
+  exact guba_long_overlap_bound _ _ p z r u v
+    (activePrefix_weight_ge pick i hi) hfirst hsecond hd
+
+/-- Both sides of the overlap estimate for two actual active ranks. -/
+theorem activeLongWord_overlap_bound_both (pick : WeightedSelector) (i j : ℕ)
+    (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w)
+    (p z r u v : List (Fin 2))
+    (hfirst : activeLongWord pick i hi = p ++ z ++ r)
+    (hsecond : activeLongWord pick j hj = u ++ z ++ v)
+    (hdiff : i ≠ j ∨ p.length ≠ u.length) :
+    240*10^17*positiveWeight z ≤
+      min (positiveWeight (activeLongWord pick i hi))
+        (positiveWeight (activeLongWord pick j hj)) := by
+  apply le_min
+  · exact activeLongWord_overlap_bound pick i j hi hj p z r u v hfirst hsecond hdiff
+  · apply activeLongWord_overlap_bound pick j i hj hi u z v p r hsecond hfirst
+    rcases hdiff with h | h
+    · exact Or.inl (Ne.symm h)
+    · exact Or.inr (Ne.symm h)
+
 end QuandleResearch.Issue070
