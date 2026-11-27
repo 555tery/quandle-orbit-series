@@ -169,9 +169,9 @@ lemma block_hasLocal {s a : ℝ} (h : InBlock s a) : ∃ u, HasLocal s a u := by
   rcases h with h | h | h
   · exact ⟨a, Or.inl ⟨h, rfl⟩⟩
   · refine ⟨a - 1 / 4, Or.inr ⟨h, 0, by omega, by omega, ?_⟩⟩
-    norm_num <;> ring
+    ring
   · refine ⟨a - 3 / 4, Or.inr ⟨h, 1, by omega, by omega, ?_⟩⟩
-    norm_num <;> ring
+    ring
 
 lemma local_bounds {s a u : ℝ} (h : HasLocal s a u) :
     |u| < 1 / 4 ∧ |a| < 1 := by
@@ -425,6 +425,116 @@ theorem rectangle_area_comparison :
       ((lowerAreaUnits + upperAreaUnits : ℕ) : ℚ) / (480 * 2400) := by
   rw [rectangle_area_units.1, rectangle_area_units.2]
   norm_num
+
+
+
+/-! Finite-grid preparation: use interior lattice points in rational cells.
+These lemmas do not assume that the modulus is divisible by the grid
+denominator, so they will also apply to large prime moduli. -/
+
+def gridLift (x : ℝ) (t : ℕ) : ℤ := ⌊x⌋ + (t : ℤ) + 1
+
+lemma gridLift_bounds (x : ℝ) (t : ℕ) :
+    x < (gridLift x t : ℝ) ∧
+      (gridLift x t : ℝ) ≤ x + (t : ℝ) + 1 := by
+  have h₁ := Int.floor_le x
+  have h₂ := Int.lt_floor_add_one x
+  have ht : 0 ≤ (t : ℝ) := by positivity
+  unfold gridLift
+  push_cast
+  constructor <;> linarith
+
+def cellLift (i : ℤ) (w : ℝ) (t : ℕ) : ℤ :=
+  gridLift ((i : ℝ) * w) t
+
+lemma cellLift_mem {i : ℤ} {w : ℝ} {t : ℕ}
+    (ht : (t : ℝ) + 1 < w) :
+    (i : ℝ) * w < (cellLift i w t : ℝ) ∧
+      (cellLift i w t : ℝ) < ((i : ℝ) + 1) * w := by
+  have h := gridLift_bounds ((i : ℝ) * w) t
+  unfold cellLift
+  constructor
+  · exact h.1
+  · nlinarith [h.2]
+
+lemma cellLift_injective {i j : ℤ} {w : ℝ} {t u : ℕ}
+    (hw : 0 < w) (ht : (t : ℝ) + 1 < w)
+    (hu : (u : ℝ) + 1 < w)
+    (he : cellLift i w t = cellLift j w u) :
+    i = j ∧ t = u := by
+  have hi := cellLift_mem (i := i) ht
+  have hj := cellLift_mem (i := j) hu
+  have hc : (cellLift i w t : ℝ) = (cellLift j w u : ℝ) := by rw [he]
+  have hij : i = j := by
+    by_contra hn
+    rcases lt_or_gt_of_ne hn with h | h
+    · have hh : (i : ℝ) + 1 ≤ (j : ℝ) := by
+        exact_mod_cast (show i + 1 ≤ j by omega)
+      have hm := mul_le_mul_of_nonneg_right hh hw.le
+      linarith [hi.2, hj.1]
+    · have hh : (j : ℝ) + 1 ≤ (i : ℝ) := by
+        exact_mod_cast (show j + 1 ≤ i by omega)
+      have hm := mul_le_mul_of_nonneg_right hh hw.le
+      linarith [hj.2, hi.1]
+  subst j
+  unfold cellLift gridLift at he
+  exact ⟨rfl, by omega⟩
+
+/-- Each cell of a grid of denominator d contains q interior lattice
+points at modulus p, whenever q*d < p.  The actual normalized lattice
+points lie in the open cell, not merely its closure. -/
+lemma normalized_cellLift_mem {i : ℤ} {p d : ℝ} {t : ℕ}
+    (hp : 0 < p) (hd : 0 < d) (ht : ((t : ℝ) + 1) * d < p) :
+    (i : ℝ) / d < (cellLift i (p / d) t : ℝ) / p ∧
+      (cellLift i (p / d) t : ℝ) / p < ((i : ℝ) + 1) / d := by
+  have h := cellLift_mem (i := i) ((lt_div_iff₀ hd).2 ht)
+  constructor
+  · apply (lt_div_iff₀ hp).2
+    calc
+      (i : ℝ) / d * p = (i : ℝ) * (p / d) := by ring
+      _ < (cellLift i (p / d) t : ℝ) := h.1
+  · apply (div_lt_iff₀ hp).2
+    calc
+      (cellLift i (p / d) t : ℝ) < ((i : ℝ) + 1) * (p / d) := h.2
+      _ = ((i : ℝ) + 1) / d * p := by ring
+
+/-! Tensorization of the pointwise quantitative Jensen bound. -/
+
+/-- Coordinatewise modular APs in any finite product obey the summed
+potential gap. No measure or probabilistic assumption is used here. -/
+theorem product_potential_gap {ι : Type*} [Fintype ι]
+    (sx sy sz ax ay az ux uy uz : ι → ℝ) (j k : ι → ℤ)
+    (hx : ∀ i, HasLocal (sx i) (ax i) (ux i))
+    (hy : ∀ i, HasLocal (sy i) (ay i) (uy i))
+    (hz : ∀ i, HasLocal (sz i) (az i) (uz i))
+    (hs : ∀ i, 2 * sy i = sx i + sz i + (k i : ℝ))
+    (ha : ∀ i, ax i + az i - 2 * ay i = (j i : ℝ)) :
+    (∑ i, ((sx i - sz i)^2 + (ax i - az i)^2)) ≤
+      (∑ i, potential (sx i) (ux i)) +
+      (∑ i, potential (sz i) (uz i)) -
+      2 * (∑ i, potential (sy i) (uy i)) := by
+  calc
+    _ ≤ ∑ i, (potential (sx i) (ux i) + potential (sz i) (uz i) -
+          2 * potential (sy i) (uy i)) :=
+      Finset.sum_le_sum fun i _ => potential_gap (hx i) (hy i) (hz i) (hs i) (ha i)
+    _ = _ := by simp [Finset.sum_sub_distrib, Finset.sum_add_distrib, Finset.mul_sum]
+
+/-- If all three points have total potentials in the same interval of
+width w, then their squared endpoint separation is at most 2*w. -/
+theorem shell_endpoint_bound {ι : Type*} [Fintype ι]
+    (sx sy sz ax ay az ux uy uz : ι → ℝ) (j k : ι → ℤ)
+    (hx : ∀ i, HasLocal (sx i) (ax i) (ux i))
+    (hy : ∀ i, HasLocal (sy i) (ay i) (uy i))
+    (hz : ∀ i, HasLocal (sz i) (az i) (uz i))
+    (hs : ∀ i, 2 * sy i = sx i + sz i + (k i : ℝ))
+    (ha : ∀ i, ax i + az i - 2 * ay i = (j i : ℝ))
+    (b w : ℝ)
+    (hxs : (∑ i, potential (sx i) (ux i)) ≤ b + w)
+    (hys : b ≤ ∑ i, potential (sy i) (uy i))
+    (hzs : (∑ i, potential (sz i) (uz i)) ≤ b + w) :
+    (∑ i, ((sx i - sz i)^2 + (ax i - az i)^2)) ≤ 2 * w := by
+  have h := product_potential_gap sx sy sz ax ay az ux uy uz j k hx hy hz hs ha
+  linarith
 
 
 end
