@@ -564,4 +564,126 @@ theorem answer_of_guba_large_cell (pick : WeightedSelector)
 #print axioms guba_rankHeightRows_large
 #print axioms answer_of_guba_large_cell
 
+
+/-! ## Minimal signed expressions and admissible algebraic mergers
+
+Minimize the number of interior occurrences for the fixed boundary
+value. Replacement of consecutive factors by a shorter expression
+with the same evaluation is then impossible. This is a statement
+about signed expressions; a planar contiguity surgery must separately
+produce the required replacement expression.
+-/
+
+def MinimalExpression (rel : I → F) (w : F)
+    (s : Peiffer.Sequence F I) : Prop :=
+  Peiffer.evaluation rel s = w ∧
+    ∀ t : Peiffer.Sequence F I, Peiffer.evaluation rel t = w →
+      s.length ≤ t.length
+
+/-- Any element of the normal closure has a minimal signed expression. -/
+theorem exists_minimalExpression (rel : I → F) (w : F)
+    (hw : w ∈ Subgroup.normalClosure (Set.range rel)) :
+    ∃ s : Peiffer.Sequence F I, MinimalExpression rel w s := by
+  classical
+  obtain ⟨s, hs⟩ := exists_peiffer_expression rel w hw
+  have hex : ∃ m : ℕ, ∃ t : Peiffer.Sequence F I,
+      Peiffer.evaluation rel t = w ∧ t.length = m :=
+    ⟨s.length, s, hs, rfl⟩
+  obtain ⟨t, ht, hlen⟩ := Nat.find_spec hex
+  refine ⟨t, ht, ?_⟩
+  intro u hu
+  rw [hlen]
+  exact Nat.find_min' hex ⟨u,hu,rfl⟩
+
+theorem peiffer_evaluation_append (rel : I → F)
+    (s t : Peiffer.Sequence F I) :
+    Peiffer.evaluation rel (s ++ t) =
+      Peiffer.evaluation rel s * Peiffer.evaluation rel t := by
+  simp only [Peiffer.evaluation, List.map_append, List.prod_append]
+
+/-- Any equivalent replacement of a consecutive block in a minimal
+expression has at least as many occurrences as that block. -/
+theorem minimalExpression_block_length (rel : I → F) (w : F)
+    (p b r t : Peiffer.Sequence F I)
+    (hmin : MinimalExpression rel w (p ++ b ++ r))
+    (he : Peiffer.evaluation rel b = Peiffer.evaluation rel t) :
+    b.length ≤ t.length := by
+  have ht : Peiffer.evaluation rel (p ++ t ++ r) = w := by
+    rw [peiffer_evaluation_append, peiffer_evaluation_append, ← he]
+    simpa only [peiffer_evaluation_append] using hmin.1
+  have hl := hmin.2 (p ++ t ++ r) ht
+  simp only [List.length_append] at hl
+  omega
+
+/-- No consecutive inverse-valued pair survives in a minimal
+expression, irrespective of whether its two labels are equal. -/
+theorem minimalExpression_no_cancel_pair (rel : I → F) (w : F)
+    (p r : Peiffer.Sequence F I) (x y : Peiffer.Occurrence F I)
+    (hmin : MinimalExpression rel w (p ++ [x,y] ++ r)) :
+    Peiffer.term rel x * Peiffer.term rel y ≠ 1 := by
+  intro he
+  have hb : Peiffer.evaluation rel [x,y] =
+      Peiffer.evaluation rel [] := by
+    simpa [Peiffer.evaluation] using he
+  have hl := minimalExpression_block_length rel w p [x,y] r [] hmin hb
+  simp at hl
+
+/-- A minimal expression never contains a trivial-valued occurrence. -/
+theorem minimalExpression_no_trivial_term (rel : I → F) (w : F)
+    (p r : Peiffer.Sequence F I) (x : Peiffer.Occurrence F I)
+    (hmin : MinimalExpression rel w (p ++ [x] ++ r)) :
+    Peiffer.term rel x ≠ 1 := by
+  intro he
+  have hb : Peiffer.evaluation rel [x] =
+      Peiffer.evaluation rel [] := by
+    simpa [Peiffer.evaluation] using he
+  have hl := minimalExpression_block_length rel w p [x] r [] hmin hb
+  simp at hl
+
+/-- The actual all-height presentation admits a minimal expression,
+with the original rank and height labels retained. -/
+theorem exists_minimal_rankHeight_expression (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      MinimalExpression (rankHeightRel pick X n) w s := by
+  rw [← rankHeight_normalClosure] at hw
+  exact exists_minimalExpression _ w hw
+
+/-- A pair at one rank with the relative based conjugator prescribed
+by the height-addition identity compresses to one occurrence. This
+rules out that particular algebraic pattern in a minimal expression;
+it does not assume that all geometrically adjacent cells have it. -/
+theorem minimal_rankHeight_no_merge_pair (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (j : Fin n) (k l : ℤ) (u : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (hmin : MinimalExpression (rankHeightRel pick X n) w
+      (p ++ [((u,(j,k)),true), ((u*a^k,(j,l)),true)] ++ r)) :
+    False := by
+  let rel := rankHeightRel pick X n
+  let b : Peiffer.Sequence F (RankHeight n) :=
+    [((u,(j,k)),true), ((u*a^k,(j,l)),true)]
+  let t : Peiffer.Sequence F (RankHeight n) := [((u,(j,k+l)),true)]
+  have hb : Peiffer.evaluation rel b = Peiffer.evaluation rel t := by
+    simp only [b, t, Peiffer.evaluation, List.map_cons, List.map_nil,
+      List.prod_cons, List.prod_nil, mul_one, Peiffer.term, Bool.cond_true]
+    change (u * weightedRankHeightRelator pick X j.val k * u⁻¹) *
+      ((u*a^k) * weightedRankHeightRelator pick X j.val l * (u*a^k)⁻¹) =
+      u * weightedRankHeightRelator pick X j.val (k+l) * u⁻¹
+    rw [weightedRankHeightRelator_add]
+    group
+  have hl := minimalExpression_block_length rel w p b r t hmin hb
+  change 2 ≤ 1 at hl
+  omega
+
+#print axioms MinimalExpression
+#print axioms exists_minimalExpression
+#print axioms peiffer_evaluation_append
+#print axioms minimalExpression_block_length
+#print axioms minimalExpression_no_cancel_pair
+#print axioms minimalExpression_no_trivial_term
+#print axioms exists_minimal_rankHeight_expression
+#print axioms minimal_rankHeight_no_merge_pair
+
 end QuandleResearch.Issue070
