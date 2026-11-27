@@ -13461,4 +13461,138 @@ theorem guba_oneDart_no_monogons (n : ℕ)
 #print axioms boundaryRibbon_all_cyclic_readings
 #print axioms guba_oneDart_no_monogons
 
+
+/-! ## Direct strips of bigons
+
+A face of length two identifies two successive darts of one vertex
+with two oppositely successive darts of another vertex (possibly
+the same vertex). We keep the exact permutation identity, rather
+than assume that arbitrary coefficient regions are bigon strips.
+-/
+
+/-- The two-step face equation is exactly the local reversal
+equation for the edge pairing along a vertex. The equivalence
+does not assume that the two vertices are distinct. -/
+theorem ribbon_bigon_pairing {D : Type} (P : RibbonMap D) (d : D) :
+    P.face (P.face d) = d ↔
+      P.edge (P.rotation d) = P.rotation.symm (P.edge d) := by
+  constructor
+  · intro h
+    have he : P.edge (P.face d) = P.rotation d := by
+      have hh := congrArg P.rotation h
+      simpa only [RibbonMap.face_apply,Equiv.apply_symm_apply] using hh
+    have hh := congrArg P.edge he
+    rw [P.edge_involutive] at hh
+    exact hh.symm
+  · intro h
+    have he : P.face d = P.edge (P.rotation d) := h.symm
+    rw [he,RibbonMap.face_apply,P.edge_involutive,Equiv.symm_apply_apply]
+
+/-- An arbitrarily long consecutive run of two-step faces gives
+an exact reverse traversal on the paired side, with no loss of
+letters and without a contiguity theorem. -/
+theorem ribbon_bigon_run_pairing {D : Type} (P : RibbonMap D) (d : D)
+    (m : ℕ)
+    (h : ∀ i < m, P.face (P.face ((P.rotation^i) d)) = (P.rotation^i) d) :
+    P.edge ((P.rotation^m) d) = (P.rotation.symm^m) (P.edge d) := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+    have hi := ih (fun i hi => h i (by omega))
+    have hs := (ribbon_bigon_pairing P ((P.rotation^m) d)).mp (h m (by omega))
+    rw [pow_succ',Equiv.Perm.mul_apply,pow_succ',Equiv.Perm.mul_apply,hs,hi]
+
+/-- A closed bigon belt cannot occur in a connected ribbon which
+contains a one-dart vertex adjacent to a non-singleton vertex.
+The union of the proposed belt vertex and all its paired darts
+is invariant under rotation and edge reversal, hence is the
+entire connected component. The distinguished leaf then gives
+a contradiction at one of the two adjacent darts.
+
+This is a termination statement for direct bigon strips, not an
+exclusion of individual bigons or of general coefficient corridors. -/
+theorem ribbon_no_closed_bigon_belt {D : Type} (P : RibbonMap D)
+    (hc : P.Connected) (z : D) (hz : P.rotation z = z)
+    (hlarge : P.rotation (P.edge z) ≠ P.edge z) (d : D) :
+    ∃ e, P.rotation.SameCycle d e ∧ P.face (P.face e) ≠ e := by
+  classical
+  by_contra! hfull
+  let A : D → Prop := P.rotation.SameCycle d
+  let reach : D → Prop := fun u => A u ∨ A (P.edge u)
+  have hpair (u : D) (hu : A u) :
+      P.edge (P.rotation u) = P.rotation.symm (P.edge u) :=
+    (ribbon_bigon_pairing P u).mp (hfull u hu)
+  have hedge (u : D) : reach (P.edge u) ↔ reach u := by
+    change (A (P.edge u) ∨ A (P.edge (P.edge u))) ↔
+      (A u ∨ A (P.edge u))
+    rw [P.edge_involutive,or_comm]
+  have hforward (u : D) (hu : A (P.edge u)) :
+      A (P.edge (P.rotation u)) := by
+    let v := P.rotation.symm (P.edge u)
+    have hv : A v := by
+      have hh : A (P.rotation v) := by
+        change A (P.rotation (P.rotation.symm (P.edge u)))
+        rw [Equiv.apply_symm_apply]
+        exact hu
+      exact Equiv.Perm.sameCycle_apply_right.mp hh
+    have hh := hpair v hv
+    change P.edge (P.rotation (P.rotation.symm (P.edge u))) =
+      P.rotation.symm (P.edge v) at hh
+    rw [Equiv.apply_symm_apply,P.edge_involutive] at hh
+    have hrot := congrArg P.rotation hh
+    rw [Equiv.apply_symm_apply] at hrot
+    have h := congrArg P.edge hrot
+    rw [P.edge_involutive] at h
+    rw [h]
+    exact hv
+  have hback (u : D) (hu : A (P.edge (P.rotation u))) :
+      A (P.edge u) := by
+    have hh := hpair (P.edge (P.rotation u)) hu
+    rw [P.edge_involutive,Equiv.symm_apply_apply] at hh
+    have he := congrArg P.edge hh
+    rw [P.edge_involutive] at he
+    rw [← he]
+    exact Equiv.Perm.sameCycle_apply_right.mpr hu
+  have hrot (u : D) : reach (P.rotation u) ↔ reach u := by
+    constructor
+    · rintro (h | h)
+      · exact Or.inl (Equiv.Perm.sameCycle_apply_right.mp h)
+      · exact Or.inr (hback u h)
+    · rintro (h | h)
+      · exact Or.inl (Equiv.Perm.sameCycle_apply_right.mpr h)
+      · exact Or.inr (hforward u h)
+  have hout : reach z :=
+    (P.invariant_on_component reach hedge hrot (hc d z)).mp
+      (Or.inl (.refl _ _))
+  apply hlarge
+  rcases hout with h | h
+  · have hh := hpair z h
+    rw [hz] at hh
+    have he := congrArg P.rotation hh
+    simpa only [Equiv.apply_symm_apply] using he
+  · have hh := hpair (P.edge z) h
+    rw [P.edge_involutive] at hh
+    have hh' : P.rotation.symm z = z := by
+      apply P.rotation.injective
+      rw [Equiv.apply_symm_apply,hz]
+    rw [hh'] at hh
+    have he := congrArg P.edge hh
+    simpa only [P.edge_involutive] using he
+
+/-- Every vertex of an actual one-letter ribbon with a
+non-singleton adjacent cell has a genuine end of a direct
+bigon run. The marked leaf is obtained from its exact boundary
+reading, not added as a graph hypothesis. -/
+theorem oneDart_bigon_run_has_end {D : Type} [Fintype D]
+    (P : RibbonMap D) (hc : P.Connected) (z : D)
+    (hz : P.vertexBoundary z = [z])
+    (hlarge : P.rotation (P.edge z) ≠ P.edge z) (d : D) :
+    ∃ e, P.rotation.SameCycle d e ∧ P.face (P.face e) ≠ e :=
+  ribbon_no_closed_bigon_belt P hc z (oneDart_leaf P z hz).1 hlarge d
+
+#print axioms ribbon_bigon_pairing
+#print axioms ribbon_bigon_run_pairing
+#print axioms ribbon_no_closed_bigon_belt
+#print axioms oneDart_bigon_run_has_end
+
 end QuandleResearch.Issue070
