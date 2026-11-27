@@ -4274,4 +4274,132 @@ theorem exists_interior_edge_compression {D : Type} [Fintype D]
 #print axioms exists_interior_edge_compression
 
 
+/-! ## Shape of compressed coefficient regions
+
+After splitting the peripheral vertices into singleton incidences
+and contracting all non-loop interior edges, each component that
+contains an interior vertex has a single such vertex. Its peripheral
+darts are leaves attached to this vertex. Interior loops may remain;
+removing an arbitrary loop without tracking its separating faces
+would not in general preserve the component.
+-/
+
+/-- In a terminal coefficient region with peripheral leaves, every
+interior dart lies on the same vertex as any given interior dart
+in its component, and every peripheral dart in that component is
+attached to that vertex. -/
+theorem compressed_region_star {D : Type} (P : RibbonMap D)
+    (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hterminal : ∀ d, keep d → keep (P.edge d) →
+      P.rotation.SameCycle d (P.edge d))
+    (a : D) (ha : keep a) (b : D) (hab : P.SameComponent a b) :
+    (keep b → P.rotation.SameCycle a b) ∧
+      (¬ keep b → P.rotation.SameCycle a (P.edge b)) := by
+  classical
+  let reach : D → Prop := fun d =>
+    P.rotation.SameCycle a d ∨
+      (¬ keep d ∧ P.rotation.SameCycle a (P.edge d))
+  have step (d : D) (hd : reach d) : reach (P.edge d) := by
+    rcases hd with h | ⟨_,h⟩
+    · by_cases hk : keep (P.edge d)
+      · exact Or.inl (h.trans (hterminal d ((hkeep a d h).mp ha) hk))
+      · exact Or.inr ⟨hk,by rw [P.edge_involutive]; exact h⟩
+    · exact Or.inl h
+  have hedge (d : D) : reach (P.edge d) ↔ reach d := by
+    constructor
+    · intro h
+      have hh := step (P.edge d) h
+      rwa [P.edge_involutive] at hh
+    · exact step d
+  have hrot (d : D) : reach (P.rotation d) ↔ reach d := by
+    by_cases hd : keep d
+    · have hcycle : P.rotation.SameCycle d (P.rotation d) :=
+        Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+      have hr : keep (P.rotation d) := (hkeep _ _ hcycle).mp hd
+      simp only [reach, hd, hr, not_true_eq_false, false_and, or_false,
+        Equiv.Perm.sameCycle_apply_right]
+    · rw [hleaf d hd]
+  have hb : reach b := (P.invariant_on_component reach hedge hrot hab).mp
+    (Or.inl (.refl _ _))
+  constructor
+  · intro hk
+    rcases hb with h | h
+    · exact h
+    · exact (h.1 hk).elim
+  · intro hk
+    rcases hb with h | h
+    · exact (hk ((hkeep a b h).mp ha)).elim
+    · exact h.2
+
+/-- A literal preserved peripheral singleton remains a singleton
+vertex in the compressed ribbon. This bridges the finite
+compression theorem to the star-shape argument. -/
+theorem compressed_peripheral_leaf {D E : Type} [Fintype D] [Fintype E]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E ↪ D) (keep : D → Prop)
+    (hread : ∀ d, ¬ keep (f d) →
+      (Q.vertexBoundary d).map f = P.vertexBoundary (f d))
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (d : E) (hd : ¬ keep (f d)) : Q.rotation d = d := by
+  have hcyc : Q.rotation.SameCycle d (Q.rotation d) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  have hm : f (Q.rotation d) ∈ (Q.vertexBoundary d).map f :=
+    List.mem_map.mpr ⟨_,(Q.mem_vertexBoundary_iff d _).mpr hcyc,rfl⟩
+  rw [hread d hd, fixed_vertex_read_singleton P (f d) (hleaf _ hd)] at hm
+  exact f.injective (List.mem_singleton.mp hm)
+
+/-- Any component of a compressed coefficient ribbon containing an
+interior vertex has the asserted star shape, with all peripheral
+words and the Euler equation preserved. -/
+theorem exists_coefficient_star_compression {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality) :
+    let S := P.coefficientRegions keep hkeep
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D),
+      Q.EulerEquality ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) → Q.rotation d = d) ∧
+      (∀ a b, Q.SameComponent a b → keep (f a) →
+        (keep (f b) → Q.rotation.SameCycle a b) ∧
+        (¬ keep (f b) → Q.rotation.SameCycle a (Q.edge b))) := by
+  classical
+  intro S
+  have hS : S.EulerEquality := P.coefficientRegions_euler keep hkeep hE
+  have hinv : ∀ d e, S.rotation.SameCycle d e → (keep d ↔ keep e) := by
+    intro d e h
+    obtain ⟨n,hn⟩ := h.exists_nat_pow_eq
+    rw [← hn]
+    clear hn h
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [pow_succ', Equiv.Perm.mul_apply]
+      have hi (x : D) : keep (S.rotation x) ↔ keep x := by
+        change keep ((P.coefficientRegions keep hkeep).rotation x) ↔ keep x
+        rw [RibbonMap.coefficientRegions_rotation]
+        split
+        · exact hkeep x
+        · rfl
+      exact ih.trans (hi _).symm
+  obtain ⟨E,inst,Q,f,hQ,_,hedge,hsurv,hread,hcycles,hterminal⟩ :=
+    exists_interior_edge_compression S keep hinv hS
+  have hleafS : ∀ d, ¬ keep d → S.rotation d = d := by
+    intro d hd
+    change (P.coefficientRegions keep hkeep).rotation d = d
+    rw [RibbonMap.coefficientRegions_rotation, ite_eq_right hd]
+  have hleafQ : ∀ d, ¬ keep (f d) → Q.rotation d = d :=
+    compressed_peripheral_leaf S Q f keep hread hleafS
+  refine ⟨E,inst,Q,f,hQ,hedge,hsurv,hleafQ,?_⟩
+  intro a b hab ha
+  exact compressed_region_star Q (fun d => keep (f d)) hcycles hleafQ
+    hterminal a ha b hab
+
+#print axioms compressed_region_star
+#print axioms compressed_peripheral_leaf
+#print axioms exists_coefficient_star_compression
+
+
 end QuandleResearch.Issue070
