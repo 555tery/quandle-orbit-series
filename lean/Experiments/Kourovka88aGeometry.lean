@@ -15385,7 +15385,15 @@ theorem guba23_gubaTypeMinimal_ribbon_connected
         rw [gubaTypeCoordinate_append,gubaTypeCoordinate_append,hcount j]
         have hsingle : gubaTypeCoordinate [y] j =
             gubaTypeCoordinate [s[i.val]] j := by
-          simp [gubaTypeCoordinate,rankHeightSum,rankCount,hy]
+          have hrank : y.1.2.1.val = s[i.val].1.2.1.val :=
+            congrArg (fun t : RankHeight n => t.1.val) hy
+          have hheight : y.1.2.2.natAbs = s[i.val].1.2.2.natAbs :=
+            congrArg (fun t : RankHeight n => t.2.natAbs) hy
+          by_cases h : j%2 = 0
+          · simp only [gubaTypeCoordinate,h,ite_true,rankHeightSum,List.filter_cons,
+              hrank,List.filter_nil]
+            split <;> simp [hheight]
+          · simp only [gubaTypeCoordinate,h,ite_false,rankCount_singleton,hrank]
         rw [hsingle]
       · have hval' : Peiffer.term (rankHeightRel pick X n) y = factor b := by
           simpa only [rows,rankHeightRows_eval] using hval
