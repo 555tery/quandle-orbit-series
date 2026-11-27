@@ -7647,4 +7647,78 @@ theorem guba1_long_section_connector_arithmetic (C L b : ℚ)
 #print axioms guba1_long_section_connector_arithmetic
 
 
+
+/-! ## Weighted conjugator across adjacent exceptional vertices
+
+Use the shorter of the two literal boundary routes at each marked
+corner. Unlike the unrestricted walk version, the connector has a
+bound in terms of the two actual vertex perimeters. This does not
+assert that a preferred Guba bond exists or has the required small
+relative perimeter.
+-/
+
+theorem adjacent_short_inverse_conjugator {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (c : D) (hn : ¬ P.rotation.SameCycle c (P.edge c))
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, P.SameComponent c d →
+      ¬ P.rotation.SameCycle c d →
+      ¬ P.rotation.SameCycle (P.edge c) d →
+      FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (a b : D)
+    (ha : P.rotation.SameCycle a (P.rotation c))
+    (hb : P.rotation.SameCycle b (P.edge c)) :
+    ∃ g : F, FreeGroup.mk ((P.vertexBoundary a).map read) * g *
+      FreeGroup.mk ((P.vertexBoundary b).map read) * g⁻¹ ∈ N ∧
+      2 * weightedLength g ≤ rawWeight ((P.vertexBoundary a).map read) +
+        rawWeight ((P.vertexBoundary b).map read) := by
+  obtain ⟨u,hu,hwu⟩ := vertex_short_corner_connector P read a (P.rotation c) ha
+  obtain ⟨v,hv,hwv⟩ := vertex_short_corner_connector P read b (P.edge c) hb
+  let q := QuotientGroup.mk' N
+  have hU := congrArg (fun x : F => q x) hu
+  have hV := congrArg (fun x : F => q x) hv
+  simp only [map_mul] at hU hV
+  have hm := edgeSplice_boundary_mem_normal P read N c hn hE he hint
+  have hm' : q (FreeGroup.mk (((P.vertexBoundary (P.rotation c)).map read) ++
+      (P.vertexBoundary (P.edge c)).map read)) = 1 :=
+    (QuotientGroup.eq_one_iff _).mpr hm
+  rw [← FreeGroup.mul_mk, map_mul] at hm'
+  have hA : q (FreeGroup.mk ((P.vertexBoundary a).map read)) =
+      q (FreeGroup.mk u) *
+        q (FreeGroup.mk ((P.vertexBoundary (P.rotation c)).map read)) *
+        (q (FreeGroup.mk u))⁻¹ := by
+    calc
+      _ = (q (FreeGroup.mk ((P.vertexBoundary a).map read)) *
+            q (FreeGroup.mk u)) * (q (FreeGroup.mk u))⁻¹ := by group
+      _ = _ := by rw [hU]
+  have hB : q (FreeGroup.mk ((P.vertexBoundary b).map read)) =
+      q (FreeGroup.mk v) *
+        q (FreeGroup.mk ((P.vertexBoundary (P.edge c)).map read)) *
+        (q (FreeGroup.mk v))⁻¹ := by
+    calc
+      _ = (q (FreeGroup.mk ((P.vertexBoundary b).map read)) *
+            q (FreeGroup.mk v)) * (q (FreeGroup.mk v))⁻¹ := by group
+      _ = _ := by rw [hV]
+  refine ⟨FreeGroup.mk (u ++ FreeGroup.invRev v), ?_, ?_⟩
+  · apply (QuotientGroup.eq_one_iff _).mp
+    change q (FreeGroup.mk ((P.vertexBoundary a).map read) *
+      FreeGroup.mk (u ++ FreeGroup.invRev v) *
+      FreeGroup.mk ((P.vertexBoundary b).map read) *
+      (FreeGroup.mk (u ++ FreeGroup.invRev v))⁻¹) = 1
+    simp only [← FreeGroup.mul_mk, ← FreeGroup.inv_mk, map_mul, map_inv]
+    rw [hA,hB]
+    calc
+      _ = q (FreeGroup.mk u) *
+        (q (FreeGroup.mk ((P.vertexBoundary (P.rotation c)).map read)) *
+          q (FreeGroup.mk ((P.vertexBoundary (P.edge c)).map read))) *
+        (q (FreeGroup.mk u))⁻¹ := by group
+      _ = 1 := by rw [hm']; simp
+  · have hg := weightedLength_mk_le (u ++ FreeGroup.invRev v)
+    rw [rawWeight_append, rawWeight_invRev] at hg
+    omega
+
+#print axioms adjacent_short_inverse_conjugator
+
+
 end QuandleResearch.Issue070
