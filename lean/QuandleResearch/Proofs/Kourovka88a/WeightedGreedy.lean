@@ -1,4 +1,5 @@
 import QuandleResearch.Proofs.Kourovka88a.Heights
+import Mathlib.GroupTheory.FreeGroup.CyclicallyReduced
 
 /-!
 # Weighted greedy stages
@@ -306,5 +307,89 @@ theorem weightedRankHeightRelator_zero (pick : WeightedSelector)
   by_cases h : ∃ w : F, ¬ Good (weightedStages pick X i) w
   · simp only [weightedRankHeightRelator, dite_eq_left h, heightRelator_zero]
   · simp [weightedRankHeightRelator, h]
+
+
+/-! ## Minimal periods
+
+The weight-minimal choice implies cyclic reduction and minimality in
+the preceding quotient, without assuming geometric survival.
+Use Mathlib's literal cyclic-reduction decomposition, rather than
+reimplementing cancellation at the ends of a free word.
+-/
+
+theorem good_conjugate_iff (N : Subgroup F) (u w : F) :
+    Good N (u*w*u⁻¹) ↔ Good N w := by
+  constructor
+  · rintro ⟨x,k,hx⟩
+    refine ⟨x*u,k,?_⟩
+    convert hx using 1 <;> group
+  · rintro ⟨x,k,hx⟩
+    refine ⟨x*u⁻¹,k,?_⟩
+    convert hx using 1 <;> group
+
+theorem minBad_shorter_good {N : Subgroup F} {c : F}
+    (hc : MinBad N c) {w : F} (hw : weightedLength w < weightedLength c) :
+    Good N w := by
+  by_contra h
+  exact (not_lt_of_ge (hc.2 w h)) hw
+
+theorem minBad_cyclicallyReduced {N : Subgroup F} {c : F}
+    (hc : MinBad N c) : FreeGroup.IsCyclicallyReduced c.toWord := by
+  let u := FreeGroup.reduceCyclically.conjugator c.toWord
+  let v := FreeGroup.reduceCyclically c.toWord
+  have hword : u ++ v ++ FreeGroup.invRev u = c.toWord :=
+    FreeGroup.reduceCyclically.conj_conjugator_reduceCyclically _
+  have hgroup : FreeGroup.mk u * FreeGroup.mk v * (FreeGroup.mk u)⁻¹ = c := by
+    rw [FreeGroup.inv_mk, FreeGroup.mul_mk, FreeGroup.mul_mk, hword, FreeGroup.mk_toWord]
+  have hbad : ¬ Good N (FreeGroup.mk v) := by
+    intro hv
+    apply hc.1
+    rw [← hgroup]
+    exact (good_conjugate_iff N _ _).mpr hv
+  have hmin := hc.2 _ hbad
+  have hle := weightedLength_mk_le v
+  have heq : weightedLength c = rawWeight u + rawWeight v + rawWeight (FreeGroup.invRev u) := by
+    unfold weightedLength
+    rw [← hword, rawWeight_append, rawWeight_append]
+  have hu : rawWeight u = 0 := by omega
+  have hunil := (rawWeight_eq_zero_iff u).mp hu
+  have hv : v = c.toWord := by
+    simpa [hunil] using hword
+  rw [← hv]
+  exact FreeGroup.reduceCyclically.isCyclicallyReduced (FreeGroup.isReduced_toWord c)
+
+/-- No shorter representative of the same element of the preceding
+quotient can be a minimal bad period. -/
+theorem minBad_quotient_length {N : Subgroup F} [N.Normal] {c w : F}
+    (hc : MinBad N c)
+    (heq : QuotientGroup.mk' N c = QuotientGroup.mk' N w) :
+    weightedLength c ≤ weightedLength w := by
+  apply hc.2
+  intro hw
+  apply hc.1
+  apply (good_iff_quotient N c).mpr
+  rw [heq]
+  exact (good_iff_quotient N w).mp hw
+
+/-- Each strictly shorter literal factor of a minimal period is good.
+No assumption on the reduction of the factor is required. -/
+theorem minBad_proper_factor_good {N : Subgroup F} {c : F}
+    (hc : MinBad N c) (p v r : RawWord)
+    (heq : c.toWord = p ++ v ++ r) (hproper : p ≠ [] ∨ r ≠ []) :
+    Good N (FreeGroup.mk v) := by
+  apply minBad_shorter_good hc
+  have hle := weightedLength_mk_le v
+  have hweight : weightedLength c = rawWeight p + rawWeight v + rawWeight r := by
+    unfold weightedLength
+    rw [heq, rawWeight_append, rawWeight_append]
+  rcases hproper with hp | hr
+  · have hpos : 0 < rawWeight p := by
+      by_contra! hn
+      exact hp ((rawWeight_eq_zero_iff p).mp (by omega))
+    omega
+  · have hpos : 0 < rawWeight r := by
+      by_contra! hn
+      exact hr ((rawWeight_eq_zero_iff r).mp (by omega))
+    omega
 
 end QuandleResearch.Issue070
