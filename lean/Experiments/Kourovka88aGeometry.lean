@@ -8004,4 +8004,105 @@ theorem minBad_two_cyclicFactors_transfer {N M : Subgroup F}
 #print axioms minBad_two_cyclicFactors_transfer
 
 
+
+/-! ## Literal periodic compatibility of minimal bad periods
+
+Fine--Wilf applies to signed raw words as well as to the positive
+conjugating words. This section isolates the literal compatibility
+theorem; quotient equality of long sections is not literal equality.
+-/
+
+/-- A word with a period dividing its length is a literal power of
+its first period block. -/
+theorem rawWord_eq_pow_of_dividing_period (w : RawWord) (d k : ℕ)
+    (hper : w.HasPeriod d) (hd : d ≤ w.length)
+    (hlen : w.length = k*d) :
+    w = rawNatPow (w.take d) k := by
+  let b := w.take d
+  have hb : b.length = d := by simp [b, Nat.min_eq_left hd]
+  have hstep : w <+: b ++ w := hper
+  have hp (n : ℕ) : w <+: rawNatPow b n ++ w := by
+    induction n with
+    | zero => simp [rawNatPow]
+    | succ n ih =>
+      have hh : rawNatPow b n ++ w <+: rawNatPow b n ++ (b ++ w) :=
+        (List.prefix_append_right_inj _).mpr hstep
+      simpa only [rawNatPow, List.append_assoc] using ih.trans hh
+  have hlenPow (n : ℕ) : (rawNatPow b n).length = n*b.length := by
+    induction n with
+    | zero => simp [rawNatPow]
+    | succ n ih =>
+      simp only [rawNatPow, List.length_append, ih, Nat.succ_mul]
+  have heq : w.length = (rawNatPow b k).length := by
+    rw [hlenPow, hb]
+    exact hlen
+  exact ((List.isPrefix_append_of_length (le_of_eq heq)).mp (hp k)).eq_of_length heq
+
+/-- A selected minimal bad word is nonempty and has no proper
+positive period dividing its literal length. -/
+theorem minBad_dividing_period {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) (d : ℕ) (hd : 0 < d)
+    (hper : c.toWord.HasPeriod d) (hdvd : d ∣ c.toWord.length) :
+    d = c.toWord.length := by
+  have hpos : 0 < c.toWord.length := by
+    by_contra! hn
+    have hz : c.toWord = [] := List.length_eq_zero_iff.mp (by omega)
+    have hw := weight_ge_of_bad N c hc.1
+    norm_num [weightedLength, hz, rawWeight] at hw
+  obtain ⟨k,hk⟩ := hdvd
+  have hkpos : 0 < k := by
+    by_contra! h
+    have hz : k = 0 := by omega
+    rw [hz, Nat.mul_zero] at hk
+    omega
+  by_contra hne
+  have hk2 : 2 ≤ k := by
+    by_contra! h
+    have h1 : k = 1 := by omega
+    rw [h1,Nat.mul_one] at hk
+    exact hne hk.symm
+  have hdle : d ≤ c.toWord.length := by
+    rw [hk]
+    simpa using Nat.mul_le_mul_left d (show 1 ≤ k by omega)
+  have hpow := rawWord_eq_pow_of_dividing_period c.toWord d k hper hdle
+    (by rw [hk, Nat.mul_comm])
+  have hnonempty : c.toWord.take d ≠ [] := by
+    intro h
+    have he := congrArg List.length h
+    simp [Nat.min_eq_left hdle] at he
+    omega
+  exact (minBad_not_literal_power hc (c.toWord.take d) k hnonempty hk2) hpow
+
+/-- If two minimal bad periods begin the same sufficiently long
+literal word and both lengths are periods of that word, they coincide.
+The normal subgroups may be different. -/
+theorem minBad_literal_period_alignment {N M : Subgroup F}
+    [N.Normal] [M.Normal] {c d : F}
+    (hc : MinBad N c) (hd : MinBad M d)
+    (z : RawWord) (hp : c.toWord <+: z) (hq : d.toWord <+: z)
+    (hperP : z.HasPeriod c.toWord.length)
+    (hperQ : z.HasPeriod d.toWord.length)
+    (hthreshold : c.toWord.length + d.toWord.length -
+      c.toWord.length.gcd d.toWord.length ≤ z.length) :
+    c = d := by
+  have hpos : 0 < c.toWord.length := by
+    by_contra! hn
+    have hz : c.toWord = [] := List.length_eq_zero_iff.mp (by omega)
+    have hw := weight_ge_of_bad N c hc.1
+    norm_num [weightedLength, hz, rawWeight] at hw
+  have hg := hperP.gcd hperQ hthreshold
+  have hgp := hg.infix hp.isInfix
+  have hgq := hg.infix hq.isInfix
+  have hG := Nat.gcd_pos_of_pos_left d.toWord.length hpos
+  have hP := minBad_dividing_period hc _ hG hgp (Nat.gcd_dvd_left _ _)
+  have hQ := minBad_dividing_period hd _ hG hgq (Nat.gcd_dvd_right _ _)
+  have hlen : c.toWord.length = d.toWord.length := hP.symm.trans hQ
+  have he := (List.prefix_of_prefix_length_le hp hq (le_of_eq hlen)).eq_of_length hlen
+  rw [← FreeGroup.mk_toWord c, ← FreeGroup.mk_toWord d, he]
+
+#print axioms rawWord_eq_pow_of_dividing_period
+#print axioms minBad_dividing_period
+#print axioms minBad_literal_period_alignment
+
+
 end QuandleResearch.Issue070
