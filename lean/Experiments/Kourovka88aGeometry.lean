@@ -11300,4 +11300,217 @@ theorem shortest_kernel_complementary_arc_bound
 #print axioms shortest_new_kernel_factor_geodesic
 #print axioms shortest_kernel_complementary_arc_bound
 
+
+/-- A word of weight at most that of the heavy generator is either
+a pure power of the light generator or one signed heavy letter. -/
+theorem rawWord_at_most_heavy_weight (w : RawWord)
+    (hw : rawWeight w ≤ 10^80) :
+    (∃ k : ℤ, FreeGroup.mk w = a^k) ∨
+      FreeGroup.mk w = b ∨ FreeGroup.mk w = b⁻¹ := by
+  cases w with
+  | nil => exact Or.inl ⟨0,by rw [zpow_zero,FreeGroup.one_eq_mk]⟩
+  | cons x xs =>
+    rcases x with ⟨i,sg⟩
+    change letterWeight (i,sg) + rawWeight xs ≤ 10^80 at hw
+    fin_cases i
+    · have hlight : letterWeight ((0 : Fin 2),sg) = 1 := by simp [letterWeight]
+      rw [hlight] at hw
+      obtain ⟨k,hk⟩ := mk_eq_a_zpow_of_light xs (by omega)
+      have hmul : FreeGroup.mk (((0 : Fin 2),sg)::xs) =
+          FreeGroup.mk [(0,sg)] * FreeGroup.mk xs :=
+        (FreeGroup.mul_mk (L₁ := [(0,sg)]) (L₂ := xs)).symm
+      left
+      cases sg
+      · refine ⟨-1+k,?_⟩
+        rw [hmul,FreeGroup.mk_eq_inv_of,hk,zpow_add]
+        simp [a]
+      · refine ⟨1+k,?_⟩
+        rw [hmul,FreeGroup.mk_eq_of,hk,zpow_add]
+        simp [a]
+    · have hheavy : letterWeight ((1 : Fin 2),sg) = 10^80 := by
+        simp [letterWeight]
+      rw [hheavy] at hw
+      have hnil : xs = [] := (rawWeight_eq_zero_iff xs).mp (by omega)
+      subst xs
+      right
+      cases sg
+      · exact Or.inr (by rw [FreeGroup.mk_eq_inv_of]; rfl)
+      · exact Or.inl (by rw [FreeGroup.mk_eq_of]; rfl)
+
+/-- Before adding any relations, the heavy generator is not
+conjugate to a power of the light generator. Detect it by the
+homomorphism recording its exponent sum. -/
+theorem heavy_not_good_bot : ¬ Good (⊥ : Subgroup F) b := by
+  intro h
+  obtain ⟨x,k,hx⟩ := h
+  change x*b*x⁻¹*(a^k)⁻¹ = 1 at hx
+  let f : Fin 2 → Multiplicative ℤ := fun i =>
+    if i = 0 then 1 else Multiplicative.ofAdd 1
+  let q : F →* Multiplicative ℤ := FreeGroup.lift f
+  have ha : q a = 1 := by simp [q,f,a,FreeGroup.lift_apply_of]
+  have hb : q b = Multiplicative.ofAdd 1 := by
+    simp [q,f,b,FreeGroup.lift_apply_of]
+  have he := congrArg q hx
+  simp only [map_mul,map_inv,map_zpow,ha,one_zpow,inv_one,mul_one,map_one] at he
+  have hzero : q b = 1 := by
+    calc
+      _ = (q x)⁻¹ * (q x * q b * (q x)⁻¹) * q x := by group
+      _ = _ := by rw [he]; group
+  rw [hb] at hzero
+  exact (by decide : (Multiplicative.ofAdd (1 : ℤ)) ≠ 1) hzero
+
+/-- Any weight-minimal bad period at the initial rank is exactly
+one of the two signed heavy generators. -/
+theorem initial_minBad_heavy (c : F) (hc : MinBad (⊥ : Subgroup F) c) :
+    c = b ∨ c = b⁻¹ := by
+  have hbw : weightedLength b = 10^80 := by
+    simpa using weightedLength_b_zpow 1
+  have hle := hc.2 b heavy_not_good_bot
+  rw [hbw] at hle
+  have h := rawWord_at_most_heavy_weight c.toWord hle
+  rw [FreeGroup.mk_toWord] at h
+  rcases h with ⟨k,hk⟩ | h
+  · exfalso
+    apply hc.1
+    rw [hk]
+    exact good_a_zpow ⊥ k
+  · exact h
+
+/-- When the two generators commute in an arbitrary target group,
+the heavy generator commutes with the image of every free word. -/
+theorem freeGroup_heavy_commutes_all {K : Type} [Group K] (q : F →* K)
+    (hab : Commute (q a) (q b)) (x : F) :
+    Commute (q x) (q b) := by
+  have hgen (i : Fin 2) : Commute (q (FreeGroup.of i)) (q b) := by
+    fin_cases i
+    · exact hab
+    · exact Commute.refl _
+  have hraw (w : RawWord) : Commute (q (FreeGroup.mk w)) (q b) := by
+    induction w with
+    | nil =>
+      rw [← FreeGroup.one_eq_mk,map_one]
+      exact Commute.one_left _
+    | cons y ys ih =>
+      rcases y with ⟨i,sg⟩
+      have he : FreeGroup.mk ((i,sg)::ys) =
+          FreeGroup.mk [(i,sg)] * FreeGroup.mk ys :=
+        (FreeGroup.mul_mk (L₁ := [(i,sg)]) (L₂ := ys)).symm
+      rw [he,map_mul]
+      cases sg
+      · rw [FreeGroup.mk_eq_inv_of,map_inv]
+        exact (hgen i).inv_left.mul_left ih
+      · rw [FreeGroup.mk_eq_of]
+        exact (hgen i).mul_left ih
+  simpa only [FreeGroup.mk_toWord] using hraw x.toWord
+
+/-- At rank one, one signed heavy generator is made conjugate to a.
+If the commutator later vanishes, the conjugator disappears from
+this equality: one of the two short words b*a or b*a^-1 is killed. -/
+theorem weightedStages_comm_failure_shorter
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ)
+    (hm : commWord ∈ weightedStages pick X n) :
+    b*a ∈ weightedStages pick X n ∨ b*a⁻¹ ∈ weightedStages pick X n := by
+  have hn : 1 ≤ n := by
+    by_contra! h
+    have hn0 : n = 0 := by omega
+    subst n
+    exact commWord_ne_one hm
+  have hbad : ¬ Good (weightedStages pick X 0) b := heavy_not_good_bot
+  -- Use the actual first defining relation with exponent one.
+  let N0 := weightedStages pick X 0
+  have h0 : ∃ w : F, ¬ Good N0 w := ⟨b,hbad⟩
+  let C := (pick N0 h0).val
+  have hC : C = b ∨ C = b⁻¹ := initial_minBad_heavy C (pick N0 h0).property
+  let u := X 0 N0 C
+  have hr : u*C*u⁻¹*a⁻¹ ∈ weightedStages pick X 1 := by
+    change u*C*u⁻¹*a⁻¹ ∈ adjoin N0 (weightedRelator pick X 0 N0)
+    rw [← weightedRelator_eq pick X 0 N0 h0]
+    exact relator_mem_adjoin _ _
+  let N := weightedStages pick X n
+  let : N.Normal := weightedStages_normal pick X n
+  let q := QuotientGroup.mk' N
+  have hrn : u*C*u⁻¹*a⁻¹ ∈ N := (weightedStages_mono pick X hn) hr
+  have he : q (u*C*u⁻¹*a⁻¹) = 1 := (QuotientGroup.eq_one_iff _).mpr hrn
+  simp only [map_mul,map_inv] at he
+  have hcomm : q commWord = 1 := (QuotientGroup.eq_one_iff _).mpr hm
+  change q (a*b*a⁻¹*b⁻¹) = 1 at hcomm
+  simp only [map_mul,map_inv] at hcomm
+  have hab : Commute (q a) (q b) := by
+    change q a * q b = q b * q a
+    calc
+      _ = (q a * q b * (q a)⁻¹ * (q b)⁻¹) * (q b * q a) := by group
+      _ = _ := by rw [hcomm,one_mul]
+  have hu := freeGroup_heavy_commutes_all q hab u
+  rcases hC with hC | hC
+  · right
+    rw [hC] at he
+    have hq : q (b*a⁻¹) = 1 := by
+      simp only [map_mul,map_inv]
+      calc
+        _ = q u * q b * (q u)⁻¹ * (q a)⁻¹ := by rw [hu.eq]; group
+        _ = 1 := he
+    exact (QuotientGroup.eq_one_iff _).mp hq
+  · left
+    rw [hC,map_inv] at he
+    have hu' := hu.inv_right
+    have hq : q b * q a = 1 := by
+      have he' : (q b)⁻¹ * (q a)⁻¹ = 1 := by
+        calc
+          _ = q u * (q b)⁻¹ * (q u)⁻¹ * (q a)⁻¹ := by rw [hu'.eq]; group
+          _ = 1 := he
+      calc
+        _ = ((q b)⁻¹ * (q a)⁻¹)⁻¹ := by rw [mul_inv_rev,inv_inv,inv_inv,hab.eq]
+        _ = 1 := by rw [he',inv_one]
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (b*a) = 1
+    rw [map_mul,hq]
+
+/-- It is enough to preserve short words up to the strictly smaller
+threshold W+1, rather than the commutator's weight 2W+2. -/
+theorem answer_of_heightStages_half_threshold
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (hshort : ∀ n w, w ∈ weightedHeightStage pick X n →
+      weightedLength w ≤ 10^80 + 1 → w = 1) : answer := by
+  apply answer_of_weightedStages pick X
+  intro n hn
+  have hb : weightedLength b = 10^80 := by simpa using weightedLength_b_zpow 1
+  have ha : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+  have hai : weightedLength a⁻¹ = 1 := by
+    simpa using weightedLength_a_zpow (-1)
+  have hne : ∀ e : Bool, (if e then b*a else b*a⁻¹) ≠ 1 := by
+    intro e h
+    cases e
+    · have h' : b*a⁻¹ = 1 := h
+      have hba : b = a := by
+        calc
+          b = (b*a⁻¹)*a := by group
+          _ = a := by rw [h',one_mul]
+      rw [hba,ha] at hb
+      norm_num at hb
+    · have h' : b*a = 1 := h
+      have hba : b = a⁻¹ := by
+        calc
+          b = (b*a)*a⁻¹ := by group
+          _ = a⁻¹ := by rw [h',one_mul]
+      rw [hba,hai] at hb
+      norm_num at hb
+  rcases weightedStages_comm_failure_shorter pick X n hn with h | h
+  · apply hne true
+    apply hshort n (b*a) _ _
+    · rw [weightedHeightStage_eq]; exact h
+    · have hle := weightedLength_mul_le b a
+      omega
+  · apply hne false
+    apply hshort n (b*a⁻¹) _ _
+    · rw [weightedHeightStage_eq]; exact h
+    · have hle := weightedLength_mul_le b a⁻¹
+      omega
+
+#print axioms rawWord_at_most_heavy_weight
+#print axioms heavy_not_good_bot
+#print axioms initial_minBad_heavy
+#print axioms freeGroup_heavy_commutes_all
+#print axioms weightedStages_comm_failure_shorter
+#print axioms answer_of_heightStages_half_threshold
+
 end QuandleResearch.Issue070
