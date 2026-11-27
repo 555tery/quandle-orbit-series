@@ -17225,4 +17225,160 @@ theorem guba23_no_heavy_actual_opposite_long_blocks
 #print axioms GubaFourBlockRead_eval
 #print axioms guba23_no_heavy_actual_opposite_long_blocks
 
+
+/-! ## Exact boundary words on the two sides of an aligned loop -/
+
+/-- Rebase an actual vertex at the corner immediately after a
+specified dart. Cut at that corner and the paired dart. The
+two resulting based boundary lists are literal complementary
+intervals of the original traversal. -/
+theorem ribbon_loop_literal_cut {D : Type} [Fintype D]
+    (R : RibbonMap D) (x c : D) (L M N : List D)
+    (hrow : R.vertexBoundary x =
+      (L++[c]) ++ (M++(R.edge c::N)))
+    (hne : R.rotation c ≠ R.edge c) :
+    let Q := R.vertexCut (R.rotation c) (R.edge c)
+    Q.vertexBoundary (R.rotation c) = M ∧
+      Q.vertexBoundary (R.edge c) = (R.edge c::N)++(L++[c]) := by
+  classical
+  intro Q
+  let A := L++[c]
+  let B := M++(R.edge c::N)
+  have hw : Walk R.rotation x x (R.vertexBoundary x) :=
+    cycleBoundary_walk _ _
+  rw [hrow] at hw
+  obtain ⟨y,hA,hB⟩ := walk_split_departures R.rotation A B x x hw
+  have hy : R.rotation c = y := by
+    obtain ⟨z,_,hlast⟩ := walk_split_departures R.rotation L [c] x y hA
+    obtain ⟨d,hd,he⟩ := walk_predecessor_mem R.rotation hlast (by simp)
+    rw [List.mem_singleton.mp hd] at he
+    exact he
+  rw [← hy] at hA hB
+  have hnd : (A++B).Nodup := by
+    have hn := R.vertexBoundary_nodup x
+    rw [hrow] at hn
+    exact hn
+  have hn : (B++A).Nodup := by
+    obtain ⟨ha,hb,hd⟩ := List.nodup_append.mp hnd
+    exact List.nodup_append.mpr ⟨hb,ha,fun a ha b hb he =>
+      hd b hb a ha he.symm⟩
+  have hcyc : R.vertexBoundary (R.rotation c) = B++A := by
+    exact ((hB.append hA).eq_cycleBoundary (by simp [A,B]) hn).symm
+  cases M with
+  | nil =>
+    change Walk R.rotation (R.rotation c) x (R.edge c::N) at hB
+    cases hB
+    exact (hne rfl).elim
+  | cons d ds =>
+    have hd : R.rotation c = d := by
+      change Walk R.rotation (R.rotation c) x (d::(ds++(R.edge c::N))) at hB
+      cases hB
+      rfl
+    have hfull : R.vertexBoundary (R.rotation c) =
+        (R.rotation c::ds) ++ (R.edge c::(N++A)) := by
+      rw [hcyc]
+      simp only [B,List.cons_append,List.append_assoc,hd]
+    obtain ⟨_,_,hleft,hright⟩ := vertexCut_exact_blocks R
+      (R.rotation c) (R.edge c) ds (N++A) hfull
+    exact ⟨hleft.trans (by rw [hd]),by simpa only [List.cons_append] using hright⟩
+
+/-- For exactly aligned long sides, the two separated boundaries
+are conjugate to the two coefficient powers. Here A is the
+positive prefix including the common dart, and B the remaining
+positive suffix. All word readings are literal. -/
+theorem ribbon_aligned_loop_cut_values {D : Type} [Fintype D]
+    (R : RibbonMap D) (read : D → Letter) (x c : D)
+    (L M N : List D) (A B : RawWord) (C : F) (k : ℤ)
+    (hrow : R.vertexBoundary x =
+      (L++[c]) ++ (M++(R.edge c::N)))
+    (hne : R.rotation c ≠ R.edge c)
+    (hA : (L++[c]).map read = A)
+    (hM : M.map read = B ++ rawIntPow C.toWord k ++ FreeGroup.invRev B)
+    (hN : (R.edge c::N).map read =
+      FreeGroup.invRev A ++ FreeGroup.invRev (rawIntPow a.toWord k)) :
+    let Q := R.vertexCut (R.rotation c) (R.edge c)
+    FreeGroup.mk ((Q.vertexBoundary (R.rotation c)).map read) =
+      FreeGroup.mk B * C^k * (FreeGroup.mk B)⁻¹ ∧
+    FreeGroup.mk ((Q.vertexBoundary (R.edge c)).map read) =
+      (FreeGroup.mk A)⁻¹ * (a^k)⁻¹ * FreeGroup.mk A := by
+  intro Q
+  obtain ⟨hl,hr⟩ := ribbon_loop_literal_cut R x c L M N hrow hne
+  change Q.vertexBoundary (R.rotation c) = M at hl
+  change Q.vertexBoundary (R.edge c) = (R.edge c::N)++(L++[c]) at hr
+  constructor
+  · rw [hl,hM]
+    simp only [← FreeGroup.mul_mk,← FreeGroup.inv_mk,rawIntPow_eval,FreeGroup.mk_toWord]
+  · rw [hr,List.map_append,hN,hA]
+    simp only [← FreeGroup.mul_mk,← FreeGroup.inv_mk,rawIntPow_eval,FreeGroup.mk_toWord]
+
+/-- At least one side of the genuine separating loop cut omits
+the exterior. This requires no rank bound on its interior cells. -/
+theorem separating_cut_has_root_free_side {D : Type} (Q : RibbonMap D)
+    (x y z : D) (hsep : ¬ Q.SameComponent x y) :
+    ∃ c ∈ [x,y], ¬ Q.SameComponent c z := by
+  by_cases hx : Q.SameComponent x z
+  · refine ⟨y,by simp,?_⟩
+    intro hy
+    exact hsep (Relation.EqvGen.trans _ _ _ hx (Relation.EqvGen.symm _ _ hy))
+  · exact ⟨x,by simp,hx⟩
+
+/-- Combine the exact two cut readings with genuine spherical
+factorization. One of the two coefficient powers (up to
+conjugacy) has a filling of strictly smaller FULL type.
+This is a reduction of the self-loop case, not yet an exclusion. -/
+theorem gubaType_aligned_loop_smaller_power_filling
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ (x c : _) (i : Fin s.length) (L M N : List _) (A B : RawWord) (C : F) (k : ℤ),
+      R.rotation.SameCycle c (R.edge c) →
+      R.rotation c ≠ R.edge c →
+      (idx (R.rotation c)).val = i.val+1 →
+      R.vertexBoundary x = (L++[c]) ++ (M++(R.edge c::N)) →
+      (L++[c]).map read = A →
+      M.map read = B ++ rawIntPow C.toWord k ++ FreeGroup.invRev B →
+      (R.edge c::N).map read =
+        FreeGroup.invRev A ++ FreeGroup.invRev (rawIntPow a.toWord k) →
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)),
+        (l.map Prod.fst).Nodup ∧ i ∉ l.map Prod.fst ∧
+        (∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2) ∧
+        descendingCountLT (2*n) gubaTypeCoordinate (l.map Prod.snd) s ∧
+        (Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          (FreeGroup.mk B * C^k * (FreeGroup.mk B)⁻¹)⁻¹ ∨
+         Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          ((FreeGroup.mk A)⁻¹ * (a^k)⁻¹ * FreeGroup.mk A)⁻¹) := by
+  classical
+  intro rows R root idx read x c i L M N A B C k hloop hne hi hrow hA hM hN
+  let Q := R.vertexCut (R.rotation c) (R.edge c)
+  have hsame : R.rotation.SameCycle (R.rotation c) (R.edge c) :=
+    Equiv.Perm.sameCycle_apply_left.mpr hloop
+  have hsep : ¬ Q.SameComponent (R.rotation c) (R.edge c) :=
+    spherical_loop_separating_cut R (boundaryRibbon_euler rows w s hs) c hloop hne
+  obtain ⟨d,hd,hroot⟩ := separating_cut_has_root_free_side Q _ _ root hsep
+  obtain ⟨l,hn,hio,hlab,heval,hlt⟩ :=
+    gubaType_separating_interior_subfilling pick X n w s hs hw
+      (R.rotation c) (R.edge c) d i hne hsame hi hd hsep hroot
+  obtain ⟨hl,hr⟩ := ribbon_aligned_loop_cut_values R read x c L M N A B C k
+    hrow hne hA hM hN
+  change FreeGroup.mk ((Q.vertexBoundary (R.rotation c)).map read) = _ at hl
+  change FreeGroup.mk ((Q.vertexBoundary (R.edge c)).map read) = _ at hr
+  change Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+    (FreeGroup.mk ((Q.vertexBoundary d).map read))⁻¹ at heval
+  refine ⟨l,hn,hio,hlab,hlt,?_⟩
+  simp only [List.mem_cons,List.not_mem_nil,or_false] at hd
+  rcases hd with rfl | rfl
+  · exact Or.inl (heval.trans (congrArg Inv.inv hl))
+  · exact Or.inr (heval.trans (congrArg Inv.inv hr))
+
+#print axioms ribbon_loop_literal_cut
+#print axioms ribbon_aligned_loop_cut_values
+#print axioms separating_cut_has_root_free_side
+#print axioms gubaType_aligned_loop_smaller_power_filling
+
 end QuandleResearch.Issue070
