@@ -9256,7 +9256,8 @@ theorem guba23_vertex_factor_as_occurrence (rows : I → RawWord) (w : F)
   have hj : idx.val = j.val+1 := by dsimp [j]; omega
   have hidx : (boundaryIdentity s)[idx] = markOccurrence s[j.val] := by
     have hopt : (boundaryIdentity s)[idx.val]? = some (markOccurrence s[j.val]) := by
-      rw [hj]
+      have he := congrArg (fun m : ℕ => (boundaryIdentity s)[m]?) hj
+      refine he.trans ?_
       change (s.map markOccurrence)[j.val]? = _
       rw [List.getElem?_map, getElem?_pos s j.val j.isLt]
       rfl
@@ -9286,8 +9287,7 @@ theorem guba23_vertex_factor_as_occurrence (rows : I → RawWord) (w : F)
       orientedWord (rows s[j.val].1.2) s[j.val].2 := by
     have h := boundaryRibbon_interior_read rows w s hs idx s[j.val].1.2
       hlabel (Nat.zero_lt_of_lt k.isLt)
-    rw [hsign] at h
-    exact h
+    exact h.trans (congrArg (orientedWord (rows s[j.val].1.2)) hsign)
   refine ⟨j,((g*u,s[j.val].1.2),s[j.val].2),?_,rfl,?_⟩
   · rw [discOccurrence_at]
     exact hj
