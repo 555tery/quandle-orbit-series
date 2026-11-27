@@ -201,4 +201,11 @@ example : answer ↔
 #print axioms gubaState_active_weight
 #print axioms gubaState_active_weights_distinct
 
+#print axioms activePrefix_weight
+#print axioms activePrefix_weight_ge
+#print axioms activePrefix_ne
+#print axioms activeLongWord_eval
+#print axioms activeLongWord_overlap_bound
+#print axioms activeLongWord_overlap_bound_both
+
 end QuandleResearch.Issue070
