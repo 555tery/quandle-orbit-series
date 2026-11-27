@@ -280,4 +280,13 @@ theorem boundaryComponent_sphere (rows : I → RawWord) (w : F)
 #print axioms boundaryComponent_connected
 #print axioms boundaryComponent_sphere
 
+#print axioms markedRows
+#print axioms markOccurrence
+#print axioms boundaryIdentity
+#print axioms RankHeight
+#print axioms rankHeightRel
+#print axioms rankHeightRows
+#print axioms boundaryOccurrence
+#print axioms boundaryDart
+
 end QuandleResearch.Issue070
