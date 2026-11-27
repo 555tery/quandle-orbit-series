@@ -13831,4 +13831,176 @@ theorem ribbon_low_end_vertex {D : Type} [Fintype D]
 #print axioms ribbon_vertex_end_sum
 #print axioms ribbon_low_end_vertex
 
+
+/-! ## A long direct strip from the original vertex traversal
+
+Cut the based list at marked departures. A cyclic strip may be
+cut once more at the arbitrary basepoint, so the linear bound is
+one more than the number of ends. The resulting constant six
+suffices here and needs no choice of a cyclic starting point.
+-/
+
+theorem marked_linear_blocks {D : Type} (stop : D → Prop) [DecidablePred stop]
+    (l : List D) :
+    ∃ blocks : List (List D × D),
+      l = blocks.flatMap (fun b => b.1 ++ [b.2]) ∧
+      (∀ b ∈ blocks, ∀ d ∈ b.1, ¬ stop d) ∧
+      blocks.length ≤ (l.map (fun d => if stop d then (1 : ℕ) else 0)).sum + 1 := by
+  induction l with
+  | nil => exact ⟨[],rfl,by simp,by simp⟩
+  | cons d ds ih =>
+    obtain ⟨blocks,he,hgood,hcount⟩ := ih
+    by_cases hd : stop d
+    · refine ⟨([],d)::blocks,?_,?_,?_⟩
+      · simp only [List.flatMap_cons,List.nil_append,List.singleton_append,← he]
+      · intro b hb e he'
+        rcases List.mem_cons.mp hb with rfl | hb
+        · simp at he'
+        · exact hgood b hb e he'
+      · simp only [List.length_cons,List.map_cons,List.sum_cons,ite_eq_left hd]
+        omega
+    · cases blocks with
+      | nil =>
+        have hnil : ds = [] := he
+        subst ds
+        exact ⟨[([],d)],rfl,by simp,by simp [hd]⟩
+      | cons b bs =>
+        refine ⟨(d::b.1,b.2)::bs,?_,?_,?_⟩
+        · simp only [List.flatMap_cons,List.cons_append] at he ⊢
+          rw [← he]
+        · intro c hc e he'
+          rcases List.mem_cons.mp hc with rfl | hc
+          · rcases List.mem_cons.mp he' with rfl | he'
+            · exact hd
+            · exact hgood b List.mem_cons_self e he'
+          · exact hgood c (List.mem_cons_of_mem _ hc) e he'
+        · simp only [List.length_cons,List.map_cons,List.sum_cons,ite_eq_right hd,zero_add]
+          exact hcount
+
+/-- A block in a literal flattened partition is a contiguous
+factor, not merely a sublist. -/
+theorem flattened_block_factor {D : Type} (blocks : List (List D × D))
+    (b : List D × D) (hb : b ∈ blocks) :
+    ∃ p q : List D,
+      blocks.flatMap (fun b => b.1 ++ [b.2]) = p ++ (b.1 ++ [b.2]) ++ q := by
+  obtain ⟨u,v,h⟩ := List.mem_iff_append.mp hb
+  refine ⟨u.flatMap (fun b => b.1++[b.2]),v.flatMap (fun b => b.1++[b.2]),?_⟩
+  rw [h,List.flatMap_append,List.flatMap_cons,List.append_assoc]
+
+theorem list_weight_max {A : Type} (f : A → ℕ) (l : List A) (hne : l ≠ []) :
+    ∃ b ∈ l, ∀ c ∈ l, f c ≤ f b := by
+  induction l with
+  | nil => exact (hne rfl).elim
+  | cons x xs ih =>
+    by_cases hnil : xs = []
+    · subst xs
+      refine ⟨x,List.mem_cons_self,?_⟩
+      intro c hc
+      have he : c = x := List.mem_singleton.mp hc
+      rw [he]
+    · obtain ⟨b,hb,hmax⟩ := ih hnil
+      rcases le_total (f x) (f b) with h | h
+      · refine ⟨b,List.mem_cons_of_mem _ hb,?_⟩
+        intro c hc
+        rcases List.mem_cons.mp hc with rfl | hc
+        · exact h
+        · exact hmax c hc
+      · refine ⟨x,List.mem_cons_self,?_⟩
+        intro c hc
+        rcases List.mem_cons.mp hc with rfl | hc
+        · exact le_rfl
+        · exact (hmax c hc).trans h
+
+theorem list_sum_map_le_length_mul {A : Type} (f : A → ℕ)
+    (l : List A) (M : ℕ) (h : ∀ c ∈ l, f c ≤ M) :
+    (l.map f).sum ≤ l.length * M := by
+  induction l with
+  | nil => simp
+  | cons x xs ih =>
+    have hx := h x List.mem_cons_self
+    have ht := ih (fun c hc => h c (List.mem_cons_of_mem _ hc))
+    simp only [List.map_cons,List.sum_cons,List.length_cons,Nat.add_mul,one_mul]
+    omega
+
+/-- Every based vertex reading with at most K marked departures
+has a contiguous direct strip of weight at least P/(K+1).
+Only the prefix of the strip is required to have bigon joins;
+its last departure may itself be the end of the run. -/
+theorem ribbon_long_direct_strip {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (d : D) (K : ℕ)
+    (hcount : ribbonVertexEndCount P (P.vertexOf d) ≤ K) :
+    ∃ (p u q : List D) (z : D),
+      P.vertexBoundary d = p ++ (u ++ [z]) ++ q ∧
+      (∀ e ∈ u, P.face (P.face e) = e) ∧
+      rawWeight ((P.vertexBoundary d).map read) ≤
+        (K+1) * rawWeight ((u++[z]).map read) := by
+  classical
+  let l := P.vertexBoundary d
+  let stop : D → Prop := fun e => P.face (P.face e) ≠ e
+  have hsum : (l.map (ribbonEndIndicator P)).sum =
+      ribbonVertexEndCount P (P.vertexOf d) := by
+    unfold ribbonVertexEndCount
+    have hset : Finset.univ.filter (fun e => P.vertexOf e = P.vertexOf d) =
+        l.toFinset := by
+      ext e
+      simp only [Finset.mem_filter,Finset.mem_univ,true_and,List.mem_toFinset,l,
+        P.mem_vertexBoundary_iff]
+      exact ⟨fun h => (Quotient.exact h).symm,fun h => Quotient.sound h.symm⟩
+    rw [hset,← List.sum_toFinset _ (P.vertexBoundary_nodup d)]
+  obtain ⟨blocks,he,hgood,hn⟩ := marked_linear_blocks stop l
+  have hindicator : (fun e => if stop e then (1 : ℕ) else 0) =
+      ribbonEndIndicator P := by
+    funext e
+    by_cases h : P.face (P.face e) = e <;> simp [stop,ribbonEndIndicator,h]
+  rw [hindicator,hsum] at hn
+  have hnon : blocks ≠ [] := by
+    intro h
+    rw [h,List.flatMap_nil] at he
+    exact cycleBoundary_ne_nil P.rotation d he
+  let weight : List D × D → ℕ := fun b => rawWeight ((b.1++[b.2]).map read)
+  have hw : (blocks.map weight).sum = rawWeight (l.map read) := by
+    rw [he]
+    clear he hgood hn hnon
+    induction blocks with
+    | nil => rfl
+    | cons b bs ih =>
+      simp only [List.map_cons,List.sum_cons,List.flatMap_cons,List.map_append,rawWeight_append]
+      exact congrArg (fun n => weight b+n) ih
+  obtain ⟨b,hb,hmax⟩ := list_weight_max weight blocks hnon
+  have hle := list_sum_map_le_length_mul weight blocks (weight b) hmax
+  have hlen : blocks.length ≤ K+1 := by omega
+  have hweight : rawWeight (l.map read) ≤ (K+1)*weight b := by
+    rw [← hw]
+    exact hle.trans (Nat.mul_le_mul_right _ hlen)
+  obtain ⟨p,q,hpart⟩ := flattened_block_factor blocks b hb
+  refine ⟨p,b.1,q,b.2,he.trans hpart,?_,hweight⟩
+  intro e he'
+  by_contra hn'
+  exact hgood b hb e he' hn'
+
+/-- The previous Euler estimate and the literal partition now
+give a long direct strip on an actual nonmarked vertex.
+No compressed graph is required for this conclusion. -/
+theorem ribbon_exists_long_interior_direct_strip {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (z : D) (hc : P.Connected)
+    (hE : P.EulerEquality) (h1 : ∀ d, P.face d ≠ d) :
+    ∃ (d : D) (p u q : List D) (e : D),
+      ¬ P.rotation.SameCycle z d ∧
+      P.vertexBoundary d = p ++ (u ++ [e]) ++ q ∧
+      (∀ t ∈ u, P.face (P.face t) = t) ∧
+      rawWeight ((P.vertexBoundary d).map read) ≤
+        6 * rawWeight ((u++[e]).map read) := by
+  obtain ⟨v,hv,hcount⟩ := ribbon_low_end_vertex P z hc hE h1
+  obtain ⟨d,rfl⟩ := Quotient.exists_rep v
+  obtain ⟨p,u,q,e,hpart,hgood,hweight⟩ :=
+    ribbon_long_direct_strip P read d 5 hcount
+  exact ⟨d,p,u,q,e,fun h => hv (Quotient.sound h.symm),hpart,hgood,hweight⟩
+
+#print axioms marked_linear_blocks
+#print axioms flattened_block_factor
+#print axioms list_weight_max
+#print axioms list_sum_map_le_length_mul
+#print axioms ribbon_long_direct_strip
+#print axioms ribbon_exists_long_interior_direct_strip
+
 end QuandleResearch.Issue070
