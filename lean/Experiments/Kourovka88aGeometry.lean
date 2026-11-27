@@ -1276,6 +1276,7 @@ theorem ribbon_boundary_mem_normal {D : Type} [Fintype D]
       rw [← eval]
       exact (QuotientGroup.eq_one_iff _).mpr (hint e hne))
   apply (QuotientGroup.eq_one_iff _).mp
+  change q (FreeGroup.mk ((P.vertexBoundary d).map read)) = 1
   rw [eval]
   exact hprod
 
