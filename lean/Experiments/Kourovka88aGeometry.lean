@@ -9389,4 +9389,54 @@ theorem guba23_rankMinimal_ribbon_connected
 #print axioms guba23_rankMinimal_ribbon_connected
 
 
+
+/-! ### The two-boundary deletion package
+
+Collect the geometric and algebraic outputs of deleting a specified
+cell into one theorem. The underlying capped annular ribbon is the
+original spherical ribbon, with two distinguished vertex discs.
+The remaining rank profile is strictly smaller and is minimal even
+against competing based fillings with a different connecting path.
+No claim about Guba's regularity or preferred bands is implicit.
+-/
+
+theorem guba23_delete_cell_two_boundary_package
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w (p ++ [x] ++ r))
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) (p ++ [x] ++ r) = w) :
+    let s := p ++ [x] ++ r
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let rel := rankHeightRel pick X n
+    P.Connected ∧ P.EulerEquality ∧
+      (P.vertexBoundary z).map read = FreeGroup.invRev w.toWord ∧
+      (∃ d : DiscDarts (markedRows rows w) (boundaryIdentity s),
+        P.SameComponent z d ∧ ¬ P.rotation.SameCycle z d ∧
+        (P.vertexBoundary d).map read = orientedWord (rows x.1.2) x.2 ∧
+        (∀ e, P.rotation.SameCycle d e ↔
+          (discOccurrence (markedRows rows w) (boundaryIdentity s) e).val = p.length+1)) ∧
+      descendingCountLT n rankCount (p ++ r) s ∧
+      (∀ g t, Peiffer.evaluation rel ([shiftOccurrence g x] ++ t) = w →
+        ¬ descendingCountLT n rankCount t (p ++ r)) := by
+  intro s rows P z read rel
+  have hc : P.Connected :=
+    guba23_rankMinimal_ribbon_connected pick X n w s hm hw hs
+  obtain ⟨d,_,hne,hread,hidx⟩ :=
+    guba23_designated_boundary_cycle pick X n w p r x hm hw hs
+  refine ⟨hc,boundaryRibbon_euler rows w s hs,
+    boundaryRibbon_read rows w s hs hw,⟨d,hc z d,hne,hread,hidx⟩,?_,?_⟩
+  · exact rank_type_lt_of_omitted_occurrence p r x (p ++ r) (List.Sublist.refl _)
+  · intro g t ht
+    exact guba23_delete_cell_variable_base_minimal pick X n w p r x hm g t ht
+
+#print axioms guba23_delete_cell_two_boundary_package
+
+
 end QuandleResearch.Issue070
