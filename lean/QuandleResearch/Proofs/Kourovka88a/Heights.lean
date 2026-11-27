@@ -105,11 +105,53 @@ theorem literalHeightWord_eval (X C : F) (k : ℤ) :
     FreeGroup.mk (literalHeightWord X C k) = heightRelator X C k := by
   by_cases hk : k = 0
   · subst k
-    simp [literalHeightWord, heightRelator, FreeGroup.one_eq_mk]
-  · simp only [literalHeightWord, if_neg hk, ← FreeGroup.mul_mk,
+    change FreeGroup.mk [] = heightRelator X C 0
+    rw [← FreeGroup.one_eq_mk]
+    simp [heightRelator]
+  · simp only [literalHeightWord, ite_eq_right hk, ← FreeGroup.mul_mk,
       ← FreeGroup.inv_mk, rawIntPow_eval, FreeGroup.mk_toWord, heightRelator]
 
 theorem literalHeightWord_zero (X C : F) : literalHeightWord X C 0 = [] := by
   simp [literalHeightWord]
+
+
+/-! ## Algebra of merging two heights at a fixed rank
+
+These identities describe the exact group values of a candidate merge.
+They do not assert that a particular pair of adjacent discs can be
+merged in a planar diagram: that requires an appropriate common path.
+-/
+
+theorem heightRelator_zero (X C : F) : heightRelator X C 0 = 1 := by
+  simp [heightRelator]
+
+/-- Add heights, with the second relation based along the a-power. -/
+theorem heightRelator_add (X C : F) (k l : ℤ) :
+    heightRelator X C (k+l) =
+      heightRelator X C k * a^k * heightRelator X C l * (a^k)⁻¹ := by
+  simp only [heightRelator, zpow_add, mul_inv_rev]
+  group
+
+/-- Opposite heights give a conjugate inverse, not necessarily a literal inverse. -/
+theorem heightRelator_neg (X C : F) (k : ℤ) :
+    heightRelator X C (-k) =
+      (a^k)⁻¹ * (heightRelator X C k)⁻¹ * a^k := by
+  simp only [heightRelator, zpow_neg, mul_inv_rev, inv_inv]
+  group
+
+/-- The two-row product with the specified relative conjugator is exactly
+the sum-height row. This includes the zero-height deletion case. -/
+theorem heightRelator_merge (X C u : F) (k l : ℤ) :
+    (u * heightRelator X C k * u⁻¹) *
+      ((u*a^k) * heightRelator X C l * (u*a^k)⁻¹) =
+      u * heightRelator X C (k+l) * u⁻¹ := by
+  rw [heightRelator_add]
+  group
+
+theorem heightRelator_merge_cancel (X C u : F) (k : ℤ) :
+    (u * heightRelator X C k * u⁻¹) *
+      ((u*a^k) * heightRelator X C (-k) * (u*a^k)⁻¹) = 1 := by
+  rw [heightRelator_merge, add_neg_cancel, heightRelator_zero]
+  simp
 
 end QuandleResearch.Issue070
