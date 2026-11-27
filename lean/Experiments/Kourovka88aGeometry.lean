@@ -514,7 +514,9 @@ theorem guba_rankHeightRows_weight (pick : WeightedSelector)
       change rawWeight (rawIntPow a.toWord k) = k.natAbs
       have h1 : rawWeight a.toWord = 1 := by
         change weightedLength a = 1
-        simpa only [zpow_one] using weightedLength_a_zpow 1
+        have h := weightedLength_a_zpow 1
+        rw [zpow_one] at h
+        exact h
       cases k with
       | ofNat m =>
         change rawWeight (rawNatPow a.toWord m) = m
@@ -523,6 +525,7 @@ theorem guba_rankHeightRows_weight (pick : WeightedSelector)
         change rawWeight (FreeGroup.invRev (rawNatPow a.toWord (m+1))) = m+1
         rw [rawWeight_invRev, rawWeight_rawNatPow, h1, mul_one]
   rw [hc, ha]
+  unfold weightedLength
   omega
 
 /-- The first term of the exact long-word formula already makes every
