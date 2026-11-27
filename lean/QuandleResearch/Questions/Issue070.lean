@@ -1,5 +1,5 @@
 import Mathlib.GroupTheory.Finiteness
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
+import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
 import Mathlib.Algebra.Group.Conj
 import Mathlib.GroupTheory.QuotientGroup.Basic
 import Mathlib.Tactic
