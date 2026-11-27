@@ -10320,11 +10320,10 @@ theorem guba21_boundary_cut_weight_additive
       (FreeGroup.toWord_inv w).symm
   obtain ⟨hl,hr⟩ := canonical_split_weight w⁻¹ L R hcat
   have winv (x : F) : weightedLength x⁻¹ = weightedLength x := by
-    rw [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
-    rfl
+    simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
   change weightedLength (FreeGroup.mk L)⁻¹ +
     weightedLength (FreeGroup.mk R)⁻¹ = weightedLength w
-  rw [winv,winv,hl,hr,← rawWeight_append,hcat]
+  rw [winv (FreeGroup.mk L),winv (FreeGroup.mk R),hl,hr,← rawWeight_append,hcat]
   exact winv w
 
 /-- The all-cell perimeter conclusion of Lemma 23 is preserved by
@@ -10357,13 +10356,16 @@ theorem guba23_reassembly_perimeter
     ((r ++ l).map Prod.snd) hm he ((r ++ l).map Prod.fst) hn
     (indexed_rankCount_eq s (r ++ l) hlabel)
   intro x hx
-  obtain ⟨i,hi⟩ := List.mem_iff_getElem.mp hx
-  let k : Fin s.length := ⟨i,hi.1⟩
+  obtain ⟨i,hi,hix⟩ := List.mem_iff_getElem.mp hx
+  let k : Fin s.length := ⟨i,hi⟩
   obtain ⟨t,ht,htk⟩ := List.mem_map.mp (hall k)
   have hrow := hlabel t ht
   have hxrow : t.2.1.2 = x.1.2 := by
-    rw [hrow,htk]
-    exact congrArg (fun y : Peiffer.Occurrence F (RankHeight n) => y.1.2) hi.2
+    let rowAt : Fin s.length → RankHeight n := fun j => s[j.val].1.2
+    calc
+      _ = rowAt t.1 := hrow
+      _ = rowAt k := congrArg rowAt htk
+      _ = x.1.2 := congrArg (fun y : Peiffer.Occurrence F (RankHeight n) => y.1.2) hix
   rcases List.mem_append.mp ht with ht | ht
   · have h := ih v (r.map Prod.snd) hr hsmallR t.2
       (List.mem_map.mpr ⟨t,ht,rfl⟩)
