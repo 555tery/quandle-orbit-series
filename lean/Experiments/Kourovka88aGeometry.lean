@@ -11640,7 +11640,7 @@ of the conjugating word are used.
 
 /-- Fixed-point polynomial of a positive word in two affine maps
 with common multiplier T and respective fixed points 0 and 1. -/
-def affineFixedPolynomial (K : Type) [Field K] :
+noncomputable def affineFixedPolynomial (K : Type) [Field K] :
     List (Fin 2) → Polynomial K
   | [] => 1
   | i :: xs => Polynomial.X * affineFixedPolynomial K xs +
@@ -11658,7 +11658,8 @@ theorem affineFixedPolynomial_prefix (K : Type) [Field K]
     (xs : List (Fin 2)) :
     affineFixedPolynomial K (1::1::1::0::xs) =
       1 - Polynomial.X^3 + Polynomial.X^4 * affineFixedPolynomial K xs := by
-  norm_num [affineFixedPolynomial] <;> ring
+  norm_num [affineFixedPolynomial]
+  ring
 
 /-- The prefix bbba forces a nonconstant polynomial with no roots
 at zero or one. Algebraic closure supplies a suitable multiplier. -/
@@ -11671,7 +11672,7 @@ theorem affineFixedPolynomial_root (xs : List (Fin 2)) :
     change (affineFixedPolynomial K (1::1::1::0::xs)).coeff 3 = _
     rw [affineFixedPolynomial_prefix]
     norm_num [Polynomial.coeff_add,Polynomial.coeff_sub,
-      Polynomial.coeff_X_pow,Polynomial.coeff_X_pow_mul']
+      Polynomial.coeff_X_pow,Polynomial.coeff_X_pow_mul',Polynomial.coeff_one]
   have hdeg : p.degree ≠ 0 := by
     intro h
     have hp := Polynomial.eq_C_of_degree_eq_zero h
@@ -11696,7 +11697,7 @@ def affinePerm {K : Type} [Field K] (t s : K) (ht : t ≠ 0) :
     Equiv.Perm K where
   toFun x := t*x+s
   invFun y := (y-s)/t
-  left_inv x := by field_simp <;> ring
+  left_inv x := by field_simp; ring
   right_inv y := by field_simp <;> ring
 
 def affineFreeMap {K : Type} [Field K] (t : K) (ht : t ≠ 0) :
@@ -11724,9 +11725,9 @@ theorem affineFreeMap_positive {K : Type} [Field K] (t : K) (ht : t ≠ 0)
     simp [affineFixedPolynomial]
   | cons i xs ih =>
     have he : positiveWord (i::xs) = FreeGroup.of i * positiveWord xs := by
-      change FreeGroup.mk ((i,true)::xs.map (fun j => (j,true))) = _
+      change FreeGroup.mk ((i,true)::xs.map (fun j => (j,true))) =
+        FreeGroup.of i * FreeGroup.mk (xs.map (fun j => (j,true)))
       rw [← FreeGroup.mk_eq_of,FreeGroup.mul_mk]
-      rfl
     rw [he,map_mul,Equiv.Perm.mul_apply]
     change (affineFreeMap t ht (FreeGroup.of i))
       (affineFreeMap t ht (positiveWord xs) x) = _
