@@ -5964,7 +5964,8 @@ theorem coefficient_runs_weight {D : Type} (S : RibbonMap D)
   | nil => rfl
   | cons b bs ih =>
     simp only [List.map_cons,List.sum_cons,List.flatMap_cons,List.map_append,
-      rawWeight_append,ih]
+      rawWeight_append]
+    exact congrArg (fun n : ℕ => rawWeight (read b.1 :: b.2.map read) + n) ih
 
 #print axioms coefficient_component_prefix
 #print axioms coefficient_component_runs
@@ -6051,6 +6052,7 @@ theorem cyclic_coefficient_component_runs {D : Type} [Fintype D]
   have hwalk : Walk P.rotation (P.rotation a) (P.rotation a)
       (P.vertexBoundary (P.rotation a)) := cycleBoundary_walk _ _
   rw [hr,hb,List.flatMap_append] at hwalk
+  simp only [List.flatMap_cons,List.flatMap_nil,List.append_nil] at hwalk
   change Walk P.rotation (P.rotation a) (P.rotation a)
     (p.flatMap (fun c => c.1 :: c.2) ++ (b.1 :: b.2)) at hwalk
   obtain ⟨z,_,hz⟩ := walk_split_departures P.rotation _ _ _ _ hwalk
@@ -6069,6 +6071,31 @@ theorem cyclic_coefficient_component_runs {D : Type} [Fintype D]
 #print axioms walk_predecessor_mem
 #print axioms exists_coefficient_transition
 #print axioms cyclic_coefficient_component_runs
+
+
+
+/-- Every indexed run of a literal vertex partition is an actual
+permutation walk starting at its own representative. This bridges
+the list partition to the interval-surgery infrastructure. -/
+theorem vertex_run_is_walk {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D)
+    (runs pre post : List (D × List D)) (b : D × List D)
+    (hr : P.vertexBoundary a = runs.flatMap (fun c => c.1 :: c.2))
+    (hb : runs = pre ++ b :: post) :
+    Walk P.rotation b.1 (P.rotation^[(b.1 :: b.2).length] b.1) (b.1 :: b.2) := by
+  have hw : Walk P.rotation a a (P.vertexBoundary a) := cycleBoundary_walk _ _
+  rw [hr,hb,List.flatMap_append,List.flatMap_cons] at hw
+  obtain ⟨z,_,hz⟩ := walk_split_departures P.rotation _ _ _ _ hw
+  obtain ⟨e,hbwalk,_⟩ := walk_split_departures P.rotation (b.1 :: b.2)
+    (post.flatMap (fun c => c.1 :: c.2)) z a hz
+  have hstart : z = b.1 := by
+    cases hbwalk
+    rfl
+  subst z
+  rw [hbwalk.endpoint]
+  exact hbwalk
+
+#print axioms vertex_run_is_walk
 
 
 end QuandleResearch.Issue070
