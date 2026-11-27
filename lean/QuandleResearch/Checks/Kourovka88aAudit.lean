@@ -75,4 +75,16 @@ example : answer ↔
 #print axioms positiveWord_longBlock
 #print axioms weightedLength_longBlock
 
+#print axioms adjacent_eq_odd
+#print axioms no_odd_cube
+#print axioms cube_even_descend
+#print axioms cubeFree_of_binary_rec
+#print axioms thueMorse_even
+#print axioms thueMorse_odd
+#print axioms thueMorse_cubeFree
+#print axioms thueLetter_eq_iff
+#print axioms thuePrefix_length
+#print axioms thuePrefix_get
+#print axioms thuePrefix_cubeFree
+
 end QuandleResearch.Issue070
