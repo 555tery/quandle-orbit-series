@@ -35,7 +35,7 @@ theorem nextRelator_eq (words : ℕ → F) (N : Subgroup F) (X : F)
   have hmin : Nat.find hex = j := by
     apply (Nat.find_eq_iff hex).2
     exact ⟨hbad, fun k hk h => h (hprev k hk)⟩
-  simp only [nextRelator, dif_pos hex, hmin]
+  simp only [nextRelator, dite_eq_left hex, hmin]
 
 theorem nextRelator_eq_one (words : ℕ → F) (N : Subgroup F) (X : F)
     (hall : ∀ j, Good N (words j)) :
@@ -44,7 +44,7 @@ theorem nextRelator_eq_one (words : ℕ → F) (N : Subgroup F) (X : F)
   have hnone : ¬ ∃ j, ¬ Good N (words j) := by
     rintro ⟨j, hj⟩
     exact hj (hall j)
-  simp only [nextRelator, dif_neg hnone]
+  simp only [nextRelator, dite_eq_right hnone]
 
 /-- Adjoin one relation by taking a normal closure in the original free
 group, rather than changing the ambient type at every rank. -/
@@ -67,7 +67,7 @@ does not enlarge that subgroup. -/
 theorem adjoin_eq_of_mem (N : Subgroup F) [N.Normal] (r : F) (hr : r ∈ N) :
     adjoin N r = N := by
   apply le_antisymm
-  · apply (Subgroup.normalClosure_le).2
+  · apply Subgroup.normalClosure_le_normal
     intro w hw
     rcases hw with hw | hw
     · exact hw
@@ -128,7 +128,7 @@ theorem greedyStages_strict_of_bad (words X : ℕ → F) (i j : ℕ)
 theorem greedyStages_stationary (words X : ℕ → F) (i : ℕ)
     (hall : ∀ j, Good (greedyStages words X i) (words j)) :
     greedyStages words X (i + 1) = greedyStages words X i := by
-  letI : (greedyStages words X i).Normal := greedyStages_normal words X i
+  let _ : (greedyStages words X i).Normal := greedyStages_normal words X i
   change adjoin (greedyStages words X i)
     (nextRelator words (greedyStages words X i) (X i)) = greedyStages words X i
   rw [nextRelator_eq_one words (greedyStages words X i) (X i) hall]
