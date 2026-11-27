@@ -5543,7 +5543,8 @@ theorem loopless_star_outlet_product {D K : Type} [Fintype D] [Group K]
   refine ⟨(P.vertexBoundary a).map P.edge,hl.1,hl.2,?_⟩
   rw [List.map_map]
   change ((P.vertexBoundary a).map (fun d => (v (P.edge d))⁻¹)).prod = 1
-  simpa only [he,inv_inv,cycleProduct] using hint a ha
+  simp only [he,inv_inv]
+  exact hint a ha
 
 /-- At a peripheral singleton, the based product is its actual label. -/
 theorem peripheral_singleton_product {D K : Type} [Fintype D] [Group K]
@@ -5747,6 +5748,106 @@ theorem component_coefficient_outlet_equation {D K : Type}
     simpa only [Function.comp_apply,hG] using hprod
 
 #print axioms component_coefficient_outlet_equation
+
+
+
+/-- Specialize the complete outlet equation to the actual
+coefficient-region refinement of a signed-letter ribbon. The
+coefficient group is the quotient by the designated normal subgroup. -/
+theorem coefficientRegions_original_outlet_equation {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hkeep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (o : D) (ho : ¬ keep o) :
+    let S := P.coefficientRegions keep hkeep
+    let v := fun d => QuotientGroup.mk' N (FreeGroup.mk [read d])
+    ∃ (l : List D) (g : D → F ⧸ N), l.Nodup ∧
+      (∀ d, d ∈ l ↔ S.SameComponent o d ∧ ¬ keep d) ∧
+      (l.map (fun d => (g d * v d * (g d)⁻¹)⁻¹)).prod = 1 := by
+  classical
+  intro S v
+  have hS : S.EulerEquality := P.coefficientRegions_euler keep hkeep hE
+  have hstep (d : D) : keep (S.rotation d) ↔ keep d := by
+    change keep ((P.coefficientRegions keep hkeep).rotation d) ↔ keep d
+    rw [RibbonMap.coefficientRegions_rotation]
+    split
+    · exact hkeep d
+    · rfl
+  have hI (d e : D) (h : S.rotation.SameCycle d e) : keep d ↔ keep e := by
+    obtain ⟨n,hn⟩ := h.exists_nat_pow_eq
+    rw [← hn]
+    clear hn h
+    induction n with
+    | zero => simp
+    | succ n ih =>
+      rw [pow_succ',Equiv.Perm.mul_apply]
+      exact ih.trans (hstep _).symm
+  have hleaf (d : D) (hd : ¬ keep d) : S.rotation d = d := by
+    change (P.coefficientRegions keep hkeep).rotation d = d
+    rw [RibbonMap.coefficientRegions_rotation,ite_eq_right hd]
+  have hv (d : D) : v (S.edge d) = (v d)⁻¹ := by
+    change QuotientGroup.mk' N (FreeGroup.mk [read (P.edge d)]) =
+      (QuotientGroup.mk' N (FreeGroup.mk [read d]))⁻¹
+    rw [he,signedLetterValue_reverse,map_inv]
+  have eval (l : List D) : (l.map v).prod = QuotientGroup.mk' N (FreeGroup.mk (l.map read)) := by
+    induction l with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons d l ih =>
+      change v d * (l.map v).prod =
+        QuotientGroup.mk' N (FreeGroup.mk ([read d] ++ l.map read))
+      rw [ih,← FreeGroup.mul_mk,map_mul]
+  have hr (d : D) (hd : keep d) : cycleProduct S.rotation v d = 1 := by
+    change ((S.vertexBoundary d).map v).prod = 1
+    rw [eval,guba22_coefficient_preserved_read P read keep hkeep d hd]
+    exact (QuotientGroup.eq_one_iff _).mpr (hint d hd)
+  exact component_coefficient_outlet_equation S v keep hI hleaf hS hv hr o ho
+
+/-- The outlet relation is now available in the exact lower-height
+quotient for every genuine region of Guba's rank ribbon. The original
+dart list and its signed letters, rather than a newly chosen spelling
+of each coefficient, are retained. -/
+theorem rankRibbon_coefficient_outlet_equation (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    let P := boundaryRibbon (rankHeightRows pick X n) w s hs
+    let keep := lowerRankDart pick X n j w s
+    let read := discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+    let N := weightedHeightStage pick X j
+    ∃ hN : N.Normal, letI : N.Normal := hN
+      ∃ hkeep : ∀ d, keep (P.rotation d) ↔ keep d,
+        ∀ o, ¬ keep o →
+          ∃ (l : List _) (g : _ → F ⧸ N), l.Nodup ∧
+            (∀ d, d ∈ l ↔ (P.coefficientRegions keep hkeep).SameComponent o d ∧ ¬ keep d) ∧
+            (l.map (fun d =>
+              (g d * QuotientGroup.mk' N (FreeGroup.mk [read d]) * (g d)⁻¹)⁻¹)).prod = 1 := by
+  intro P keep read N
+  have hN : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  letI : N.Normal := hN
+  have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
+    intro d
+    exact lowerRankDart_sameCycle pick X n j w s hs (P.rotation d) d
+      (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  refine ⟨hN,hkeep,?_⟩
+  intro o ho
+  apply coefficientRegions_original_outlet_equation P read N keep hkeep
+    (boundaryRibbon_euler _ w s hs) _ _ o ho
+  · exact relatorRibbon_edge_read (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick X n) w) (boundaryIdentity s)
+      (boundaryIdentity_evaluation _ w s hs)
+  · intro d hd
+    obtain ⟨i,hi,hlt⟩ := hd
+    exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt
+
+#print axioms coefficientRegions_original_outlet_equation
+#print axioms rankRibbon_coefficient_outlet_equation
 
 
 end QuandleResearch.Issue070
