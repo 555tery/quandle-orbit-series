@@ -3153,4 +3153,110 @@ theorem guba22_connected_interval_refinement {D : Type} [Fintype D]
 #print axioms guba22_two_interval_refinement
 #print axioms guba22_connected_interval_refinement
 
+
+
+/-! ## Spherical incidence bounds for a compressed contiguity graph
+
+The dart type and its vertex/edge/face quotients are the actual ones
+of a ribbon. The face-degree condition is derived from excluding
+one- and two-corner face walks, not imposed as an unrelated graph
+count. To use this on Guba's preferred system we still need to
+construct the compressed ribbon and account for its exceptional faces.
+-/
+
+/-- The absence of one- and two-step returns implies the lower
+bound three on the actual face traversal. -/
+theorem guba22_face_length_ge_three {D : Type} [Fintype D]
+    (P : RibbonMap D) (d : D)
+    (h1 : P.face d ≠ d) (h2 : P.face (P.face d) ≠ d) :
+    3 ≤ (P.faceBoundary d).length := by
+  have hp : 0 < Function.minimalPeriod P.face d :=
+    Function.minimalPeriod_pos_of_mem_periodicPts
+      (P.face.injective.mem_periodicPts d)
+  have hret := Function.iterate_minimalPeriod (f := (P.face : D → D)) (x := d)
+  have hn1 : Function.minimalPeriod P.face d ≠ 1 := by
+    intro h
+    rw [h, Function.iterate_one] at hret
+    exact h1 hret
+  have hn2 : Function.minimalPeriod P.face d ≠ 2 := by
+    intro h
+    rw [h] at hret
+    have he : P.face (P.face d) = d := by
+      simpa only [Function.iterate_succ_apply', Function.iterate_one] using hret
+    exact h2 he
+  simp only [RibbonMap.faceBoundary, List.length_ofFn]
+  omega
+
+/-- In a loop-free ribbon, a one-corner face is impossible.
+A fixed face would force the paired dart to be on the same vertex. -/
+theorem guba22_no_monogon_of_no_loop {D : Type}
+    (P : RibbonMap D)
+    (hloop : ∀ d, ¬ P.rotation.SameCycle d (P.edge d))
+    (d : D) : P.face d ≠ d := by
+  intro hf
+  have hh := congrArg P.rotation hf
+  have he : P.edge d = P.rotation d := by
+    simpa only [RibbonMap.face_apply, Equiv.apply_symm_apply] using hh
+  apply hloop d
+  rw [he]
+  exact Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+
+/-- Euler bounds the actual number of edges in a connected spherical
+ribbon with no monogon or bigon faces. This is the basic planar
+counting estimate needed after suppression of inessential corridors. -/
+theorem guba22_reduced_ribbon_edge_bound {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D) (hc : P.Connected)
+    (hE : P.EulerEquality)
+    (h1 : ∀ d, P.face d ≠ d)
+    (h2 : ∀ d, P.face (P.face d) ≠ d) :
+    Fintype.card P.Edge + 6 ≤ 3 * Fintype.card P.Vertex := by
+  have hf : 3 * Fintype.card P.Face ≤ Fintype.card D := by
+    apply incidence_lower_bound P.faceOf 3
+    intro f
+    induction f using Quotient.inductionOn with
+    | h d =>
+      change 3 ≤ incidenceDegree P.faceOf (P.faceOf d)
+      rw [P.face_incidenceDegree]
+      exact guba22_face_length_ge_three P d (h1 d) (h2 d)
+  have hd := P.card_darts
+  have hcc := P.card_components_of_connected hc a
+  change Fintype.card P.Vertex + Fintype.card P.Face =
+    Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
+  omega
+
+/-- An exempt face can have degree below three. The precise bound
+retains its actual length, rather than discarding it entirely. -/
+theorem guba22_reduced_ribbon_edge_bound_except_face {D : Type} [Fintype D]
+    (P : RibbonMap D) (a z : D) (hc : P.Connected)
+    (hE : P.EulerEquality)
+    (h1 : ∀ d, ¬ P.face.SameCycle z d → P.face d ≠ d)
+    (h2 : ∀ d, ¬ P.face.SameCycle z d → P.face (P.face d) ≠ d) :
+    Fintype.card P.Edge + 3 + (P.faceBoundary z).length ≤
+      3 * Fintype.card P.Vertex := by
+  have hf : 3 * Fintype.card P.Face + (P.faceBoundary z).length ≤
+      Fintype.card D + 3 := by
+    apply incidence_lower_bound_with_exception P.faceOf (P.faceOf z) 3
+      (P.faceBoundary z).length
+    · intro f hne
+      induction f using Quotient.inductionOn with
+      | h d =>
+        change P.faceOf d ≠ P.faceOf z at hne
+        have hn : ¬ P.face.SameCycle z d := by
+          intro h
+          exact hne (Quotient.sound h.symm)
+        change 3 ≤ incidenceDegree P.faceOf (P.faceOf d)
+        rw [P.face_incidenceDegree]
+        exact guba22_face_length_ge_three P d (h1 d hn) (h2 d hn)
+    · rw [P.face_incidenceDegree]
+  have hd := P.card_darts
+  have hcc := P.card_components_of_connected hc a
+  change Fintype.card P.Vertex + Fintype.card P.Face =
+    Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
+  omega
+
+#print axioms guba22_face_length_ge_three
+#print axioms guba22_no_monogon_of_no_loop
+#print axioms guba22_reduced_ribbon_edge_bound
+#print axioms guba22_reduced_ribbon_edge_bound_except_face
+
 end QuandleResearch.Issue070
