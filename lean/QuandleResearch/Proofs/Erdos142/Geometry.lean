@@ -1035,6 +1035,162 @@ theorem roth_of_short_differences {G : Type*} [AddCommGroup G]
   obtain ⟨a, ha⟩ := exists_avoiding_slope N D e he hD
   exact roth_of_avoiding_slope N K S D a ha hS hK
 
+
+/-! Count short differences by a coordinate box.  For the leading
+exponential constant this weaker estimate suffices; ball-volume
+estimates are not needed. -/
+
+def shortResidues (p R : ℕ) : Finset (ZMod p) :=
+  (Finset.range (2 * R + 1)).image (fun i : ℕ =>
+    (((i : ℤ) - (R : ℤ)) : ZMod p))
+
+lemma mem_shortResidues {p R : ℕ} {x : ℤ}
+    (hl : -(R : ℤ) ≤ x) (hr : x ≤ (R : ℤ)) :
+    (x : ZMod p) ∈ shortResidues p R := by
+  have hn : 0 ≤ x + (R : ℤ) := by omega
+  let i := (x + (R : ℤ)).toNat
+  have hi : (i : ℤ) = x + (R : ℤ) := Int.toNat_of_nonneg hn
+  have hib : i < 2 * R + 1 := by omega
+  apply Finset.mem_image.mpr
+  refine ⟨i, Finset.mem_range.mpr hib, ?_⟩
+  have he : (i : ℤ) - (R : ℤ) = x := by omega
+  rw [he]
+
+lemma shortResidues_card (p R : ℕ) :
+    (shortResidues p R).card ≤ 2 * R + 1 := by
+  unfold shortResidues
+  exact Finset.card_image_le.trans (by simp)
+
+def shortBox (p m R : ℕ) : Finset (Fin m → ZMod p × ZMod p) :=
+  Fintype.piFinset fun _ => (shortResidues p R).product (shortResidues p R)
+
+lemma shortBox_card (p m R : ℕ) :
+    (shortBox p m R).card ≤ ((2 * R + 1) * (2 * R + 1)) ^ m := by
+  unfold shortBox
+  rw [Fintype.card_piFinset_const, Finset.card_product]
+  exact Nat.pow_le_pow_left
+    (Nat.mul_le_mul (shortResidues_card p R) (shortResidues_card p R)) _
+
+lemma normalized_square_to_int_bound {p R : ℕ} (hp : 0 < p)
+    {x : ℤ} (h : ((x : ℝ) / (p : ℝ))^2 ≤ ((R : ℝ) / (p : ℝ))^2) :
+    -(R : ℤ) ≤ x ∧ x ≤ (R : ℤ) := by
+  have hp' : 0 < (p : ℝ) := by exact_mod_cast hp
+  have hR : 0 ≤ (R : ℝ) / (p : ℝ) := by positivity
+  have hright : (x : ℝ) / (p : ℝ) ≤ (R : ℝ) / (p : ℝ) := by
+    by_contra hn
+    have hpos : 0 < (x : ℝ) / (p : ℝ) - (R : ℝ) / (p : ℝ) := by linarith
+    have hpos' : 0 < (x : ℝ) / (p : ℝ) + (R : ℝ) / (p : ℝ) := by linarith
+    nlinarith [mul_pos hpos hpos']
+  have hleft : -((R : ℝ) / (p : ℝ)) ≤ (x : ℝ) / (p : ℝ) := by
+    by_contra hn
+    have hpos : 0 < -(x : ℝ) / (p : ℝ) - (R : ℝ) / (p : ℝ) := by linarith
+    have hpos' : 0 < -(x : ℝ) / (p : ℝ) + (R : ℝ) / (p : ℝ) := by linarith
+    nlinarith [mul_pos hpos hpos']
+  have hrc := (div_le_div_iff_of_pos_right hp').mp hright
+  rw [← neg_div] at hleft
+  have hlc := (div_le_div_iff_of_pos_right hp').mp hleft
+  exact ⟨by exact_mod_cast hlc, by exact_mod_cast hrc⟩
+
+/-- Choose actual integer lifts and local real coordinates for each
+point of the finite block.  Values outside the block are immaterial. -/
+theorem finiteBlock_lift_functions (p : ℕ) [NeZero p] :
+    ∃ X Y : ZMod p × ZMod p → ℤ,
+      ∃ U : ZMod p × ZMod p → ℝ,
+        ∀ v ∈ finiteBlock p,
+          (X v : ZMod p) = v.1 ∧ (Y v : ZMod p) = v.2 ∧
+            HasLocal ((X v : ℝ) / (p : ℝ)) ((Y v : ℝ) / (p : ℝ)) (U v) := by
+  classical
+  have h (v : ZMod p × ZMod p) :
+      ∃ x y : ℤ, ∃ u : ℝ, v ∈ finiteBlock p →
+        (x : ZMod p) = v.1 ∧ (y : ZMod p) = v.2 ∧
+          HasLocal ((x : ℝ) / (p : ℝ)) ((y : ℝ) / (p : ℝ)) u := by
+    by_cases hv : v ∈ finiteBlock p
+    · have hm := Finset.mem_filter.mp (show v ∈ finiteBlock p from hv)
+      obtain ⟨x, y, hx, hy, hB⟩ := hm.2
+      obtain ⟨u, hu⟩ := block_hasLocal hB
+      exact ⟨x, y, u, fun _ => ⟨hx, hy, hu⟩⟩
+    · exact ⟨0, 0, 0, fun he => (hv he).elim⟩
+  choose X Y U hXYU using h
+  exact ⟨X, Y, U, hXYU⟩
+
+/-- A thin shell of the actual product block has no progression whose
+endpoint difference lies outside the counted short-coordinate box. -/
+theorem product_shell_shortBox (p m R : ℕ) [NeZero p]
+    (hp : 0 < p) (S : Finset (Fin m → ZMod p × ZMod p))
+    (X Y : ZMod p × ZMod p → ℤ) (U : ZMod p × ZMod p → ℝ)
+    (hX : ∀ v ∈ finiteBlock p,
+      (X v : ZMod p) = v.1 ∧ (Y v : ZMod p) = v.2 ∧
+        HasLocal ((X v : ℝ) / (p : ℝ)) ((Y v : ℝ) / (p : ℝ)) (U v))
+    (hS : ∀ v ∈ S, ∀ i, v i ∈ finiteBlock p)
+    (b w : ℝ) (hw : 2 * w ≤ ((R : ℝ) / (p : ℝ))^2)
+    (hF : ∀ v ∈ S, b ≤ ∑ i, potential
+      ((X (v i) : ℝ) / (p : ℝ)) (U (v i)) ∧
+      (∑ i, potential ((X (v i) : ℝ) / (p : ℝ)) (U (v i))) ≤ b + w) :
+    ∀ x ∈ S, ∀ y ∈ S, ∀ z ∈ S, x + z = y + y →
+      z - x ∈ shortBox p m R := by
+  classical
+  intro x hx y hy z hz hAP
+  have hx' (i : Fin m) := hX (x i) (hS x hx i)
+  have hy' (i : Fin m) := hX (y i) (hS y hy i)
+  have hz' (i : Fin m) := hX (z i) (hS z hz i)
+  have hs (i : Fin m) : ∃ k : ℤ,
+      2 * ((X (y i) : ℝ) / (p : ℝ)) =
+        (X (x i) : ℝ) / (p : ℝ) + (X (z i) : ℝ) / (p : ℝ) + (k : ℝ) := by
+    have he := congrFun hAP i
+    have hh : (X (x i) : ZMod p) + (X (z i) : ZMod p) =
+        2 * (X (y i) : ZMod p) := by
+      rw [(hx' i).1, (hz' i).1, (hy' i).1, two_mul]
+      exact congrArg Prod.fst he
+    obtain ⟨k, hk⟩ := normalized_modular_AP hp hh
+    refine ⟨-k, ?_⟩
+    push_cast
+    linarith
+  have ha (i : Fin m) : ∃ j : ℤ,
+      (Y (x i) : ℝ) / (p : ℝ) + (Y (z i) : ℝ) / (p : ℝ) -
+        2 * ((Y (y i) : ℝ) / (p : ℝ)) = (j : ℝ) := by
+    have he := congrFun hAP i
+    apply normalized_modular_AP hp
+    rw [(hx' i).2.1, (hz' i).2.1, (hy' i).2.1, two_mul]
+    exact congrArg Prod.snd he
+  choose k hk using hs
+  choose j hj using ha
+  let sx : Fin m → ℝ := fun i => (X (x i) : ℝ) / p
+  let sy : Fin m → ℝ := fun i => (X (y i) : ℝ) / p
+  let sz : Fin m → ℝ := fun i => (X (z i) : ℝ) / p
+  let ax : Fin m → ℝ := fun i => (Y (x i) : ℝ) / p
+  let ay : Fin m → ℝ := fun i => (Y (y i) : ℝ) / p
+  let az : Fin m → ℝ := fun i => (Y (z i) : ℝ) / p
+  have hsum := shell_endpoint_bound sx sy sz ax ay az
+    (fun i => U (x i)) (fun i => U (y i)) (fun i => U (z i)) j k
+    (fun i => (hx' i).2.2) (fun i => (hy' i).2.2) (fun i => (hz' i).2.2)
+    hk hj b w (hF x hx).2 (hF y hy).1 (hF z hz).2
+  apply Fintype.mem_piFinset.mpr
+  intro i
+  have hi : (sx i - sz i)^2 + (ax i - az i)^2 ≤
+      ∑ i, ((sx i - sz i)^2 + (ax i - az i)^2) :=
+    Finset.single_le_sum (fun a _ => by positivity) (Finset.mem_univ i)
+  have hs2 : ((↑(X (z i) - X (x i) : ℤ) : ℝ) / p)^2 ≤
+      ((R : ℝ) / (p : ℝ))^2 := by
+    push_cast
+    dsimp [sx, sz] at hi
+    rw [sub_div]
+    nlinarith [sq_nonneg (ax i - az i)]
+  have ha2 : ((↑(Y (z i) - Y (x i) : ℤ) : ℝ) / p)^2 ≤
+      ((R : ℝ) / (p : ℝ))^2 := by
+    push_cast
+    dsimp [ax, az] at hi
+    rw [sub_div]
+    nlinarith [sq_nonneg (sx i - sz i)]
+  have hsB := normalized_square_to_int_bound hp hs2
+  have haB := normalized_square_to_int_bound hp ha2
+  have hsM := mem_shortResidues (p := p) hsB.1 hsB.2
+  have haM := mem_shortResidues (p := p) haB.1 haB.2
+  push_cast at hsM haM
+  rw [(hz' i).1, (hx' i).1] at hsM
+  rw [(hz' i).2.1, (hx' i).2.1] at haM
+  exact Finset.mem_product.mpr ⟨hsM, haM⟩
+
+
 end
 
 end QuandleResearch.Erdos142
