@@ -11315,12 +11315,14 @@ theorem rawWord_at_most_heavy_weight (w : RawWord)
     change letterWeight (i,sg) + rawWeight xs ≤ 10^80 at hw
     fin_cases i
     · have hlight : letterWeight ((0 : Fin 2),sg) = 1 := by simp [letterWeight]
+      change letterWeight ((0 : Fin 2),sg) + rawWeight xs ≤ 10^80 at hw
       rw [hlight] at hw
       obtain ⟨k,hk⟩ := mk_eq_a_zpow_of_light xs (by omega)
       have hmul : FreeGroup.mk (((0 : Fin 2),sg)::xs) =
           FreeGroup.mk [(0,sg)] * FreeGroup.mk xs :=
         (FreeGroup.mul_mk (L₁ := [(0,sg)]) (L₂ := xs)).symm
       left
+      change ∃ k : ℤ, FreeGroup.mk (((0 : Fin 2),sg)::xs) = a^k
       cases sg
       · refine ⟨-1+k,?_⟩
         rw [hmul,FreeGroup.mk_eq_inv_of,hk,zpow_add]
@@ -11330,10 +11332,12 @@ theorem rawWord_at_most_heavy_weight (w : RawWord)
         simp [a]
     · have hheavy : letterWeight ((1 : Fin 2),sg) = 10^80 := by
         simp [letterWeight]
+      change letterWeight ((1 : Fin 2),sg) + rawWeight xs ≤ 10^80 at hw
       rw [hheavy] at hw
       have hnil : xs = [] := (rawWeight_eq_zero_iff xs).mp (by omega)
       subst xs
       right
+      change FreeGroup.mk [((1 : Fin 2),sg)] = b ∨ FreeGroup.mk [((1 : Fin 2),sg)] = b⁻¹
       cases sg
       · exact Or.inr (by rw [FreeGroup.mk_eq_inv_of]; rfl)
       · exact Or.inl (by rw [FreeGroup.mk_eq_of]; rfl)
@@ -11425,8 +11429,8 @@ theorem weightedStages_comm_failure_shorter
   let u := X 0 N0 C
   have hr : u*C*u⁻¹*a⁻¹ ∈ weightedStages pick X 1 := by
     change u*C*u⁻¹*a⁻¹ ∈ adjoin N0 (weightedRelator pick X 0 N0)
-    rw [← weightedRelator_eq pick X 0 N0 h0]
-    exact relator_mem_adjoin _ _
+    rw [weightedRelator_eq pick X 0 N0 h0]
+    simpa only [heightRelator_one] using (relator_mem_adjoin N0 (heightRelator u C 1))
   let N := weightedStages pick X n
   let : N.Normal := weightedStages_normal pick X n
   let q := QuotientGroup.mk' N
@@ -11535,7 +11539,7 @@ theorem initialWeightedPeriod_relation (pick : WeightedSelector)
   have hex : ∃ w : F, ¬ Good (⊥ : Subgroup F) w := ⟨b,heavy_not_good_bot⟩
   change u*C*u⁻¹*a⁻¹ ∈ adjoin ⊥ (weightedRelator pick X 0 ⊥)
   rw [weightedRelator_eq pick X 0 ⊥ hex]
-  exact relator_mem_adjoin _ _
+  simpa only [heightRelator_one] using (relator_mem_adjoin (⊥ : Subgroup F) (heightRelator u C 1))
 
 /-- For a quotient which already contains the first defining relation,
 survival of the commutator is EXACTLY survival of a single fixed
