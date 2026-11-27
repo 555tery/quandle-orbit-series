@@ -7143,6 +7143,9 @@ theorem coefficient_two_block_relation {D : Type} [Fintype D]
       show Q.vertexBoundary b = b :: v from hb] at hg
   obtain ⟨z,rfl⟩ := QuotientGroup.mk'_surjective N g
   refine ⟨z,(QuotientGroup.eq_one_iff _).mp ?_⟩
+  change QuotientGroup.mk' N
+    (FreeGroup.mk ((a :: u).map read) * z *
+      FreeGroup.mk ((b :: v).map read) * z⁻¹) = 1
   simpa only [map_mul,map_inv] using hg
 
 #print axioms coefficient_two_block_relation
