@@ -1224,9 +1224,10 @@ lemma slopePerm_apply (p m N d : ℕ) [Fact p.Prime] (hN : N ≤ p)
     have hle := Nat.le_of_dvd (show 0 < d by omega) hdiv
     omega
   unfold slopePerm
-  simp [hn]
-  funext i
-  apply Prod.ext <;> change (d : ZMod p) * _ = d • _ <;> rw [nsmul_eq_mul]
+  split
+  · contradiction
+  · funext i
+    apply Prod.ext <;> change (d : ZMod p) * _ = d • _ <;> rw [nsmul_eq_mul]
 
 /-- Finite-parameter construction: all density, shell, slope and AP
 arguments are internal.  Only numerical inequalities on the parameters
