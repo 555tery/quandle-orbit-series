@@ -5832,7 +5832,7 @@ theorem rankRibbon_coefficient_outlet_equation (pick : WeightedSelector)
     unfold N
     rw [← rankHeight_normalClosure]
     infer_instance
-  letI : N.Normal := hN
+  let : N.Normal := hN
   have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
     intro d
     exact lowerRankDart_sameCycle pick X n j w s hs (P.rotation d) d
@@ -5924,7 +5924,8 @@ theorem coefficient_component_runs {D : Type} (S : RibbonMap D) (l : List D) :
         obtain ⟨runs,hr,hs,ha⟩ := ih q.length hlt q rfl
         refine ⟨(a,p)::runs,?_,?_,?_⟩
         · simp only [List.flatMap_cons]
-          rw [← hr,← List.cons_append,← he]
+          rw [← hr,he]
+          rfl
         · intro b hb d hd
           rcases List.mem_cons.mp hb with hb | hb
           · subst b
@@ -5958,6 +5959,7 @@ theorem coefficient_runs_weight {D : Type} (S : RibbonMap D)
   obtain ⟨runs,hr,hs,ha⟩ := coefficient_component_runs S l
   refine ⟨runs,hr,hs,ha,?_⟩
   rw [hr]
+  clear hr hs ha
   induction runs with
   | nil => rfl
   | cons b bs ih =>
@@ -5967,6 +5969,106 @@ theorem coefficient_runs_weight {D : Type} (S : RibbonMap D)
 #print axioms coefficient_component_prefix
 #print axioms coefficient_component_runs
 #print axioms coefficient_runs_weight
+
+
+
+/-! ## Actual cyclic interval certificates
+
+Linear runs can be based at a transition between coefficient
+components. At such a basepoint the last and first runs do not
+merge across the seam. The proof uses actual permutation walks.
+-/
+
+/-- A decomposition of the departure list of a walk is a
+decomposition into two genuine walks with a common endpoint. -/
+theorem walk_split_departures {D : Type} (sigma : Equiv.Perm D)
+    (p q : List D) (a b : D) (h : Walk sigma a b (p ++ q)) :
+    ∃ c, Walk sigma a c p ∧ Walk sigma c b q := by
+  induction p generalizing a with
+  | nil => exact ⟨a,.nil _,h⟩
+  | cons d ds ih =>
+    change Walk sigma a b (d :: (ds ++ q)) at h
+    cases h with
+    | cons d e l ht =>
+      obtain ⟨c,hp,hq⟩ := ih (sigma d) ht
+      exact ⟨c,.cons _ _ _ hp,hq⟩
+
+/-- A nonempty walk ends immediately after one of its departures. -/
+theorem walk_predecessor_mem {D : Type} (sigma : Equiv.Perm D)
+    {a b : D} {l : List D} (h : Walk sigma a b l) (hn : l ≠ []) :
+    ∃ d ∈ l, sigma d = b := by
+  induction h with
+  | nil d => exact (hn rfl).elim
+  | cons d e l ht ih =>
+    by_cases he : l = []
+    · subst l
+      cases ht
+      exact ⟨d,by simp,rfl⟩
+    · obtain ⟨z,hz,heq⟩ := ih he
+      exact ⟨z,List.mem_cons_of_mem _ hz,heq⟩
+
+/-- If a vertex visits more than one coefficient component then it
+has an actual rotation step crossing between components. -/
+theorem exists_coefficient_transition {D : Type} [Finite D]
+    (P S : RibbonMap D) (a b : D)
+    (hab : P.rotation.SameCycle a b) (hsep : ¬ S.SameComponent a b) :
+    ∃ d, P.rotation.SameCycle a d ∧
+      ¬ S.SameComponent d (P.rotation d) := by
+  classical
+  by_contra hn
+  have hs (d : D) (hd : P.rotation.SameCycle a d) :
+      S.SameComponent d (P.rotation d) := by
+    by_contra h
+    exact hn ⟨d,hd,h⟩
+  apply hsep
+  obtain ⟨n,hn'⟩ := hab.exists_nat_pow_eq
+  rw [← hn']
+  clear hn' hab hsep
+  induction n with
+  | zero => exact Relation.EqvGen.refl _
+  | succ n ih =>
+    rw [pow_succ',Equiv.Perm.mul_apply]
+    exact Relation.EqvGen.trans _ _ _ ih
+      (hs _ (Equiv.Perm.sameCycle_pow_right.mpr (.refl _ _)))
+
+/-- Basing a run partition immediately after a genuine component
+transition prevents a merge across the cyclic seam. All runs remain
+literal consecutive intervals of the original vertex traversal. -/
+theorem cyclic_coefficient_component_runs {D : Type} [Fintype D]
+    (P S : RibbonMap D) (a : D)
+    (hsep : ¬ S.SameComponent a (P.rotation a)) :
+    ∃ runs : List (D × List D),
+      P.vertexBoundary (P.rotation a) = runs.flatMap (fun b => b.1 :: b.2) ∧
+      (∀ b ∈ runs, ∀ d ∈ b.2, S.SameComponent b.1 d) ∧
+      (∀ (p : List (D × List D)) (b c : D × List D) t,
+        runs = p ++ b :: c :: t → ¬ S.SameComponent b.1 c.1) ∧
+      (∀ (p : List (D × List D)) (b : D × List D),
+        runs = p ++ [b] → ¬ S.SameComponent b.1 (P.rotation a)) := by
+  obtain ⟨runs,hr,hs,ha⟩ := coefficient_component_runs S
+    (P.vertexBoundary (P.rotation a))
+  refine ⟨runs,hr,hs,ha,?_⟩
+  intro p b hb hbad
+  have hwalk : Walk P.rotation (P.rotation a) (P.rotation a)
+      (P.vertexBoundary (P.rotation a)) := cycleBoundary_walk _ _
+  rw [hr,hb,List.flatMap_append] at hwalk
+  change Walk P.rotation (P.rotation a) (P.rotation a)
+    (p.flatMap (fun c => c.1 :: c.2) ++ (b.1 :: b.2)) at hwalk
+  obtain ⟨z,_,hz⟩ := walk_split_departures P.rotation _ _ _ _ hwalk
+  obtain ⟨d,hd,he⟩ := walk_predecessor_mem P.rotation hz (by simp)
+  have hda : d = a := P.rotation.injective he
+  have hmem : b ∈ runs := by rw [hb]; simp
+  have hbd : S.SameComponent b.1 d := by
+    rcases List.mem_cons.mp hd with h | h
+    · rw [h]
+      exact Relation.EqvGen.refl _
+    · exact hs b hmem d h
+  have hba : S.SameComponent b.1 a := hda ▸ hbd
+  exact hsep (Relation.EqvGen.trans _ _ _ (Relation.EqvGen.symm _ _ hba) hbad)
+
+#print axioms walk_split_departures
+#print axioms walk_predecessor_mem
+#print axioms exists_coefficient_transition
+#print axioms cyclic_coefficient_component_runs
 
 
 end QuandleResearch.Issue070
