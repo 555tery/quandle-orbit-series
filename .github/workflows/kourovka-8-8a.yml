@@ -15,17 +15,30 @@ concurrency:
 jobs:
   build:
     if: github.event_name != 'pull_request' || github.head_ref == 'lean/kourovka-8-8a'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: lean
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - name: Install elan
+      - name: Install sandbox and Lean
         run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify sandbox and bundled kernels
+        run: |
+          set -euo pipefail
+          lean --version
+          lake --version
+          bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev /bin/true
+          sysroot="$(lean --print-prefix)"
+          for exe in leanexport leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
+            test -x "$sysroot/bin/$exe"
+          done
       - run: lake update
       - run: lake exe cache get
       - name: Compile all Kourovka modules
@@ -60,3 +73,20 @@ jobs:
                   assert re.search(r"'[^']*\." + name + r"' does not depend on any axioms", log), name
           print(f"Verified {len(names)} local declarations with only permitted axioms.")
           PY
+      - name: Replay every audited declaration with all six kernels
+        run: |
+          set -euo pipefail
+          python3 scripts/kourovka_paranoid_config.py local kourovka-local-comparator.json
+          lake comparator --config kourovka-local-comparator.json --paranoid 2>&1 | tee kourovka-local-paranoid.log
+          for kernel in "Lean default" "Lean paranoid" lean4lean nanoda con-leche con-ron; do
+            grep -F "$kernel kernel accepts the solution" kourovka-local-paranoid.log
+          done
+          grep -F "Your solution is okay!" kourovka-local-paranoid.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kourovka-local-paranoid
+          path: |
+            lean/kourovka-local-comparator.json
+            lean/kourovka-local-paranoid.log
+          if-no-files-found: warn
