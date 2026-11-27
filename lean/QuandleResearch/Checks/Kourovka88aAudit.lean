@@ -172,4 +172,13 @@ example : answer ↔
 #print axioms longRaw_tripleB_iff
 #print axioms gubaEvenPrefix_longRaw_tripleB_iff
 
+#print axioms repeated_length
+#print axioms longBlock_length
+#print axioms longRaw_length_step
+#print axioms longRaw_length_strictMono
+#print axioms tripleBAt_factor_iff
+#print axioms resolvent_tripleB_iff
+#print axioms resolvent_occurrence_gap
+#print axioms samePrefix_resolvent_position
+
 end QuandleResearch.Issue070
