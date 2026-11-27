@@ -10381,4 +10381,206 @@ theorem guba23_reassembly_perimeter
 #print axioms guba21_boundary_cut_weight_additive
 #print axioms guba23_reassembly_perimeter
 
+
+/-- Discharge the all-cell perimeter estimate at a separating
+outer cut by smaller-type induction, using the actual indexed
+fillings and the original weighted boundary. -/
+theorem guba23_perimeter_at_separating_cut
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (ih : ∀ z t, RankMinimalExpression pick X n z t →
+      descendingCountLT n rankCount t s →
+      ∀ x ∈ t, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+        5 * weightedLength z) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let a := boundaryDart rows w s hw
+    ∀ b, a ≠ b → P.rotation.SameCycle a b →
+      ¬ (P.vertexCut a b).SameComponent a b →
+      ∀ x ∈ s, 4 * rawWeight (rows x.1.2) < 5 * weightedLength w := by
+  classical
+  intro rows P a b hne hsame hsep
+  let Q := P.vertexCut a b
+  let tau := Q.rotation
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  let u := (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹
+  let v := (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹
+  have hQ : P.withRotation tau = Q := by
+    apply RibbonMap.ext <;> rfl
+  have href : SplitRefinement P.rotation tau :=
+    SplitRefinement.single P.rotation a b hne hsame
+  have hpart : P.vertexBoundary a =
+      (P.withRotation tau).vertexBoundary a ++
+        (P.withRotation tau).vertexBoundary b := by
+    rw [hQ]
+    exact vertexCut_partition P a b hne hsame
+  have hint : ∀ c ∈ [a,b], ∀ d, (P.withRotation tau).SameComponent c d →
+      ¬ tau.SameCycle c d →
+      discOccurrence (markedRows rows w) (boundaryIdentity s) d ≠
+        boundaryOccurrence s ∧
+        (P.withRotation tau).vertexBoundary d = P.vertexBoundary d := by
+    intro c hc d hcd hnot
+    rw [hQ] at hcd ⊢
+    obtain ⟨hold,hread⟩ := separating_vertexCut_intact P a b hne hsame
+      hsep c hc d hcd hnot
+    exact ⟨fun he => hold ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr he),hread⟩
+  have hsep' : ¬ (P.withRotation tau).SameComponent a b := by
+    rw [hQ]
+    exact hsep
+  obtain ⟨l,r,hn,hla,hrb,_,_,hl,hr,hcount⟩ :=
+    guba21_separating_boundary_cut_minimal pick X n w s hm hw hs tau
+      b href hsep' hpart hint
+  change RankMinimalExpression pick X n
+    (FreeGroup.mk (((P.withRotation tau).vertexBoundary a).map read))⁻¹
+      (l.map Prod.snd) at hl
+  change RankMinimalExpression pick X n
+    (FreeGroup.mk (((P.withRotation tau).vertexBoundary b).map read))⁻¹
+      (r.map Prod.snd) at hr
+  rw [hQ] at hl hr
+  obtain ⟨hu,hv,hprod,_⟩ :=
+    guba21_boundary_cut_reduced_factors rows w s hs hw b hne hsame
+  have hweight :=
+    guba21_boundary_cut_weight_additive rows w s hs hw b hne hsame
+  have hln : l.map Prod.snd ≠ [] := by
+    intro he
+    apply hu
+    have h := hl.1
+    rw [he] at h
+    exact h.symm
+  have hrn : r.map Prod.snd ≠ [] := by
+    intro he
+    apply hv
+    have h := hr.1
+    rw [he] at h
+    exact h.symm
+  obtain ⟨hlt,hrt⟩ := guba21_separating_profiles_strict s
+    (l.map Prod.snd) (r.map Prod.snd) hln hrn hcount
+  have hn' : ((r ++ l).map Prod.fst).Nodup := by
+    rw [List.map_append,List.nodup_append] at hn ⊢
+    exact ⟨hn.2.1,hn.1,fun x hx y hy he => hn.2.2 y hy x hx he.symm⟩
+  have hlabel (x : Fin s.length × Peiffer.Occurrence F (RankHeight n))
+      (hx : x ∈ r ++ l) : x.2.1.2 = s[x.1.val].1.2 := by
+    rcases List.mem_append.mp hx with hx | hx
+    · exact (hrb x hx).1
+    · exact (hla x hx).1
+  exact guba23_reassembly_perimeter pick X n w u v s hm l r
+    hn' hlabel hl hr hprod hweight hlt hrt ih
+
+/-- The remaining perimeter problem can be restricted to diagrams
+whose fixed outer base corner cannot be separated from any other
+corner of that vertex by a single cut. This is a based condition,
+not the stronger assertion of pairwise distinct incident faces.
+The reduction makes no claim about that remaining geometry. -/
+theorem guba23_perimeter_reduce_to_based_nonseparating
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ)
+    (step : ∀ w (s : Peiffer.Sequence F (RankHeight n)),
+      RankMinimalExpression pick X n w s → ∀ hw : w ≠ 1,
+      ∀ hs : Peiffer.evaluation
+        (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w,
+      (∀ z t, RankMinimalExpression pick X n z t →
+        descendingCountLT n rankCount t s →
+        ∀ x ∈ t, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+          5 * weightedLength z) →
+      (let P := boundaryRibbon (rankHeightRows pick X n) w s hs
+       let a := boundaryDart (rankHeightRows pick X n) w s hw
+       ∀ b, a ≠ b → P.rotation.SameCycle a b →
+         ¬ P.face.SameCycle (P.rotation.symm a) (P.rotation.symm b)) →
+      ∀ x ∈ s, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+        5 * weightedLength w) :
+    ∀ w (s : Peiffer.Sequence F (RankHeight n)),
+      RankMinimalExpression pick X n w s →
+      ∀ x ∈ s, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+        5 * weightedLength w := by
+  classical
+  let A := Peiffer.Sequence F (RankHeight n)
+  let prop : A → Prop := fun s =>
+    ∀ w, RankMinimalExpression pick X n w s →
+      ∀ x ∈ s, 4 * rawWeight (rankHeightRows pick X n x.1.2) <
+        5 * weightedLength w
+  have all : ∀ s, prop s := descending_count_induction n rankCount prop (by
+    intro s ih w hm x hx
+    have smaller (z : F) (t : A) (ht : RankMinimalExpression pick X n z t)
+        (hlt : descendingCountLT n rankCount t s) :
+        ∀ y ∈ t, 4 * rawWeight (rankHeightRows pick X n y.1.2) <
+          5 * weightedLength z := ih t hlt z ht
+    by_cases hw : w = 1
+    · obtain ⟨j,hj,hxj⟩ := List.mem_iff_getElem.mp hx
+      have hp : 0 < rankCount s x.1.2.1.val := by
+        unfold rankCount
+        apply List.length_pos_iff_exists_mem.mpr
+        exact ⟨x,List.mem_filter.mpr ⟨hx,by simp⟩⟩
+      have hlt : descendingCountLT n rankCount ([] : A) s := by
+        apply descending_count_lt_of_pointwise
+        · intro k _
+          simp [rankCount]
+        · exact ⟨x.1.2.1.val,x.1.2.1.isLt,by simpa [rankCount] using hp⟩
+      obtain ⟨k,hk,hstrict,habove⟩ := hlt
+      have he : Peiffer.evaluation (rankHeightRel pick X n) ([] : A) = w := by
+        rw [hw]
+        rfl
+      exact (Nat.not_lt_of_ge (hm.2 [] he k hk
+        (fun q hq hqn => (habove q hq hqn).symm)) hstrict).elim
+    · have hs : Peiffer.evaluation
+          (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w := by
+        simpa only [rankHeightRows_eval] using hm.1
+      let P := boundaryRibbon (rankHeightRows pick X n) w s hs
+      let a := boundaryDart (rankHeightRows pick X n) w s hw
+      by_cases hface : ∃ b, a ≠ b ∧ P.rotation.SameCycle a b ∧
+          P.face.SameCycle (P.rotation.symm a) (P.rotation.symm b)
+      · obtain ⟨b,hne,hsame,hf⟩ := hface
+        have hsep := (spherical_vertexCut_separates_iff P
+          (boundaryRibbon_euler _ w s hs) a b hne hsame).mpr hf
+        exact guba23_perimeter_at_separating_cut pick X n w s hm hw hs
+          smaller b hne hsame hsep x hx
+      · apply step w s hm hw hs smaller _ x hx
+        intro b hne hsame hf
+        exact hface ⟨b,hne,hsame,hf⟩)
+  intro w s hm
+  exact all s w hm
+
+/-- The exact 8.8(a) target follows from the remaining based
+nonseparating geometric step of Lemma 23 for the constructed rows.
+No global large-cell estimate is used as an axiom. -/
+theorem answer_of_guba_based_nonseparating_step
+    (pick : WeightedSelector)
+    (step : ∀ n w (s : Peiffer.Sequence F (RankHeight n)),
+      RankMinimalExpression pick (gubaConjugatorChoice pick) n w s →
+      ∀ hw : w ≠ 1,
+      ∀ hs : Peiffer.evaluation
+        (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w,
+      (∀ z t, RankMinimalExpression pick (gubaConjugatorChoice pick) n z t →
+        descendingCountLT n rankCount t s →
+        ∀ x ∈ t, 4 * rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n x.1.2) <
+          5 * weightedLength z) →
+      (let P := boundaryRibbon (rankHeightRows pick (gubaConjugatorChoice pick) n) w s hs
+       let a := boundaryDart (rankHeightRows pick (gubaConjugatorChoice pick) n) w s hw
+       ∀ b, a ≠ b → P.rotation.SameCycle a b →
+         ¬ P.face.SameCycle (P.rotation.symm a) (P.rotation.symm b)) →
+      ∀ x ∈ s, 4 * rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n x.1.2) <
+        5 * weightedLength w) : answer := by
+  apply answer_of_guba_large_cell pick
+  intro n w hmem hw
+  obtain ⟨s,hm⟩ := exists_rankMinimalExpression pick (gubaConjugatorChoice pick) n w hmem
+  have hne : s ≠ [] := by
+    intro he
+    apply hw
+    have h := hm.1
+    rw [he] at h
+    exact h.symm
+  obtain ⟨x,hx⟩ := List.length_pos_iff_exists_mem.mp (List.length_pos_iff.mpr hne)
+  have hper := guba23_perimeter_reduce_to_based_nonseparating
+    pick (gubaConjugatorChoice pick) n (step n) w s hm x hx
+  obtain ⟨p,r,he⟩ := List.append_of_mem hx
+  have hnon : rankHeightRows pick (gubaConjugatorChoice pick) n x.1.2 ≠ [] := by
+    apply rankMinimal_designated_row_nonempty pick (gubaConjugatorChoice pick) n w p r x
+    simpa only [he,List.append_assoc] using hm
+  exact ⟨x.1.2,hnon,hper⟩
+
+#print axioms guba23_perimeter_at_separating_cut
+#print axioms guba23_perimeter_reduce_to_based_nonseparating
+#print axioms answer_of_guba_based_nonseparating_step
+
 end QuandleResearch.Issue070
