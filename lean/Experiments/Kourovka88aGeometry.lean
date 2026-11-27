@@ -7721,4 +7721,110 @@ theorem adjacent_short_inverse_conjugator {D : Type} [Fintype D]
 #print axioms adjacent_short_inverse_conjugator
 
 
+
+/-! ## A global metric version of the two-exceptional-vertex lemma
+
+The earlier absorption procedure preserves all original darts and the
+two based products. Consequently the two final perimeters are bounded
+by the original total dart weight. This gives a metric estimate without
+paying separately for every absorption.
+-/
+
+/-- The perimeters of two distinct vertices count disjoint sets of
+darts, so their sum is at most the total dart weight. -/
+theorem two_vertex_perimeters_le_total {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (a b : D)
+    (hab : ¬ P.rotation.SameCycle a b) :
+    rawWeight ((P.vertexBoundary a).map read) +
+      rawWeight ((P.vertexBoundary b).map read) ≤
+      ∑ d : D, letterWeight (read d) := by
+  classical
+  have hd : Disjoint (P.vertexBoundary a).toFinset
+      (P.vertexBoundary b).toFinset := by
+    apply Finset.disjoint_left.mpr
+    intro d hda hdb
+    exact hab (((P.mem_vertexBoundary_iff a d).mp (List.mem_toFinset.mp hda)).trans
+      ((P.mem_vertexBoundary_iff b d).mp (List.mem_toFinset.mp hdb)).symm)
+  rw [dart_read_weight_sum read _ (P.vertexBoundary_nodup a),
+      dart_read_weight_sum read _ (P.vertexBoundary_nodup b),
+      ← Finset.sum_union hd]
+  exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ _)
+    (fun _ _ _ => Nat.zero_le _)
+
+/-- Two exceptional vertex words in a connected spherical diagram
+are inverse-conjugate modulo its other vertex words by a conjugator
+of at most half the total dart weight. No adjacency hypothesis is
+needed. The much stronger relative estimate of Guba's preferred
+bond still requires graded-diagram arguments. -/
+theorem two_boundary_weighted_inverse_conjugator {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hc : P.Connected) (hE : P.EulerEquality)
+    (a b : D) (hab : ¬ P.rotation.SameCycle a b)
+    (hint : ∀ d, ¬ P.rotation.SameCycle a d →
+      ¬ P.rotation.SameCycle b d →
+      FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N) :
+    ∃ g : F, FreeGroup.mk ((P.vertexBoundary a).map read) * g *
+      FreeGroup.mk ((P.vertexBoundary b).map read) * g⁻¹ ∈ N ∧
+      2 * weightedLength g ≤ ∑ d : D, letterWeight (read d) := by
+  classical
+  let q := QuotientGroup.mk' N
+  let v : D → F ⧸ N := fun d => q (FreeGroup.mk [read d])
+  have eval (ds : List D) :
+      (ds.map v).prod = q (FreeGroup.mk (ds.map read)) := by
+    induction ds with
+    | nil => simp [← FreeGroup.one_eq_mk]
+    | cons d ds ih =>
+      change v d * (ds.map v).prod =
+        q (FreeGroup.mk ([read d] ++ ds.map read))
+      rw [ih, ← FreeGroup.mul_mk, map_mul]
+  have based (S : RibbonMap D) (d : D) :
+      cycleProduct S.rotation v d =
+        q (FreeGroup.mk ((S.vertexBoundary d).map read)) :=
+    eval (S.vertexBoundary d)
+  have hinside : ∀ d, ¬ P.rotation.SameCycle a d →
+      ¬ P.rotation.SameCycle b d → cycleProduct P.rotation v d = 1 := by
+    intro d ha hb
+    rw [based]
+    exact (QuotientGroup.eq_one_iff _).mpr (hint d ha hb)
+  obtain ⟨Q,hQC,hQE,hQedge,hQa,hQb,hQi,hQab,c,hca,hcb⟩ :=
+    two_boundary_adjacent_reduction P v hc hE a b hab hinside
+  have hcn : ¬ Q.rotation.SameCycle c (Q.edge c) :=
+    fun h => hQab (hca.trans (h.trans hcb.symm))
+  have hcar : Q.rotation.SameCycle a (Q.rotation c) :=
+    hca.trans (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))
+  have hQe : ∀ d, read (Q.edge d) = reverseLetter (read d) := by
+    intro d
+    rw [hQedge]
+    exact he d
+  have hQin : ∀ d, Q.SameComponent c d →
+      ¬ Q.rotation.SameCycle c d →
+      ¬ Q.rotation.SameCycle (Q.edge c) d →
+      FreeGroup.mk ((Q.vertexBoundary d).map read) ∈ N := by
+    intro d _ hd hd'
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q (FreeGroup.mk ((Q.vertexBoundary d).map read)) = 1
+    rw [← based]
+    exact hQi d (fun h => hd (hca.symm.trans h))
+      (fun h => hd' (hcb.symm.trans h))
+  obtain ⟨g,hg,hw⟩ := adjacent_short_inverse_conjugator Q read N c hcn
+    hQE hQe hQin a b hcar hcb
+  have hA := hQa
+  have hB := hQb
+  rw [based, based] at hA hB
+  refine ⟨g,?_,hw.trans (two_vertex_perimeters_le_total Q read a b hQab)⟩
+  apply (QuotientGroup.eq_one_iff _).mp
+  have h := (QuotientGroup.eq_one_iff _).mpr hg
+  change q (FreeGroup.mk ((Q.vertexBoundary a).map read) * g *
+      FreeGroup.mk ((Q.vertexBoundary b).map read) * g⁻¹) = 1 at h
+  change q (FreeGroup.mk ((P.vertexBoundary a).map read) * g *
+      FreeGroup.mk ((P.vertexBoundary b).map read) * g⁻¹) = 1
+  simp only [map_mul,map_inv] at h ⊢
+  rw [hA,hB] at h
+  exact h
+
+#print axioms two_vertex_perimeters_le_total
+#print axioms two_boundary_weighted_inverse_conjugator
+
+
 end QuandleResearch.Issue070
