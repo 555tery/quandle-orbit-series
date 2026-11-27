@@ -18123,4 +18123,120 @@ theorem gubaPowerBoundary_nonpure_exterior_period
 
 #print axioms gubaPowerBoundary_nonpure_exterior_period
 
+
+/-- Every literal factor of a finite repetition is a prefix of
+a repetition of a cyclic rotation of the base word. The starting
+corner may be anywhere, including across a seam. -/
+theorem rawNatPow_factor_rotated_prefix (w : RawWord) (m : ℕ)
+    (p z r : RawWord) (h : rawNatPow w m = p ++ z ++ r) :
+    ∃ l t : RawWord, ∃ M : ℕ, w = l ++ t ∧
+      z <+: rawNatPow (t ++ l) M := by
+  induction m generalizing p with
+  | zero =>
+    have hz : z = [] := by simpa [rawNatPow] using h
+    subst z
+    exact ⟨[],w,0,by simp,by simp [rawNatPow]⟩
+  | succ m ih =>
+    have hfirst : rawNatPow w (m+1) = w ++ rawNatPow w m := by
+      rw [rawNatPow_eq_flatten_replicate,List.replicate_succ,List.flatten_cons,
+        ← rawNatPow_eq_flatten_replicate]
+    rw [hfirst] at h
+    have hp : p <+: w ++ rawNatPow w m :=
+      List.prefix_iff_exists_append_eq.mpr ⟨z++r,by simpa only [List.append_assoc] using h.symm⟩
+    have hw : w <+: w ++ rawNatPow w m := List.prefix_append _ _
+    by_cases hlen : w.length ≤ p.length
+    · obtain ⟨q,hq⟩ := List.prefix_iff_exists_append_eq.mp
+        (List.prefix_of_prefix_length_le hw hp hlen)
+      have he : w ++ rawNatPow w m = w ++ (q ++ z ++ r) := by
+        simpa only [← hq,List.append_assoc] using h
+      exact ih q (List.append_inj_right he rfl)
+    · obtain ⟨t,ht⟩ := List.prefix_iff_exists_append_eq.mp
+        (List.prefix_of_prefix_length_le hp hw (by omega))
+      have he : p ++ (t ++ rawNatPow (p++t) m) = p ++ (z++r) := by
+        simpa only [ht,List.append_assoc] using h
+      have hz := List.append_inj_right he rfl
+      have hrot (j : ℕ) :
+          t ++ rawNatPow (p++t) j ++ p = rawNatPow (t++p) (j+1) := by
+        induction j with
+        | zero => simp [rawNatPow]
+        | succ j ih' =>
+          simp only [rawNatPow]
+          rw [← ih']
+          simp only [List.append_assoc]
+      refine ⟨p,t,m+1,ht.symm,?_⟩
+      apply (List.prefix_append z r).trans
+      rw [← hz,← hrot]
+      exact List.prefix_append _ _
+
+/-- Either an arbitrary factor of a power has at most one base
+word's weight, or its beginning exhibits a full cyclic period.
+This removes the explicit starting-corner premise from the
+weighted Fine--Wilf comparison. -/
+theorem rawNatPow_factor_short_or_period (w : RawWord) (m : ℕ)
+    (z : RawWord) (hz : z <:+: rawNatPow w m) :
+    rawWeight z ≤ rawWeight w ∨
+      ∃ l t : RawWord, w = l ++ t ∧ (t++l) <+: z ∧
+        z.HasPeriod (t++l).length := by
+  obtain ⟨p,r,hpr⟩ := hz
+  obtain ⟨l,t,M,hw,hpre⟩ := rawNatPow_factor_rotated_prefix w m p z r hpr
+  have hweight : rawWeight (t++l) = rawWeight w := by
+    rw [hw,rawWeight_append,rawWeight_append,Nat.add_comm]
+  cases M with
+  | zero =>
+    left
+    have he : z = [] := by simpa [rawNatPow] using hpre
+    simp [he,rawWeight]
+  | succ M =>
+    have hbase : t++l <+: rawNatPow (t++l) (M+1) := by
+      rw [rawNatPow_eq_flatten_replicate,List.replicate_succ,List.flatten_cons]
+      exact List.prefix_append _ _
+    by_cases hlen : z.length ≤ (t++l).length
+    · left
+      rw [← hweight]
+      exact rawWeight_le_of_sublist
+        (List.prefix_of_prefix_length_le hpre hbase hlen).sublist
+    · right
+      exact ⟨l,t,hw,List.prefix_of_prefix_length_le hbase hpre (by omega),
+        (rawNatPow_hasPeriod (t++l) (M+1)).infix hpre.isInfix⟩
+
+/-- Uniform literal overlap bound for arbitrary factors of signed
+period powers from DISTINCT ranks, without assuming that either
+factor starts at its period's zero corner. This works for an
+exterior period as well as for the periodic block of a cell. -/
+theorem distinct_rank_arbitrary_period_factor_weight
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (i j : ℕ) (hij : i < j)
+    (hi : ∃ w : F, ¬ Good (weightedStages pick X i) w)
+    (hj : ∃ w : F, ¬ Good (weightedStages pick X j) w)
+    (si sj : Bool) (m n : ℕ) (z : RawWord)
+    (hz : z <:+: rawNatPow
+      (if si then (pick (weightedStages pick X i) hi).val
+        else (pick (weightedStages pick X i) hi).val⁻¹).toWord m)
+    (hz' : z <:+: rawNatPow
+      (if sj then (pick (weightedStages pick X j) hj).val
+        else (pick (weightedStages pick X j) hj).val⁻¹).toWord n) :
+    rawWeight z ≤ 2 * max
+      (weightedLength (pick (weightedStages pick X i) hi).val)
+      (weightedLength (pick (weightedStages pick X j) hj).val) := by
+  let c := (pick (weightedStages pick X i) hi).val
+  let d := (pick (weightedStages pick X j) hj).val
+  have hcw : rawWeight (if si then c else c⁻¹).toWord = weightedLength c := by
+    cases si <;> simp [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+  have hdw : rawWeight (if sj then d else d⁻¹).toWord = weightedLength d := by
+    cases sj <;> simp [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+  rcases rawNatPow_factor_short_or_period _ m z hz with hs | ⟨l,r,hc,hp,hper⟩
+  · change rawWeight z ≤ rawWeight (if si then c else c⁻¹).toWord at hs
+    rw [hcw] at hs
+    exact hs.trans (by have h := le_max_left (weightedLength c) (weightedLength d); omega)
+  rcases rawNatPow_factor_short_or_period _ n z hz' with hs | ⟨p,q,hd,hq,hper'⟩
+  · change rawWeight z ≤ rawWeight (if sj then d else d⁻¹).toWord at hs
+    rw [hdw] at hs
+    exact hs.trans (by have h := le_max_right (weightedLength c) (weightedLength d); omega)
+  exact distinct_rank_signed_period_overlap_weight pick X i j hij hi hj si sj
+    l r p q z hc hd hp hq hper hper'
+
+#print axioms rawNatPow_factor_rotated_prefix
+#print axioms rawNatPow_factor_short_or_period
+#print axioms distinct_rank_arbitrary_period_factor_weight
+
 end QuandleResearch.Issue070
