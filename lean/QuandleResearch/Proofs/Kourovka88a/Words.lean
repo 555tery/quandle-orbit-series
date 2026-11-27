@@ -132,7 +132,7 @@ theorem answer_of_weighted_survival (words X : ℕ → F)
       weightedLength w ≤ 2 + 2 * 10 ^ 80 → w = 1) : answer := by
   apply answer_of_greedyStages words X hwords
   intro i hi
-  exact commWord_ne_one (hshort i commWord hi weightedLength_commWord.le)
+  exact commWord_ne_one (hshort i commWord hi (le_of_eq weightedLength_commWord))
 
 /-- Positive words are supplied as lists of generator indices. -/
 def positiveWord (q : List (Fin 2)) : F :=
