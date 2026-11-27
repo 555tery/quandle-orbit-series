@@ -2323,7 +2323,7 @@ a system or per-arc geometric estimate is asserted.
 
 theorem guba23_sublist_weight {u v : RawWord} (h : u.Sublist v) :
     rawWeight u ≤ rawWeight v := by
-  induction h <;> (simp_all [rawWeight]; omega)
+  induction h <;> simp_all [rawWeight] <;> omega
 
 theorem guba23_flatMap_weight {A : Type} (xs : List A) (f : A → RawWord) :
     rawWeight (xs.flatMap f) = (xs.map (fun x => rawWeight (f x))).sum := by
@@ -2381,10 +2381,10 @@ theorem guba23_boundary_transfer (arcs : List (RawWord × RawWord))
   have herr := mul_le_mul_of_nonneg_right hc he
   linarith only [ht, hbQ, herr]
 
+set_option maxHeartbeats 2000000 in
 /-- Apply the numerical conclusion directly to literal arc readings.
 Only retained coverage, local transfer, the arc count and disjointness
 certificate remain as hypotheses; none is an added axiom. -/
-set_option maxHeartbeats 2000000 in
 theorem guba23_row_perimeter_of_arcs (pick : WeightedSelector)
     (n : ℕ) (i : RankHeight n) (w : F)
     (h : ∃ u : F, ¬ Good (gubaState pick i.1.val).1 u)
@@ -2480,7 +2480,8 @@ theorem guba22_exists_component_representatives {D : Type}
         rcases Finset.mem_insert.mp ha with had | haR
         · rcases Finset.mem_insert.mp hb with hbd | hbR
           · exact hab (had.trans hbd.symm)
-          · exact hex ⟨b, hbR, by simpa only [had] using Relation.EqvGen.symm _ _ hconn⟩
+          · subst a
+            exact hex ⟨b, hbR, Relation.EqvGen.symm _ _ hconn⟩
         · rcases Finset.mem_insert.mp hb with hbd | hbR
           · exact hex ⟨a, haR, by simpa only [hbd] using hconn⟩
           · exact hsep a haR b hbR hab hconn
@@ -2652,7 +2653,7 @@ theorem guba22_two_outlet_mem_of_other {D : Type} [Fintype D]
         rw [guba22_coefficient_preserved_read P read keep hkeep d hd]
         exact hint d hd
       · rcases honly d hc hd with hda | hdb
-        · exact (hnc (by rw [hda]; exact .refl _ _)).elim
+        · exact (hnc (by rw [hda])).elim
         · rw [hdb, fixed_vertex_read_singleton S b hSb]
           simpa only [List.map_cons, List.map_nil] using hmb)
   rw [fixed_vertex_read_singleton S a hSa] at hm
@@ -2961,7 +2962,7 @@ theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
     | cons d ds ih =>
       change v d * (ds.map v).prod =
         q (FreeGroup.mk ([read d.val] ++ ds.map (fun e => read e.val)))
-      rw [ih, ← FreeGroup.mul_mk, map_mul] <;> rfl
+      rw [ih, ← FreeGroup.mul_mk, map_mul]
   have hread (d : {d : D // S.SameComponent a d}) :
       cycleProduct C.rotation v d =
         q (FreeGroup.mk ((S.vertexBoundary d.val).map read)) := by
@@ -2981,10 +2982,10 @@ theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
         rcases honly d.val d.property hn with h | h
         · have hh : x = d := Subtype.ext h.symm
           apply hdx
-          rw [← hh] <;> exact .refl _ _
+          rw [← hh]
         · have hh : y = d := Subtype.ext h.symm
           apply hdy
-          rw [← hh] <;> exact .refl _ _
+          rw [← hh]
       rw [hread]
       change q (FreeGroup.mk
         (((P.coefficientRegions keep hkeep).vertexBoundary d.val).map read)) = 1
@@ -3065,14 +3066,20 @@ theorem guba22_two_interval_refinement {D : Type} [Fintype D]
   have hab : a ≠ b := by
     intro h
     have he : P.rotation^[0] a = P.rotation^[k+1] a := h
-    have hzero := Function.iterate_injOn_Iio_minimalPeriod
-      (f := (P.rotation : D → D)) (x := a) (by omega) hk he
+    have hzero : (0 : ℕ) = k+1 := Function.iterate_injOn_Iio_minimalPeriod
+      (f := (P.rotation : D → D)) (x := a)
+      (show 0 ∈ Set.Iio (Function.minimalPeriod P.rotation a) from by
+        change 0 < Function.minimalPeriod P.rotation a
+        omega) hk he
     omega
   have hcd : c ≠ d := by
     intro h
     have he : P.rotation^[0] c = P.rotation^[l+1] c := h
-    have hzero := Function.iterate_injOn_Iio_minimalPeriod
-      (f := (P.rotation : D → D)) (x := c) (by omega) hl he
+    have hzero : (0 : ℕ) = l+1 := Function.iterate_injOn_Iio_minimalPeriod
+      (f := (P.rotation : D → D)) (x := c)
+      (show 0 ∈ Set.Iio (Function.minimalPeriod P.rotation c) from by
+        change 0 < Function.minimalPeriod P.rotation c
+        omega) hl he
     omega
   have hca : ¬ P.rotation.SameCycle c a := fun h => hac h.symm
   have hcb : ¬ P.rotation.SameCycle c b := fun h => hac (h1.trans h.symm)
@@ -3182,7 +3189,7 @@ theorem guba22_face_length_ge_three {D : Type} [Fintype D]
     intro h
     rw [h] at hret
     have he : P.face (P.face d) = d := by
-      simpa only [Function.iterate_succ_apply', Function.iterate_one] using hret
+      simpa only [Function.iterate_succ_apply', Function.iterate_one, Function.iterate_zero, id_eq] using hret
     exact h2 he
   simp only [RibbonMap.faceBoundary, List.length_ofFn]
   omega
