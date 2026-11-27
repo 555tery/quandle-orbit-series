@@ -9439,4 +9439,115 @@ theorem guba23_delete_cell_two_boundary_package
 #print axioms guba23_delete_cell_two_boundary_package
 
 
+
+/-! ### Induction on genuine subfillings
+
+A contiguous subexpression in any rank-minimal filling is itself
+rank-minimal for its own evaluation. If it omits even one occurrence,
+its type strictly decreases. The boundary word need not coincide
+with the parent boundary. This is the algebraic substitution rule
+needed for cuts in Lemmas 21--23; realizing a particular geometric
+cut by such an expression remains a separate obligation.
+-/
+
+theorem rankMinimal_subfilling_minimal
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p b r : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ b ++ r)) :
+    RankMinimalExpression pick X n
+      (Peiffer.evaluation (rankHeightRel pick X n) b) b := by
+  refine ⟨rfl,?_⟩
+  intro t ht j hj habove
+  by_contra! h
+  exact rankMinimal_block_no_reduction pick X n w p b r t hs ht.symm
+    j hj habove h
+
+/-- Type comparison is independent of the number of lower-rank cells
+introduced by a replacement. In particular smaller-type induction
+can be applied to a proper block of an expression, without fixing
+its evaluation or the boundary of the parent diagram. -/
+theorem rankMinimal_proper_subfilling
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (p b r : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ b ++ r))
+    (hproper : p ≠ [] ∨ r ≠ []) :
+    RankMinimalExpression pick X n
+      (Peiffer.evaluation (rankHeightRel pick X n) b) b ∧
+      descendingCountLT n rankCount b (p ++ b ++ r) := by
+  refine ⟨rankMinimal_subfilling_minimal pick X n w p b r hs,?_⟩
+  apply descending_count_lt_of_pointwise
+  · intro j _
+    simp only [rankCount_append]
+    omega
+  · have hex : ∃ x : Peiffer.Occurrence F (RankHeight n), x ∈ p ∨ x ∈ r := by
+      rcases hproper with hp | hr
+      · obtain ⟨x,hx⟩ := List.length_pos_iff_exists_mem.mp
+          (List.length_pos_iff.mpr hp)
+        exact ⟨x,Or.inl hx⟩
+      · obtain ⟨x,hx⟩ := List.length_pos_iff_exists_mem.mp
+          (List.length_pos_iff.mpr hr)
+        exact ⟨x,Or.inr hx⟩
+    obtain ⟨x,hx⟩ := hex
+    refine ⟨x.1.2.1.val,x.1.2.1.isLt,?_⟩
+    have hpos (a : Peiffer.Sequence F (RankHeight n)) (ha : x ∈ a) :
+        0 < rankCount a x.1.2.1.val := by
+      unfold rankCount
+      apply List.length_pos_iff_exists_mem.mpr
+      exact ⟨x,List.mem_filter.mpr ⟨ha,by simp⟩⟩
+    simp only [rankCount_append]
+    rcases hx with hx | hx
+    · have hp := hpos p hx
+      omega
+    · have hr := hpos r hx
+      omega
+
+/-- Rank-profile-preserving Peiffer regrouping transports minimality.
+A geometric cut need only exhibit a based factorization with the
+same counts at all ranks, rather than equality of ordered lists. -/
+theorem rankMinimal_transport_profile
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (hc : ∀ j, rankCount s j = rankCount t j) :
+    RankMinimalExpression pick X n w t := by
+  refine ⟨ht,?_⟩
+  intro u hu j hj habove
+  rw [← hc j]
+  exact hs.2 u hu j hj (fun k hjk hkn => (hc k).trans (habove k hjk hkn))
+
+/-- The exact interface for induction on a proper geometric region:
+regroup the parent expression without changing its rank profile;
+then the isolated block is minimal and has strictly smaller type
+than the original parent, regardless of its new boundary value. -/
+theorem guba23_regrouped_region_induction
+    (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F)
+    (s p b r : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) (p ++ b ++ r) = w)
+    (hc : ∀ j, rankCount s j = rankCount (p ++ b ++ r) j)
+    (hproper : p ≠ [] ∨ r ≠ []) :
+    RankMinimalExpression pick X n
+      (Peiffer.evaluation (rankHeightRel pick X n) b) b ∧
+      descendingCountLT n rankCount b s := by
+  obtain ⟨hm,j,hj,hlt,habove⟩ := rankMinimal_proper_subfilling
+    pick X n w p b r (rankMinimal_transport_profile pick X n w s
+      (p ++ b ++ r) hs ht hc) hproper
+  refine ⟨hm,j,hj,?_,?_⟩
+  · rw [hc j]
+    exact hlt
+  · intro k hjk hkn
+    rw [hc k]
+    exact habove k hjk hkn
+
+#print axioms rankMinimal_subfilling_minimal
+#print axioms rankMinimal_proper_subfilling
+#print axioms rankMinimal_transport_profile
+#print axioms guba23_regrouped_region_induction
+
+
 end QuandleResearch.Issue070
