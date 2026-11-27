@@ -84,6 +84,16 @@ jobs:
           assert s.count(old) == 1
           p.write_text(s.replace(old, "  | ind n ih =>"))
           PY
+          # In Lean 4.36 simp_all closes every case of this proof.
+          # Remove the redundant final tactic, rather than allowing its warning.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(".lake/small-groups/SmallPresentation/SmallCancellationGeometryRelativeMetric.lean")
+          s = p.read_text()
+          old = "    cases hx : sign x <;> cases hy : sign y <;> simp_all\n    all_goals omega"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, "    cases hx : sign x <;> cases hy : sign y <;> simp_all"))
+          PY
           git -C .lake/small-groups diff --stat
           cat >> lakefile.toml <<'EOF'
 
