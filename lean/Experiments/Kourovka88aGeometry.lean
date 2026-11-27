@@ -18618,7 +18618,7 @@ theorem guba_signed_long_period_factor_not_heavy (pick : WeightedSelector)
     (v z : RawWord) (m : ℕ) (k : ℤ) (sg : Bool)
     (hv : rawWeight v ≤ weightedLength (pick (gubaState pick i).1 hi).val)
     (hz : z <:+: (if sg then (activeLongWord pick i hi).map (fun x => (x,true))
-      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true))))))
+      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true)))))
     (hpow : z <:+: rawNatPow v m) :
     54*rawWeight z <
       2*positiveWeight (activeLongWord pick i hi) +
