@@ -15958,8 +15958,8 @@ theorem guba23_no_heavy_direct_long_side_walks_full_type
   obtain ⟨hij,hpu,hrv⟩ := activeLongWord_heavy_factor_cut_eq pick i.val j.val hi hj
     p z r u v hfirst hsecond hheavy
   have hij' : i = j := Fin.ext hij
-  have hlabels : s[index.val].1.2.1 = s[index'.val].1.2.1 :=
-    hlabel.trans (hij'.trans hlabel'.symm)
+  have hlabels : s[index.val].1.2.1 = s[index'.val].1.2.1 := by
+    rw [hlabel,hlabel',hij']
   clear hlabel'
   subst j
   subst u
@@ -16423,9 +16423,11 @@ theorem guba_positive_cell_four_blocks
   have hsign : (boundaryIdentity s)[j].2 = true := by
     rw [hmark]
     exact hpos s[i.val] (List.getElem_mem i.isLt)
-  have hr := boundaryRibbon_interior_read rows w s hs j s[i.val].1.2 hidx hp
-  rw [hsign] at hr
-  change (P.vertexBoundary d').map read = rows s[i.val].1.2 at hr
+  have hr₀ : (P.vertexBoundary d').map read =
+      orientedWord (rows s[i.val].1.2) (boundaryIdentity s)[j].2 :=
+    boundaryRibbon_interior_read rows w s hs j s[i.val].1.2 hidx hp
+  have hr : (P.vertexBoundary d').map read = rows s[i.val].1.2 :=
+    hr₀.trans (congrArg (orientedWord (rows s[i.val].1.2)) hsign)
   change _ = rankHeightRows pick (gubaConjugatorChoice pick) n s[i.val].1.2 at hr
   rw [guba_rankHeightRows_active pick n s[i.val].1.2 hactive hk] at hr
   simp only [List.append_assoc] at hr
@@ -16688,7 +16690,9 @@ theorem guba_oneDart_actual_single_block_pair
     rw [hpart] at hnd
     have hn : (u++[z]).Nodup :=
       (List.nodup_append.mp (List.nodup_append.mp hnd).1).2.1
-    have hlnd : l.Nodup := (hn.map P.edge.injective).reverse
+    have hlnd : l.Nodup := by
+      change ((List.map P.edge (u++[z])).reverse).Nodup
+      exact List.nodup_reverse.mpr (hn.map P.edge.injective)
     have hlmem : ∀ t ∈ l, t = root := by
       intro t ht
       have h := hroot.trans (walk_departure_sameCycle P.rotation hopp t ht)
@@ -16713,7 +16717,8 @@ theorem guba_oneDart_actual_single_block_pair
     have hone : rawWeight ((u++[z]).map read) = 1 := by
       rw [← hweight]
       change rawWeight (((u++[z]).map P.edge).reverse.map read) = 1
-      rw [hu,List.nil_append,List.map_singleton,List.reverse_singleton,he,hr,rawWeight_invRev]
+      rw [hu,List.nil_append,List.map_singleton,List.reverse_singleton,he]
+      rw [show [root].map read = FreeGroup.invRev a.toWord from hr,rawWeight_invRev]
       change weightedLength a = 1
       simpa using weightedLength_a_zpow 1
     rw [hone] at hL
