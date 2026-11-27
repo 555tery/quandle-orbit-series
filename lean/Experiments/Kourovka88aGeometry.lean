@@ -11074,4 +11074,124 @@ theorem rankMinimal_top_quotient_exact
 #print axioms topRank_project_filling
 #print axioms rankMinimal_top_quotient_exact
 
+
+/-- The quotient product of the conjugated height relators.
+Keep bases in the free group so all proposed replacements lift
+without making any choice of quotient representatives. -/
+def topHeightProduct {K : Type} [Group K] (q : F →* K)
+    (R : ℤ → F) (l : List (F × ℤ)) : K :=
+  (l.map (fun x => q x.1 * q (R x.2) * (q x.1)⁻¹)).prod
+
+theorem topHeightProduct_append {K : Type} [Group K] (q : F →* K)
+    (R : ℤ → F) (l r : List (F × ℤ)) :
+    topHeightProduct q R (l ++ r) =
+      topHeightProduct q R l * topHeightProduct q R r := by
+  simp only [topHeightProduct,List.map_append,List.prod_append]
+
+theorem topHeightProduct_singleton {K : Type} [Group K] (q : F →* K)
+    (R : ℤ → F) (u : F) (k : ℤ) :
+    topHeightProduct q R [(u,k)] = q u * q (R k) * (q u)⁻¹ := by
+  simp [topHeightProduct]
+
+theorem topHeightProduct_map {K : Type} [Group K] (q : F →* K)
+    (R : ℤ → F) (l : List (F × ℤ)) :
+    q ((l.map (fun x => x.1 * R x.2 * x.1⁻¹)).prod) =
+      topHeightProduct q R l := by
+  induction l with
+  | nil => simp [topHeightProduct]
+  | cons x xs ih =>
+    simp only [List.map_cons,List.prod_cons,map_mul,map_inv,ih,topHeightProduct]
+
+/-- A transported alignment of the bases of two equal-rank cells
+suffices for an exact merger in any quotient. The intervening
+product is kept, including its order; it need not vanish. -/
+theorem topHeightProduct_merge {K : Type} [Group K] (q : F →* K)
+    (R : ℤ → F)
+    (hadd : ∀ k l, R (k+l) = R k * a^k * R l * (a^k)⁻¹)
+    (u v : F) (k l : ℤ) (m : List (F × ℤ))
+    (halign : topHeightProduct q R m * q v = q u * q (a^k)) :
+    topHeightProduct q R ([(u,k)] ++ m ++ [(v,l)]) =
+      topHeightProduct q R ([(u,k+l)] ++ m) := by
+  have hv : q v = (topHeightProduct q R m)⁻¹ * (q u * q (a^k)) := by
+    calc
+      _ = (topHeightProduct q R m)⁻¹ * (topHeightProduct q R m * q v) := by group
+      _ = _ := by rw [halign]
+  simp only [topHeightProduct_append,topHeightProduct_singleton,hadd,map_mul,map_inv]
+  rw [hv]
+  group
+
+/-- In the exact top-rank quotient minimizer, no such transported
+alignment can occur anywhere in the list. This is a consequence
+of global minimality, not an additional geometric hypothesis. -/
+theorem topRank_minimal_no_transported_merge
+    (pick : WeightedSelector) (X : ConjugatorChoice) (j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight (j+1)))
+    (hm : RankMinimalExpression pick X (j+1) w s)
+    (p m r : List (F × ℤ)) (u v : F) (k l : ℤ)
+    (hcount : (p ++ [(u,k)] ++ m ++ [(v,l)] ++ r).length = rankCount s j) :
+    let N := weightedStages pick X j
+    letI : N.Normal := weightedStages_normal pick X j
+    let q := QuotientGroup.mk' N
+    let R := weightedRankHeightRelator pick X j
+    q w = topHeightProduct q R (p ++ [(u,k)] ++ m ++ [(v,l)] ++ r) →
+    topHeightProduct q R m * q v ≠ q u * q (a^k) := by
+  intro N inst q R he halign
+  let t := p ++ [(u,k+l)] ++ m ++ r
+  have hmerge := topHeightProduct_merge q R
+    (weightedRankHeightRelator_add pick X j) u v k l m halign
+  have hnew : q w = topHeightProduct q R t := by
+    calc
+      _ = topHeightProduct q R (p ++ ([(u,k)] ++ m ++ [(v,l)]) ++ r) := by
+        simpa only [List.append_assoc] using he
+      _ = topHeightProduct q R (p ++ ([(u,k+l)] ++ m) ++ r) := by
+        calc
+          _ = (topHeightProduct q R p *
+            topHeightProduct q R ([(u,k)] ++ m ++ [(v,l)])) * topHeightProduct q R r := by
+              rw [topHeightProduct_append q R (p ++ ([(u,k)] ++ m ++ [(v,l)])) r,
+                topHeightProduct_append q R p ([(u,k)] ++ m ++ [(v,l)])]
+          _ = (topHeightProduct q R p *
+            topHeightProduct q R ([(u,k+l)] ++ m)) * topHeightProduct q R r := by rw [hmerge]
+          _ = _ := by
+            rw [topHeightProduct_append q R (p ++ ([(u,k+l)] ++ m)) r,
+              topHeightProduct_append q R p ([(u,k+l)] ++ m)]
+      _ = _ := by simp only [t,List.append_assoc]
+  have hmod : ((t.map (fun x => x.1 * weightedRankHeightRelator pick X j x.2 * x.1⁻¹)).prod)⁻¹ *
+      w ∈ weightedHeightStage pick X j := by
+    rw [weightedHeightStage_eq]
+    apply (QuotientGroup.eq_one_iff N).mp
+    change q (((t.map (fun x => x.1 * R x.2 * x.1⁻¹)).prod)⁻¹ * w) = 1
+    rw [map_mul,map_inv,topHeightProduct_map,hnew,inv_mul_cancel]
+  have hle := rankMinimal_top_quotient_lower_bound pick X j w s hm t hmod
+  simp only [List.length_append,List.length_singleton] at hcount
+  simp only [t,List.length_append,List.length_singleton] at hle
+  omega
+
+/-- Short equality in an earlier quotient lifts to exact free-group
+equality when the sum of the two representative weights is within
+the injectivity threshold. This isolates the precise metric budget
+needed to turn a short coefficient connector into literal alignment. -/
+theorem short_quotient_equality_lifts (N : Subgroup F) [N.Normal] (B : ℕ)
+    (hshort : ∀ z : F, z ∈ N → weightedLength z ≤ B → z = 1)
+    (x y : F) (hweight : weightedLength x + weightedLength y ≤ B)
+    (he : QuotientGroup.mk' N x = QuotientGroup.mk' N y) : x = y := by
+  have hm : x⁻¹ * y ∈ N := by
+    apply (QuotientGroup.eq_one_iff N).mp
+    rw [map_mul,map_inv,he,inv_mul_cancel]
+  have hinv : weightedLength x⁻¹ = weightedLength x := by
+    simp only [weightedLength,FreeGroup.toWord_inv,rawWeight_invRev]
+  have hle := weightedLength_mul_le x⁻¹ y
+  rw [hinv] at hle
+  have hz := hshort (x⁻¹*y) hm (hle.trans hweight)
+  calc
+    x = x * 1 := (mul_one _).symm
+    _ = x * (x⁻¹*y) := by rw [hz]
+    _ = y := by group
+
+#print axioms topHeightProduct_append
+#print axioms topHeightProduct_singleton
+#print axioms topHeightProduct_map
+#print axioms topHeightProduct_merge
+#print axioms topRank_minimal_no_transported_merge
+#print axioms short_quotient_equality_lifts
+
 end QuandleResearch.Issue070
