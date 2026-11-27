@@ -680,6 +680,8 @@ abbrev positiveWeight (q : List (Fin 2)) : ℕ :=
 
 theorem positiveWeight_append (p q : List (Fin 2)) :
     positiveWeight (p ++ q) = positiveWeight p + positiveWeight q := by
+  change weightedLength (positiveWord (p ++ q)) =
+    weightedLength (positiveWord p) + weightedLength (positiveWord q)
   rw [positiveWord_append, weightedLength_positive_mul]
 
 theorem positiveWeight_nil : positiveWeight [] = 0 := by
@@ -736,7 +738,7 @@ theorem factor_of_weighted_interval
   have hc : p ++ z = p ++ (left ++ m ++ right) := by
     rw [← hh, ← hl]
     simp only [List.append_assoc]
-  exact List.append_left_cancel hc
+  exact List.append_inj_right hc rfl
 
 theorem longRaw_prefix (q : List (Fin 2)) {i j : ℕ} (hij : i ≤ j) :
     longRaw q i <+: longRaw q j := by
@@ -744,7 +746,7 @@ theorem longRaw_prefix (q : List (Fin 2)) {i j : ℕ} (hij : i ≤ j) :
   induction n with
   | zero => simp
   | succ n ih =>
-    exact ih.trans (List.prefix_append _ _)
+    exact (ih (by omega)).trans (List.prefix_append _ _)
 
 def resolventRaw (q : List (Fin 2)) (k : ℕ) : List (Fin 2) :=
   longBlock q (k-1) ++ List.replicate 3 1
@@ -758,12 +760,14 @@ theorem longRaw_resolvent_factor (q : List (Fin 2)) (k h : ℕ)
     (longRaw_prefix q (show k+1 ≤ h by omega))
   have hrec : longRaw q k = longRaw q (k-1) ++ longBlock q (k-1) := by
     have he : k-1+1 = k := by omega
-    conv_lhs => rw [← he]
+    calc
+      longRaw q k = longRaw q (k-1+1) := congrArg (longRaw q) he.symm
+      _ = _ := rfl
   refine ⟨(List.replicate (k+1) q).flatten ++ t, ?_⟩
   rw [← ht]
   change (longRaw q k ++ longBlock q k) ++ t = _
-  rw [hrec, longBlock q k, resolventRaw]
-  simp only [List.append_assoc]
+  rw [hrec, resolventRaw]
+  simp only [longBlock, List.append_assoc]
 
 theorem positiveWeight_separator :
     positiveWeight (List.replicate 3 (1 : Fin 2)) = 3*10^80 := by
@@ -777,7 +781,9 @@ theorem positiveWeight_resolvent_end (q : List (Fin 2)) (k : ℕ)
       positiveWeight (longRaw q k) + 3*10^80 := by
   have hrec : longRaw q k = longRaw q (k-1) ++ longBlock q (k-1) := by
     have he : k-1+1 = k := by omega
-    conv_lhs => rw [← he]
+    calc
+      longRaw q k = longRaw q (k-1+1) := congrArg (longRaw q) he.symm
+      _ = _ := rfl
   rw [hrec, resolventRaw, ← List.append_assoc, positiveWeight_append,
     positiveWeight_separator]
 
@@ -813,8 +819,8 @@ theorem guba19_resolvent (q p z r : List (Fin 2))
       positiveWeight (longRaw q j) + 3*10^80 + (j+1)*positiveWeight q := by
     rw [longRaw, positiveWeight_append]
     have hb := weightedLength_longBlock q j
-    change positiveWeight (longBlock q j) = _ at hb
-    omega
+    change positiveWeight (longBlock q j) = 3*10^80 + (j+1)*positiveWeight q at hb
+    rw [hb, Nat.add_assoc]
   have hearly : positiveWeight (longRaw q 7) + 3*10^80 ≤
       2*10^20 * positiveWeight q := by
     have he := weightedLength_longRaw_twice q 7
@@ -823,8 +829,8 @@ theorem guba19_resolvent (q p z r : List (Fin 2))
     norm_num at he hq ⊢
     omega
   have hright : positiveWeight (p ++ z) ≤ positiveWeight (longRaw q (10^20)) := by
-    rw [hword, positiveWeight_append]
-    omega
+    rw [hword, positiveWeight_append (p ++ z) r]
+    exact Nat.le_add_right _ _
   have hlong' : positiveWeight p + 2*10^20*positiveWeight q <
       positiveWeight (p ++ z) := by
     rw [positiveWeight_append]
@@ -834,7 +840,7 @@ theorem guba19_resolvent (q p z r : List (Fin 2))
       (positiveWeight q) (3*10^80) (10^20) (positiveWeight p)
       (positiveWeight (p ++ z)) hzero hstep (by norm_num)
       (by norm_num at hq ⊢; omega) hearly hright hlong'
-  obtain ⟨v, hv⟩ := longRaw_resolvent_factor q k (by omega) hkh
+  obtain ⟨v, hv⟩ := longRaw_resolvent_factor q k (10^20) (by omega) hkh
   have heq : p ++ z ++ r = longRaw q (k-1) ++ resolventRaw q k ++ v :=
     hword.symm.trans hv
   have hend' : positiveWeight (longRaw q (k-1) ++ resolventRaw q k) ≤
@@ -873,12 +879,10 @@ theorem mk_eq_a_zpow_of_light (w : RawWord) (hw : rawWeight w < 10^80) :
     cases s with
     | false =>
       refine ⟨-1+n, ?_⟩
-      rw [hmul, FreeGroup.mk_eq_inv_of, hn, zpow_add]
-      simp [a]
+      rw [hmul, FreeGroup.mk_eq_inv_of, hn, zpow_add] <;> simp [a]
     | true =>
       refine ⟨1+n, ?_⟩
-      rw [hmul, FreeGroup.mk_eq_of, hn, zpow_add]
-      simp [a]
+      rw [hmul, FreeGroup.mk_eq_of, hn, zpow_add] <;> simp [a]
 
 theorem eq_a_zpow_of_light (w : F) (hw : weightedLength w < 10^80) :
     ∃ n : ℤ, w = a ^ n := by
