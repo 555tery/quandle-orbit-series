@@ -139,4 +139,13 @@ example : answer ↔
 #print axioms weightedRankHeightRelator_add
 #print axioms weightedRankHeightRelator_zero
 
+#print axioms good_conjugate_iff
+#print axioms minBad_shorter_good
+#print axioms minBad_cyclicallyReduced
+#print axioms minBad_quotient_length
+#print axioms minBad_proper_factor_good
+#print axioms good_pow
+#print axioms rawWeight_rawNatPow
+#print axioms minBad_not_literal_power
+
 end QuandleResearch.Issue070
