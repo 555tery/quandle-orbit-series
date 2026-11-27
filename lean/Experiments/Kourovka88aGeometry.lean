@@ -15409,4 +15409,171 @@ theorem guba23_gubaTypeMinimal_ribbon_connected
 #print axioms gubaTypeMinimal_no_omitted_indices
 #print axioms guba23_gubaTypeMinimal_ribbon_connected
 
+
+/-- A trivial cell can be discarded under the full type, even
+if the lower coordinates of other possible minimizers differ. -/
+theorem gubaTypeMinimal_no_trivial_occurrence
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w (p++[x]++r)) :
+    Peiffer.term (rankHeightRel pick X n) x ≠ 1 := by
+  intro he
+  let j := x.1.2.1.val
+  have hj : j < n := x.1.2.1.isLt
+  apply gubaTypeMinimal_block_no_reduction_mod_lower pick X n w p [x] r [] hm
+    (2*j+1) (by omega)
+  · have h : Peiffer.evaluation (rankHeightRel pick X n) [x] = 1 := by
+      simpa [Peiffer.evaluation] using he
+    rw [h]
+    simp [Peiffer.evaluation]
+  · intro k hk hkn
+    have hne : x.1.2.1.val ≠ k/2 := by
+      change j ≠ k/2
+      omega
+    have hz : rankCount [x] (k/2) = 0 := by
+      rw [rankCount_singleton]
+      simp [hne]
+    have ht : rankCount ([] : Peiffer.Sequence F (RankHeight n)) (k/2) = 0 := rfl
+    rw [gubaTypeCoordinate_zero_of_count_zero [x] k hz,
+      gubaTypeCoordinate_zero_of_count_zero [] k ht]
+  · rw [gubaTypeCoordinate_count,gubaTypeCoordinate_count,rankCount_singleton]
+    change 0 < (if x.1.2.1.val = j then 1 else 0)
+    simp [j]
+
+theorem gubaTypeMinimal_designated_row_nonempty
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w (p++[x]++r)) :
+    rankHeightRows pick X n x.1.2 ≠ [] := by
+  intro hnil
+  have hrel : rankHeightRel pick X n x.1.2 = 1 := by
+    rw [← rankHeightRows_eval pick X n x.1.2,hnil,← FreeGroup.one_eq_mk]
+  apply gubaTypeMinimal_no_trivial_occurrence pick X n w p r x hm
+  rcases x with ⟨⟨u,i⟩,b⟩
+  cases b <;> simp [Peiffer.term] at hrel ⊢ <;> simp [hrel]
+
+/-- FINAL geometric obligation, using the actual type of Guba
+rather than the earlier count-only approximation. The stage and
+one-dart exterior are consequences of the algebraic construction. -/
+theorem answer_of_guba_full_type_one_dart_step
+    (step : ∀ j (s : Peiffer.Sequence F (RankHeight (j+1)))
+      (hs : Peiffer.evaluation
+        (fun i => FreeGroup.mk (rankHeightRows twoPeriodSelector
+          (gubaConjugatorChoice twoPeriodSelector) (j+1) i)) s = a),
+      a ∉ weightedHeightStage twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) j →
+      GubaTypeMinimalExpression twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1) a s →
+      (∀ x ∈ s, x.2 = true) →
+      let rows := rankHeightRows twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1)
+      let P := boundaryRibbon rows a s hs
+      let z := boundaryDart rows a s (show a ≠ 1 by
+        intro h
+        have hw : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+        rw [h] at hw
+        have hz := (weightedLength_eq_zero_iff (1 : F)).mpr rfl
+        omega)
+      P.Connected → P.EulerEquality → P.vertexBoundary z = [z] → False) :
+    answer := by
+  have ha : a ≠ 1 := by
+    intro h
+    have hw : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+    rw [h] at hw
+    have hz := (weightedLength_eq_zero_iff (1 : F)).mpr rfl
+    omega
+  apply answer_of_guba_one_letter_survival
+  intro n
+  induction n with
+  | zero =>
+    intro h
+    rw [weightedHeightStage_eq] at h
+    exact ha h
+  | succ j ih =>
+    intro h
+    let pick := twoPeriodSelector
+    let X := gubaConjugatorChoice pick
+    obtain ⟨s,hm,hpos,hs,hE⟩ := exists_gubaTypeMinimal_ribbon_expression pick X (j+1) a h
+    let rows := rankHeightRows pick X (j+1)
+    let P := boundaryRibbon rows a s hs
+    let z := boundaryDart rows a s ha
+    have hc : P.Connected := guba23_gubaTypeMinimal_ribbon_connected pick X (j+1) a s hm ha hs
+    have hr := boundaryRibbon_read rows a s hs ha
+    have haWord : a.toWord = ([(0,true)] : RawWord) := by decide
+    rw [haWord] at hr
+    have hlen := congrArg List.length hr
+    rw [List.length_map,FreeGroup.invRev_length] at hlen
+    obtain ⟨l,hl⟩ := cycleBoundary_cons P.rotation z
+    change P.vertexBoundary z = z::l at hl
+    have hnil : l = [] := by
+      apply List.length_eq_zero_iff.mp
+      rw [hl,List.length_cons] at hlen
+      simp only [List.length_singleton] at hlen
+      omega
+    exact step j s hs ih hm hpos hc hE (by rw [hl,hnil])
+
+/-- Numerical terminal criterion with the corrected full type.
+Only the extraction of a sufficiently long exterior contiguity
+arc and the corresponding transfer inequality remain hypotheses.
+All induction, nonempty-row and one-letter arithmetic are internal. -/
+theorem answer_of_guba_full_type_one_dart_single_arc
+    (step : ∀ j (s : Peiffer.Sequence F (RankHeight (j+1)))
+      (hs : Peiffer.evaluation
+        (fun i => FreeGroup.mk (rankHeightRows twoPeriodSelector
+          (gubaConjugatorChoice twoPeriodSelector) (j+1) i)) s = a),
+      a ∉ weightedHeightStage twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) j →
+      GubaTypeMinimalExpression twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1) a s →
+      (∀ x ∈ s, x.2 = true) →
+      let rows := rankHeightRows twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) (j+1)
+      let P := boundaryRibbon rows a s hs
+      let z := boundaryDart rows a s (show a ≠ 1 by
+        intro h
+        have hw : weightedLength a = 1 := by simpa using weightedLength_a_zpow 1
+        rw [h] at hw
+        have hz := (weightedLength_eq_zero_iff (1 : F)).mpr rfl
+        omega)
+      P.Connected → P.EulerEquality → P.vertexBoundary z = [z] →
+      ∃ x ∈ s, ∃ inner outer : RawWord,
+        outer.Sublist (FreeGroup.invRev a.toWord) ∧
+        rawWeight (rows x.1.2) ≤ 10^18 * rawWeight inner ∧
+        9 * 10^18 * rawWeight inner ≤
+          10^19 * rawWeight outer + 2 * rawWeight (rows x.1.2)) :
+    answer := by
+  apply answer_of_guba_full_type_one_dart_step
+  intro j s hs hnew hm hpos rows P z hc hE hz
+  obtain ⟨x,hx,inner,outer,hsub,hL,hT⟩ :=
+    step j s hs hnew hm hpos hc hE hz
+  have hB := guba23_sublist_weight hsub
+  rw [rawWeight_invRev] at hB
+  change rawWeight outer ≤ weightedLength a at hB
+  have ha : weightedLength a = 1 := by
+    simpa using weightedLength_a_zpow 1
+  rw [ha] at hB
+  obtain ⟨p,r,he⟩ := List.mem_iff_append.mp hx
+  have hn : rankHeightRows twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) (j+1) x.1.2 ≠ [] := by
+    apply gubaTypeMinimal_designated_row_nonempty twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) (j+1) a p r x
+    have hsplit : s = p ++ [x] ++ r := by simpa using he
+    exact hsplit ▸ hm
+  have hlarge := guba_rankHeightRows_large twoPeriodSelector (j+1) x.1.2 hn
+  change rawWeight (rankHeightRows twoPeriodSelector
+    (gubaConjugatorChoice twoPeriodSelector) (j+1) x.1.2) ≤
+      10^18 * rawWeight inner at hL
+  change 9 * 10^18 * rawWeight inner ≤
+    10^19 * rawWeight outer + 2 * rawWeight (rankHeightRows twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) (j+1) x.1.2) at hT
+  norm_num at hL hT hlarge
+  omega
+
+#print axioms gubaTypeMinimal_no_trivial_occurrence
+#print axioms gubaTypeMinimal_designated_row_nonempty
+#print axioms answer_of_guba_full_type_one_dart_step
+#print axioms answer_of_guba_full_type_one_dart_single_arc
+
 end QuandleResearch.Issue070
