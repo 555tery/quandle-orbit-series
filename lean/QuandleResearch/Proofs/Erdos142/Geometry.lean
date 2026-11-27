@@ -1715,6 +1715,40 @@ theorem erdos142_leading_constant_improvement :
   exact ⟨C, lt_of_le_of_lt hlo hC, hChi, roth_eventual_of_constant C hC⟩
 
 
+
+/-! Independent statement-level bridge to the conventional interval
+{1,...,N} and to an explicit arithmetic-progression condition. -/
+
+theorem rothNumberNat_eq_interval (N : ℕ) :
+    rothNumberNat N = addRothNumber (Finset.Icc 1 N) := by
+  have he : Finset.Icc 1 N = Finset.Ico 1 (N + 1) := by
+    ext x
+    simp only [Finset.mem_Icc, Finset.mem_Ico]
+    omega
+  rw [he, addRothNumber_Ico]
+  congr 1
+  omega
+
+/-- State the improvement directly in terms of finite subsets of the
+conventional interval [1,N], without the extremal function or an
+abstract AP-freeness predicate in the conclusion. -/
+theorem erdos142_explicit_finite_sets :
+    ∃ C : ℝ, 0 < C ∧ C < 2 * Real.sqrt (Real.log (24 / 7)) ∧
+      ∃ N₀ : ℕ, ∀ N : ℕ, N₀ ≤ N →
+        ∃ A : Finset ℕ, A ⊆ Finset.Icc 1 N ∧
+          (∀ x ∈ A, ∀ y ∈ A, ∀ z ∈ A, x + z = y + y → x = z) ∧
+          (N : ℝ) * Real.exp (-C * Real.sqrt (Real.log (N : ℝ))) ≤ (A.card : ℝ) := by
+  obtain ⟨C, hC0, hC, N₀, h⟩ := erdos142_leading_constant_improvement
+  refine ⟨C, hC0, hC, N₀, ?_⟩
+  intro N hN
+  obtain ⟨A, hA, hcard, hfree⟩ := addRothNumber_spec (Finset.Icc 1 N)
+  refine ⟨A, hA, ?_, ?_⟩
+  · intro x hx y hy z hz hAP
+    exact threeAPFree_iff_eq_right.mp hfree hx hy hz hAP
+  · rw [hcard, ← rothNumberNat_eq_interval]
+    exact h N hN
+
+
 end
 
 end QuandleResearch.Erdos142
