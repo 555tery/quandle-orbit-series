@@ -2305,4 +2305,105 @@ theorem guba23_row_perimeter_of_coverage (pick : WeightedSelector)
 #print axioms guba23_perimeter_arithmetic
 #print axioms guba23_row_perimeter_of_coverage
 
+
+
+/-! ## Lemma 23: additivity and disjoint outer arc accounting
+
+The geometric input is a system of contiguity arcs. Here we make the
+summation step explicit on their literal word readings. The sublist
+condition is a sufficient certificate of disjoint outer arcs in
+boundary order (with a suitable choice of cut). No existence of such
+a system or per-arc geometric estimate is asserted.
+-/
+
+theorem guba23_sublist_weight {u v : RawWord} (h : u.Sublist v) :
+    rawWeight u ≤ rawWeight v := by
+  induction h <;> simp_all [rawWeight] <;> omega
+
+theorem guba23_flatMap_weight {A : Type} (xs : List A) (f : A → RawWord) :
+    rawWeight (xs.flatMap f) = (xs.map (fun x => rawWeight (f x))).sum := by
+  induction xs with
+  | nil => rfl
+  | cons x xs ih =>
+    simp only [List.flatMap_cons, rawWeight_append, List.map_cons, List.sum_cons, ih]
+
+/-- Outer arc readings can be counted only once: their concatenation
+must occur as a sublist of the actual boundary reading. -/
+theorem guba23_outer_arcs_weight (arcs : List (RawWord × RawWord)) (v : RawWord)
+    (h : (arcs.flatMap Prod.snd).Sublist v) :
+    (arcs.map (fun q => rawWeight q.2)).sum ≤ rawWeight v := by
+  rw [← guba23_flatMap_weight arcs Prod.snd]
+  exact guba23_sublist_weight h
+
+/-- Summing Lemma 21's local estimates, including one error term per arc. -/
+theorem guba23_arc_transfer_sum (arcs : List (RawWord × RawWord)) (P : ℚ)
+    (hlocal : ∀ q ∈ arcs,
+      (9/10 : ℚ) * (rawWeight q.1 : ℚ) - (2/10^19 : ℚ) * P ≤
+        (rawWeight q.2 : ℚ)) :
+    (9/10 : ℚ) * ((arcs.map (fun q => rawWeight q.1)).sum : ℚ) -
+      (arcs.length : ℚ) * ((2/10^19 : ℚ) * P) ≤
+      ((arcs.map (fun q => rawWeight q.2)).sum : ℚ) := by
+  induction arcs with
+  | nil => simp
+  | cons q qs ih =>
+    have hq := hlocal q (by simp)
+    have ht := ih (fun p hp => hlocal p (by simp [hp]))
+    simp only [List.map_cons, List.sum_cons, List.length_cons]
+    push_cast
+    nlinarith only [hq, ht]
+
+/-- The actual signed boundary word bounds the transferred lengths.
+The at-most-three condition and the sublist certificate are geometric
+obligations; the global error bound is no longer an independent premise. -/
+theorem guba23_boundary_transfer (arcs : List (RawWord × RawWord))
+    (w : F) (P : ℚ) (hP : 0 ≤ P)
+    (hcount : arcs.length ≤ 3)
+    (hsub : (arcs.flatMap Prod.snd).Sublist (FreeGroup.invRev w.toWord))
+    (hlocal : ∀ q ∈ arcs,
+      (9/10 : ℚ) * (rawWeight q.1 : ℚ) - (2/10^19 : ℚ) * P ≤
+        (rawWeight q.2 : ℚ)) :
+    (9/10 : ℚ) * ((arcs.map (fun q => rawWeight q.1)).sum : ℚ) -
+      (6/10^19 : ℚ) * P ≤ (weightedLength w : ℚ) := by
+  have ht := guba23_arc_transfer_sum arcs P hlocal
+  have hb := guba23_outer_arcs_weight arcs (FreeGroup.invRev w.toWord) hsub
+  rw [rawWeight_invRev] at hb
+  have hbQ : ((arcs.map (fun q => rawWeight q.2)).sum : ℚ) ≤
+      (weightedLength w : ℚ) := by
+    unfold weightedLength
+    exact_mod_cast hb
+  have hc : (arcs.length : ℚ) ≤ 3 := by exact_mod_cast hcount
+  have he : 0 ≤ (2/10^19 : ℚ) * P := mul_nonneg (by norm_num) hP
+  have herr := mul_le_mul_of_nonneg_right hc he
+  linarith only [ht, hbQ, herr]
+
+/-- Apply the numerical conclusion directly to literal arc readings.
+Only retained coverage, local transfer, the arc count and disjointness
+certificate remain as hypotheses; none is an added axiom. -/
+theorem guba23_row_perimeter_of_arcs (pick : WeightedSelector)
+    (n : ℕ) (i : RankHeight n) (w : F)
+    (h : ∃ u : F, ¬ Good (gubaState pick i.1.val).1 u)
+    (hk : i.2 ≠ 0) (arcs : List (RawWord × RawWord))
+    (hcount : arcs.length ≤ 3)
+    (hsub : (arcs.flatMap Prod.snd).Sublist (FreeGroup.invRev w.toWord))
+    (hcover : (95/100 - 18/10^11) *
+      ((2 * positiveWeight (activeLongWord pick i.1.val h) +
+        i.2.natAbs * weightedLength (pick (gubaState pick i.1.val).1 h).val : ℕ) : ℚ) <
+      ((arcs.map (fun q => rawWeight q.1)).sum : ℚ))
+    (hlocal : ∀ q ∈ arcs,
+      (9/10 : ℚ) * (rawWeight q.1 : ℚ) - (2/10^19 : ℚ) *
+        (rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) : ℚ) ≤
+        (rawWeight q.2 : ℚ)) :
+    4 * rawWeight (rankHeightRows pick (gubaConjugatorChoice pick) n i) <
+      5 * weightedLength w := by
+  apply guba23_row_perimeter_of_coverage pick n i w h hk
+    ((arcs.map (fun q => rawWeight q.1)).sum : ℚ) hcover
+  exact guba23_boundary_transfer arcs w _ (by positivity) hcount hsub hlocal
+
+#print axioms guba23_sublist_weight
+#print axioms guba23_flatMap_weight
+#print axioms guba23_outer_arcs_weight
+#print axioms guba23_arc_transfer_sum
+#print axioms guba23_boundary_transfer
+#print axioms guba23_row_perimeter_of_arcs
+
 end QuandleResearch.Issue070
