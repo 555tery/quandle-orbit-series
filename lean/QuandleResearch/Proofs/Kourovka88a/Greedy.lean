@@ -72,7 +72,8 @@ theorem adjoin_eq_of_mem (N : Subgroup F) [N.Normal] (r : F) (hr : r ∈ N) :
     rcases hw with hw | hw
     · exact hw
     · have h : w = r := hw
-      simpa only [h] using hr
+      subst w
+      exact hr
   · exact le_adjoin N r
 
 /-- Stage zero is the trivial normal subgroup of the free group.
