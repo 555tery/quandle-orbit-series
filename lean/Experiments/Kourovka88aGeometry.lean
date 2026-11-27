@@ -2958,8 +2958,7 @@ theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
     | cons d ds ih =>
       change v d * (ds.map v).prod =
         q (FreeGroup.mk ([read d.val] ++ ds.map (fun e => read e.val)))
-      rw [ih, ← FreeGroup.mul_mk, map_mul]
-      rfl
+      rw [ih, ← FreeGroup.mul_mk, map_mul] <;> rfl
   have hread (d : {d : D // S.SameComponent a d}) :
       cycleProduct C.rotation v d =
         q (FreeGroup.mk ((S.vertexBoundary d.val).map read)) := by
@@ -2978,9 +2977,12 @@ theorem guba22_two_outlet_inverse_conjugacy {D : Type} [Fintype D]
         by_contra hn
         rcases honly d.val d.property hn with h | h
         · have hh : x = d := Subtype.ext h.symm
-          exact hdx (hh ▸ Equiv.Perm.SameCycle.refl _ _)
+          apply hdx
+          rw [← hh] <;> exact .refl _ _
         · have hh : y = d := Subtype.ext h.symm
-          exact hdy (hh ▸ Equiv.Perm.SameCycle.refl _ _)
+          apply hdy
+          rw [← hh]
+          exact .refl _ _
       rw [hread]
       change q (FreeGroup.mk
         (((P.coefficientRegions keep hkeep).vertexBoundary d.val).map read)) = 1
