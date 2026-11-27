@@ -433,4 +433,173 @@ theorem thuePrefix_cubeFree (n p d : ℕ) (hd : 0 < d) (hfit : p+3*d ≤ n) :
   intro j hj
   exact (thueLetter_eq_iff _ _).mp (by simpa only [thuePrefix_get] using hc j hj)
 
+
+/-! ## Choosing the successive odd-length prefixes
+
+Source: Guba, Math. USSR-Izv. 29 (1987), pp. 234, 238, 277.
+T_1,T_2,... are successive odd-letter-length prefixes ending in a,
+starting with a prefix containing both letters. Q_i is chosen from
+T_2,T_4,... by a least-index weight condition. The construction below
+uses the concrete Thue–Morse word, starting a,b. It does not yet prove
+the resolvent uniqueness or graded-diagram estimates.
+-/
+
+/-- Zero-based last index of an odd-length prefix ending in a and
+containing both initial letters. -/
+def EligiblePrefixEnd (n : ℕ) : Prop :=
+  n % 2 = 0 ∧ thueMorse n = false ∧ 1 < n
+
+theorem exists_eligiblePrefixEnd_after (bound : ℕ) :
+    ∃ n, bound < n ∧ EligiblePrefixEnd n := by
+  let k := bound + 1
+  have h0 : thueMorse (4*k) = thueMorse k := by
+    rw [show 4*k = 2*(2*k) by omega, thueMorse_even, thueMorse_even]
+  have h2 : thueMorse (4*k+2) = !(thueMorse k) := by
+    rw [show 4*k+2 = 2*(2*k+1) by omega, thueMorse_even, thueMorse_odd]
+  cases hk : thueMorse k with
+  | false =>
+    refine ⟨4*k, ?_, ?_, h0.trans hk, ?_⟩ <;> dsimp [k] <;> omega
+  | true =>
+    refine ⟨4*k+2, ?_, ?_, ?_, ?_⟩
+    · dsimp [k]; omega
+    · omega
+    · rw [h2, hk]; rfl
+    · dsimp [k]; omega
+
+noncomputable def nextPrefixEnd (bound : ℕ) : ℕ := by
+  classical
+  exact Nat.find (exists_eligiblePrefixEnd_after bound)
+
+theorem nextPrefixEnd_spec (bound : ℕ) :
+    bound < nextPrefixEnd bound ∧ EligiblePrefixEnd (nextPrefixEnd bound) := by
+  classical
+  exact Nat.find_spec (exists_eligiblePrefixEnd_after bound)
+
+theorem nextPrefixEnd_min (bound n : ℕ)
+    (h : bound < n ∧ EligiblePrefixEnd n) : nextPrefixEnd bound ≤ n := by
+  classical
+  exact Nat.find_min' (exists_eligiblePrefixEnd_after bound) h
+
+/-- Index zero represents T_1, not T_0. -/
+noncomputable def prefixEnd : ℕ → ℕ
+  | 0 => nextPrefixEnd 1
+  | m+1 => nextPrefixEnd (prefixEnd m)
+
+theorem prefixEnd_eligible (m : ℕ) : EligiblePrefixEnd (prefixEnd m) := by
+  cases m with
+  | zero => exact (nextPrefixEnd_spec 1).2
+  | succ m => exact (nextPrefixEnd_spec (prefixEnd m)).2
+
+theorem prefixEnd_lt_succ (m : ℕ) : prefixEnd m < prefixEnd (m+1) :=
+  (nextPrefixEnd_spec (prefixEnd m)).1
+
+theorem prefixEnd_gt_index (m : ℕ) : m < prefixEnd m := by
+  induction m with
+  | zero => exact (Nat.zero_lt_one.trans (nextPrefixEnd_spec 1).1)
+  | succ m ih =>
+    have h := prefixEnd_lt_succ m
+    omega
+
+noncomputable def gubaPrefix (m : ℕ) : List (Fin 2) :=
+  thuePrefix (prefixEnd m + 1)
+
+/-- T_{2(m+1)} in the paper's one-based indexing. -/
+noncomputable def gubaEvenPrefix (m : ℕ) : List (Fin 2) :=
+  gubaPrefix (2*m+1)
+
+theorem gubaPrefix_odd_length (m : ℕ) : (gubaPrefix m).length % 2 = 1 := by
+  rw [gubaPrefix, thuePrefix_length]
+  have h := (prefixEnd_eligible m).1
+  omega
+
+theorem gubaPrefix_last (m : ℕ) :
+    (gubaPrefix m)[prefixEnd m]'(by rw [gubaPrefix, thuePrefix_length]; omega) = 0 := by
+  change (thuePrefix (prefixEnd m+1))[prefixEnd m]'(by rw [thuePrefix_length]; omega) = 0
+  rw [thuePrefix_get]
+  simp [thueLetter, (prefixEnd_eligible m).2.1]
+
+theorem gubaPrefix_first (m : ℕ) :
+    (gubaPrefix m)[0]'(by rw [gubaPrefix, thuePrefix_length]; omega) = 0 := by
+  change (thuePrefix (prefixEnd m+1))[0]'(by rw [thuePrefix_length]; omega) = 0
+  rw [thuePrefix_get]
+  have h : thueMorse 0 = false := by decide
+  simp [thueLetter, h]
+
+theorem gubaPrefix_second (m : ℕ) :
+    (gubaPrefix m)[1]'(by rw [gubaPrefix, thuePrefix_length]; have h := (prefixEnd_eligible m).2.2; omega) = 1 := by
+  change (thuePrefix (prefixEnd m+1))[1]'(by rw [thuePrefix_length]; have h := (prefixEnd_eligible m).2.2; omega) = 1
+  rw [thuePrefix_get]
+  have h : thueMorse 1 = true := by decide
+  simp [thueLetter, h]
+
+theorem positiveWord_length_le (q : List (Fin 2)) :
+    q.length ≤ weightedLength (positiveWord q) := by
+  have h := length_le_rawWeight ((positiveWord q).toWord)
+  change ((positiveWord q).toWord).length ≤ weightedLength (positiveWord q) at h
+  rw [toWord_positiveWord, List.length_map] at h
+  exact h
+
+theorem exists_gubaEvenPrefix_weight_gt (bound : ℕ) :
+    ∃ m, bound < weightedLength (positiveWord (gubaEvenPrefix m)) := by
+  refine ⟨bound, ?_⟩
+  have h := positiveWord_length_le (gubaEvenPrefix bound)
+  have hi := prefixEnd_gt_index (2*bound+1)
+  rw [gubaEvenPrefix, gubaPrefix, thuePrefix_length] at h
+  omega
+
+/-- Least admissible Q index given a period and a previous weight.
+The paper uses r = 10^70, and the common integer scaling of the
+lengths cancels from the inequality |Q| > r |C|. -/
+noncomputable def chooseEvenPrefixIndex (C : F) (previousWeight : ℕ) : ℕ := by
+  classical
+  exact Nat.find (exists_gubaEvenPrefix_weight_gt
+    (max (10^70 * weightedLength C) previousWeight))
+
+theorem chooseEvenPrefixIndex_spec (C : F) (previousWeight : ℕ) :
+    max (10^70 * weightedLength C) previousWeight <
+      weightedLength (positiveWord (gubaEvenPrefix (chooseEvenPrefixIndex C previousWeight))) := by
+  classical
+  exact Nat.find_spec (exists_gubaEvenPrefix_weight_gt
+    (max (10^70 * weightedLength C) previousWeight))
+
+theorem chooseEvenPrefixIndex_min (C : F) (previousWeight m : ℕ)
+    (hm : max (10^70 * weightedLength C) previousWeight <
+      weightedLength (positiveWord (gubaEvenPrefix m))) :
+    chooseEvenPrefixIndex C previousWeight ≤ m := by
+  classical
+  exact Nat.find_min' (exists_gubaEvenPrefix_weight_gt
+    (max (10^70 * weightedLength C) previousWeight)) hm
+
+/-- Raw concatenation of the first m positive long blocks. -/
+def longRaw (q : List (Fin 2)) : ℕ → List (Fin 2)
+  | 0 => []
+  | m+1 => longRaw q m ++ longBlock q m
+
+theorem positiveWord_longRaw (q : List (Fin 2)) (m : ℕ) :
+    positiveWord (longRaw q m) = longConjugator (positiveWord q) m := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [longRaw, positiveWord_append, positiveWord_longBlock, ih]
+    simp only [longConjugator, List.range_succ, List.map_append,
+      List.map_singleton, List.prod_append, List.prod_cons, List.prod_nil, mul_one]
+
+/-- Exact doubled weight, avoiding division in Nat. In particular this
+implies the quadratic lower bound used in property 1.9 of the paper. -/
+theorem weightedLength_longRaw_twice (q : List (Fin 2)) (m : ℕ) :
+    2 * weightedLength (positiveWord (longRaw q m)) =
+      6*m*10^80 + m*(m+1)*weightedLength (positiveWord q) := by
+  induction m with
+  | zero => simp [longRaw, positiveWord, weightedLength, rawWeight]
+  | succ m ih =>
+    rw [longRaw, weightedLength_positive_mul, weightedLength_longBlock]
+    rw [Nat.mul_add, ih]
+    ring
+
+theorem weightedLength_longConjugator_twice (q : List (Fin 2)) (m : ℕ) :
+    2 * weightedLength (longConjugator (positiveWord q) m) =
+      6*m*10^80 + m*(m+1)*weightedLength (positiveWord q) := by
+  rw [← positiveWord_longRaw]
+  exact weightedLength_longRaw_twice q m
+
 end QuandleResearch.Issue070
