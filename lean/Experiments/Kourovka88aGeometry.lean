@@ -8965,4 +8965,119 @@ theorem guba23_splice_keep_vertex_product {D K : Type}
 #print axioms guba23_splice_keep_vertex_product
 
 
+
+/-- The spherical boundary identity with exact cell multiplicity.
+Each non-root vertex occurs once, represented by a dart and a
+conjugating element. Induction merges the root with one adjacent
+vertex and expands that merge on return. This supplies the
+multiplicity information missing from normal-closure membership. -/
+theorem guba23_component_exact_vertex_product {D K : Type}
+    [Fintype D] [Group K] (P : RibbonMap D) (v : D → K)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hc : P.Connected) (hE : P.EulerEquality) (a : D) :
+    ∃ l : List (K × D),
+      (∀ z ∈ l, ¬ P.rotation.SameCycle a z.2) ∧
+      l.Pairwise (fun x y => ¬ P.rotation.SameCycle x.2 y.2) ∧
+      (∀ d, ¬ P.rotation.SameCycle a d →
+        ∃ z ∈ l, P.rotation.SameCycle z.2 d) ∧
+      cycleProduct P.rotation v a *
+        (l.map (fun z => z.1 * cycleProduct P.rotation v z.2 * z.1⁻¹)).prod = 1 := by
+  classical
+  by_cases hroot : ∀ d, P.rotation.SameCycle a d
+  · refine ⟨[],by simp,.nil,?_,?_⟩
+    · intro d hd
+      exact (hd (hroot d)).elim
+    · simp only [List.map_nil,List.prod_nil,mul_one]
+      apply RibbonMap.boundary_product_one D P v he hc hE
+      intro d hd
+      exact (hd (hroot d)).elim
+  · push Not at hroot
+    obtain ⟨b,hb⟩ := hroot
+    obtain ⟨c,hac,hce⟩ := guba22_exists_leaving_edge P hc a b hb
+    have hn : ¬ P.rotation.SameCycle c (P.edge c) :=
+      fun h => hce (hac.trans h)
+    let S := P.edgeSplice c
+    let e := P.edge c
+    let f := P.rotation c
+    have hnc : ¬ P.rotation.SameCycle f e := by
+      simpa only [f,e,Equiv.Perm.sameCycle_apply_left] using hn
+    have haf : P.rotation.SameCycle a f :=
+      hac.trans (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))
+    have hfe : S.rotation.SameCycle f e :=
+      cutAt_sameCycle_of_not_sameCycle P.rotation _ _ hnc
+    obtain ⟨k,hk⟩ := guba22_cycleProduct_conjugator P.rotation v a f haf
+    have hm : cycleProduct S.rotation v f =
+        (k * cycleProduct P.rotation v a * k⁻¹) * cycleProduct P.rotation v e := by
+      rw [show cycleProduct S.rotation v f =
+        cycleProduct P.rotation v f * cycleProduct P.rotation v e from
+          cycleProduct_cutAt_merge P.rotation v f e hnc, hk]
+    obtain ⟨l,hl,hsep,hcov,hprod⟩ := guba23_component_exact_vertex_product S v
+      (fun d => he d) (guba22_edgeSplice_connected P hc c hn)
+      ((P.edgeSplice_euler_iff c hn).mpr hE) f
+    have outside (d : D) (hd : ¬ S.rotation.SameCycle f d) :
+        ¬ P.rotation.SameCycle a d ∧ ¬ P.rotation.SameCycle e d := by
+      constructor
+      · intro h
+        exact hd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc (haf.symm.trans h))
+      · intro h
+        exact hd (hfe.trans (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc h))
+    let shift : K × D → K × D := fun z => (k⁻¹ * z.1,z.2)
+    refine ⟨(k⁻¹,e) :: l.map shift,?_,?_,?_,?_⟩
+    · intro z hz
+      rcases List.mem_cons.mp hz with hz | hz
+      · subst z
+        exact hce
+      · obtain ⟨y,hy,rfl⟩ := List.mem_map.mp hz
+        exact (outside y.2 (hl y hy)).1
+    · apply List.pairwise_cons.mpr
+      constructor
+      · intro z hz
+        obtain ⟨y,hy,rfl⟩ := List.mem_map.mp hz
+        exact (outside y.2 (hl y hy)).2
+      · apply hsep.map
+        intro x y hxy hP
+        exact hxy (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc hP)
+    · intro d hd
+      by_cases h : P.rotation.SameCycle e d
+      · exact ⟨(k⁻¹,e),List.mem_cons_self,h⟩
+      · have hnS : ¬ S.rotation.SameCycle f d := by
+          intro hh
+          rcases (P.edgeSplice_sameVertex_iff c hn _ _).mp hh with h' | h'
+          · exact hd (haf.trans h')
+          · rcases h'.2 with h' | h'
+            · exact hd (hac.trans h'.symm)
+            · exact h h'
+        obtain ⟨y,hy,hyS⟩ := hcov d hnS
+        refine ⟨shift y,List.mem_cons_of_mem _ (List.mem_map.mpr ⟨y,hy,rfl⟩),?_⟩
+        rcases (P.edgeSplice_sameVertex_iff c hn _ _).mp hyS with hh | hh
+        · exact hh
+        · rcases hh.1 with hh' | hh'
+          · exact ((outside y.2 (hl y hy)).1 (hac.trans hh')).elim
+          · exact ((outside y.2 (hl y hy)).2 hh').elim
+    · have hp (t : List (K × D)) (ht : ∀ z ∈ t, ¬ S.rotation.SameCycle f z.2) :
+          ((t.map shift).map (fun z => z.1 * cycleProduct P.rotation v z.2 * z.1⁻¹)).prod =
+            k⁻¹ * (t.map (fun z => z.1 * cycleProduct S.rotation v z.2 * z.1⁻¹)).prod * k := by
+        induction t with
+        | nil => simp
+        | cons z zs ih =>
+          have hz := ht z List.mem_cons_self
+          have hz' := guba23_splice_keep_vertex_product P v c z.2 hn hz
+          simp only [List.map_cons,List.prod_cons,shift]
+          rw [ih (fun y hy => ht y (List.mem_cons_of_mem _ hy)),hz']
+          group
+      simp only [List.map_cons,List.prod_cons]
+      rw [hp l hl]
+      have hfinal := congrArg (fun x : K => k⁻¹ * x * k) hprod
+      rw [hm] at hfinal
+      simp only [mul_one,inv_mul_cancel] at hfinal
+      convert hfinal using 1 <;> group
+termination_by Fintype.card P.Vertex
+decreasing_by
+  have hcount := (P.edgeSplice_counts c hn).1
+  change Fintype.card (P.edgeSplice c).Vertex < Fintype.card P.Vertex
+  omega
+
+#print axioms guba23_component_exact_vertex_product
+
+
 end QuandleResearch.Issue070
