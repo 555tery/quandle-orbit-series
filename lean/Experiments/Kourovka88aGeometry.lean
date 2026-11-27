@@ -5353,7 +5353,9 @@ theorem spherical_loop_normalize_protected_face {D K : Type} [Fintype D] [Group 
   have hg (d e : D) (h : P.face.SameCycle d e) : g d = g e := by
     have hi (t : D) : P.face.SameCycle t d ↔ P.face.SameCycle t e :=
       ⟨fun hd => hd.trans h,fun he' => he'.trans h.symm⟩
-    simp only [g,hi]
+    by_cases hoa : P.face.SameCycle o a
+    · simp only [g,ite_eq_left hoa,hi (P.edge a)]
+    · simp only [g,ite_eq_right hoa,hi a]
   have hprotect (d : D) (hd : P.face.SameCycle o d) : g d = 1 := by
     by_cases hoa : P.face.SameCycle o a
     · have hno : ¬ P.face.SameCycle (P.edge a) d := by
@@ -5686,6 +5688,65 @@ theorem connected_coefficient_outlet_equation {D K : Type}
     exact (congrArg List.prod hh).trans hprod
 
 #print axioms connected_coefficient_outlet_equation
+
+
+
+/-- Restrict to an actual connected component before compressing.
+The resulting ordered relation enumerates exactly the original
+peripheral darts of that component, not those of any other component. -/
+theorem component_coefficient_outlet_equation {D K : Type}
+    [Fintype D] [Group K] (P : RibbonMap D) (v : D → K)
+    (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hE : P.EulerEquality)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (o : D) (ho : ¬ keep o) :
+    ∃ (l : List D) (g : D → K),
+      l.Nodup ∧ (∀ d, d ∈ l ↔ P.SameComponent o d ∧ ¬ keep d) ∧
+      (l.map (fun d => (g d * v d * (g d)⁻¹)⁻¹)).prod = 1 := by
+  classical
+  let A := {d : D // P.SameComponent o d}
+  let C := P.componentRibbon o
+  let a : A := ⟨o,Relation.EqvGen.refl o⟩
+  have hEC : C.EulerEquality := by
+    change Fintype.card (P.componentRibbon o).Vertex +
+      Fintype.card (P.componentRibbon o).Face =
+      Fintype.card (P.componentRibbon o).Edge +
+        2 * Fintype.card (P.componentRibbon o).Component
+    rw [P.componentRibbon_card_components,mul_one]
+    exact P.componentRibbon_sphere hE o
+  have hI (d e : A) (h : C.rotation.SameCycle d e) :
+      keep d.val ↔ keep e.val :=
+    hkeep _ _ ((P.restrict_sameVertex_iff (P.SameComponent o)
+      (P.component_membership_edge o) (P.component_membership_rotation o) d e).mp h)
+  have hleafC (d : A) (hd : ¬ keep d.val) : C.rotation d = d := by
+    apply Subtype.ext
+    exact hleaf d.val hd
+  have hrel (d : A) (hd : keep d.val) :
+      cycleProduct C.rotation (fun e : A => v e.val) d = 1 := by
+    have hr := P.restrict_vertexBoundary (P.SameComponent o)
+      (P.component_membership_edge o) (P.component_membership_rotation o) d
+    exact (cycleProduct_of_boundary_map P C Subtype.val v d hr).trans (hint d.val hd)
+  obtain ⟨l,g,hnd,hm,hprod⟩ := connected_coefficient_outlet_equation C
+    (fun d : A => v d.val) (fun d : A => keep d.val) hI hleafC hEC
+    (P.componentRibbon_connected o) (fun d => he d.val) hrel a ho
+  let G : D → K := fun d => if h : P.SameComponent o d then g ⟨d,h⟩ else 1
+  have hG (d : A) : G d.val = g d := by
+    simp [G,d.property]
+  refine ⟨l.map Subtype.val,G,hnd.map Subtype.val_injective,?_,?_⟩
+  · intro d
+    constructor
+    · intro hd
+      obtain ⟨b,hb,rfl⟩ := List.mem_map.mp hd
+      exact ⟨b.property,(hm b).mp hb⟩
+    · rintro ⟨hc,hk⟩
+      exact List.mem_map.mpr ⟨⟨d,hc⟩,(hm ⟨d,hc⟩).mpr hk,rfl⟩
+  · rw [List.map_map]
+    simpa only [Function.comp_apply,hG] using hprod
+
+#print axioms component_coefficient_outlet_equation
 
 
 end QuandleResearch.Issue070
