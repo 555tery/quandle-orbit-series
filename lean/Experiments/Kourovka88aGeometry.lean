@@ -1134,4 +1134,88 @@ theorem exists_rankMinimal_ribbon_expression (pick : WeightedSelector)
 #print axioms rankMinimal_block_no_reduction_mod_lower
 #print axioms exists_rankMinimal_ribbon_expression
 
+
+/-! ## Same-rank mergers modulo the earlier presentation
+
+The connecting path can be trivial only modulo earlier ranks. Moving
+the second occurrence across the intervening block and using the height
+addition relation then gives a graded reduction, not necessarily an
+exact two-to-one free-group identity.
+-/
+
+/-- Count a singleton without regard to its height, sign or base. -/
+theorem rankCount_singleton {n : ℕ}
+    (x : Peiffer.Occurrence F (RankHeight n)) (j : ℕ) :
+    rankCount [x] j = if x.1.2.1.val = j then 1 else 0 := by
+  by_cases h : x.1.2.1.val = j <;> simp [rankCount,h]
+
+/-- The based merger condition is sufficient modulo the previous stage,
+even for separated occurrences. The intervening block may have
+arbitrary ranks; it is retained unchanged in the replacement. -/
+theorem rankMinimal_no_separated_merge_mod_lower (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (j : Fin n) (k l : ℤ) (u v : F)
+    (p m r : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w
+      (p ++ [((u,(j,k)),true)] ++ m ++ [((v,(j,l)),true)] ++ r))
+    (hbase : (u*a^k)⁻¹ *
+      (Peiffer.evaluation (rankHeightRel pick X n) m * v) ∈
+        weightedHeightStage pick X j.val) : False := by
+  let rel := rankHeightRel pick X n
+  let b : Peiffer.Sequence F (RankHeight n) :=
+    [((u,(j,k)),true)] ++ m ++ [((v,(j,l)),true)]
+  let t : Peiffer.Sequence F (RankHeight n) :=
+    [((u,(j,k+l)),true)] ++ m
+  let N := weightedStages pick X j.val
+  letI : N.Normal := weightedStages_normal pick X j.val
+  let q := QuotientGroup.mk' N
+  have hb : (u*a^k)⁻¹ * (Peiffer.evaluation rel m * v) ∈ N := by
+    simpa only [N, rel, weightedHeightStage_eq] using hbase
+  have hq : q ((u*a^k)⁻¹ * (Peiffer.evaluation rel m * v)) = 1 :=
+    (QuotientGroup.eq_one_iff _).mpr hb
+  simp only [map_mul, map_inv] at hq
+  have hbaseq : q (Peiffer.evaluation rel m) * q v = q u * q (a^k) := by
+    calc
+      _ = (q u * q (a^k)) *
+          ((q u * q (a^k))⁻¹ *
+            (q (Peiffer.evaluation rel m) * q v)) := by group
+      _ = _ := by rw [hq, mul_one]
+  have hvq : q v =
+      (q (Peiffer.evaluation rel m))⁻¹ * (q u * q (a^k)) := by
+    calc
+      _ = (q (Peiffer.evaluation rel m))⁻¹ *
+          (q (Peiffer.evaluation rel m) * q v) := by group
+      _ = _ := by rw [hbaseq]
+  have he : q (Peiffer.evaluation rel b) = q (Peiffer.evaluation rel t) := by
+    have hsingle (x : Peiffer.Occurrence F (RankHeight n)) :
+        Peiffer.evaluation rel [x] = Peiffer.term rel x := by
+      simp [Peiffer.evaluation]
+    simp only [b,t,peiffer_evaluation_append,hsingle,Peiffer.term,Bool.cond_true]
+    change q ((u * weightedRankHeightRelator pick X j.val k * u⁻¹) *
+        Peiffer.evaluation rel m *
+        (v * weightedRankHeightRelator pick X j.val l * v⁻¹)) =
+      q ((u * weightedRankHeightRelator pick X j.val (k+l) * u⁻¹) *
+        Peiffer.evaluation rel m)
+    rw [weightedRankHeightRelator_add]
+    simp only [map_mul,map_inv]
+    rw [hvq]
+    group
+  have hmod : (Peiffer.evaluation rel t)⁻¹ *
+      Peiffer.evaluation rel b ∈ weightedHeightStage pick X j.val := by
+    rw [weightedHeightStage_eq]
+    change (Peiffer.evaluation rel t)⁻¹ * Peiffer.evaluation rel b ∈ N
+    apply (QuotientGroup.eq_one_iff _).mp
+    change q ((Peiffer.evaluation rel t)⁻¹ * Peiffer.evaluation rel b) = 1
+    rw [map_mul,map_inv,he,inv_mul_cancel]
+  have hsplit : RankMinimalExpression pick X n w (p ++ b ++ r) := by
+    simpa only [b,List.append_assoc] using hs
+  apply rankMinimal_block_no_reduction_mod_lower pick X n w p b r t
+    hsplit j.val j.isLt hmod
+  · intro d hd _
+    simp [b,t,rankCount_append,rankCount_singleton,ne_of_lt hd]
+  · simp [b,t,rankCount_append,rankCount_singleton] <;> omega
+
+#print axioms rankCount_singleton
+#print axioms rankMinimal_no_separated_merge_mod_lower
+
 end QuandleResearch.Issue070
