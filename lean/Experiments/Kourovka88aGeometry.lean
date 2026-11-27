@@ -6564,4 +6564,116 @@ theorem exists_global_coefficient_interval_refinement {D : Type} [Fintype D]
 #print axioms exists_global_coefficient_interval_refinement
 
 
+
+/-! ## Induction on graded diagram type
+
+Guba, Math. USSR Izv. 29 (1987), pp. 251--259, uses simultaneous
+induction for Lemmas 13--25. A rank-minimal expression for one fixed
+word does not provide that induction hypothesis: a subdiagram
+generally has a different boundary. Use descending lexicographic
+counts over an arbitrary family of objects instead.
+
+This does not identify the component-run refinement with the
+preferred contiguity subdiagrams in the paper. In particular the
+bond construction and the metric estimates for the connecting
+sides still require proofs.
+-/
+
+/-- Descending lexicographic strict comparison of finite rank
+profiles, with no bound on lower coordinates. -/
+def descendingCountLT {A : Type} (n : ℕ) (count : A → ℕ → ℕ)
+    (t s : A) : Prop :=
+  ∃ j < n, count t j < count s j ∧
+    ∀ k, j < k → k < n → count t k = count s k
+
+/-- Induction over all objects of smaller graded type, independent
+of their boundary values. Several statements may be proved
+simultaneously by taking the predicate to be their conjunction. -/
+theorem descending_count_induction {A : Type} (n : ℕ)
+    (count : A → ℕ → ℕ) (P : A → Prop)
+    (step : ∀ s, (∀ t, descendingCountLT n count t s → P t) → P s) :
+    ∀ s, P s := by
+  classical
+  by_contra h
+  push Not at h
+  obtain ⟨s,hs,hmin⟩ := exists_descending_count_min n
+    (fun s => ¬ P s) count h
+  apply hs
+  apply step s
+  intro t ht
+  by_contra hn
+  obtain ⟨j,hj,hlt,habove⟩ := ht
+  exact (Nat.not_lt_of_ge (hmin t hn j hj
+    (fun k hjk hkn => (habove k hjk hkn).symm))) hlt
+
+/-- A literal sublist cannot increase the count at any rank. -/
+theorem rankCount_le_of_sublist {n : ℕ}
+    {s t : Peiffer.Sequence F (RankHeight n)} (h : s.Sublist t) (j : ℕ) :
+    rankCount s j ≤ rankCount t j := by
+  unfold rankCount
+  exact (h.filter (fun x => decide (x.1.2.1.val = j))).length_le
+
+/-- If one of the coordinates decreases and none increases,
+the finite descending profile strictly decreases. Choose the
+highest changed coordinate, rather than imposing a bound on
+the total number of lower-rank cells. -/
+theorem descending_count_lt_of_pointwise {A : Type} (n : ℕ)
+    (count : A → ℕ → ℕ) (t s : A)
+    (hle : ∀ j < n, count t j ≤ count s j)
+    (hlt : ∃ j < n, count t j < count s j) :
+    descendingCountLT n count t s := by
+  classical
+  induction n with
+  | zero =>
+    obtain ⟨j,hj,_⟩ := hlt
+    omega
+  | succ n ih =>
+    by_cases hn : count t n < count s n
+    · exact ⟨n,Nat.lt_succ_self _,hn,fun k hk hkn => by omega⟩
+    · have he : count t n = count s n :=
+        Nat.le_antisymm (hle n (Nat.lt_succ_self _)) (Nat.le_of_not_gt hn)
+      have hlt' : ∃ j < n, count t j < count s j := by
+        obtain ⟨j,hj,hstrict⟩ := hlt
+        have hj' : j < n := by
+          by_contra hh
+          have hjn : j = n := by omega
+          rw [hjn,he] at hstrict
+          omega
+        exact ⟨j,hj',hstrict⟩
+      obtain ⟨j,hj,hstrict,habove⟩ := ih
+        (fun k hk => hle k (Nat.lt_succ_of_lt hk)) hlt'
+      refine ⟨j,Nat.lt_succ_of_lt hj,hstrict,?_⟩
+      intro k hjk hkn
+      by_cases hk : k = n
+      · rw [hk,he]
+      · exact habove k hjk (by omega)
+
+/-- Removing a specified occurrence and keeping an arbitrary
+sublist of the other occurrences strictly lowers the rank type,
+even if the removed occurrence does not have maximal rank. -/
+theorem rank_type_lt_of_omitted_occurrence {n : ℕ}
+    (p r : Peiffer.Sequence F (RankHeight n))
+    (x : Peiffer.Occurrence F (RankHeight n))
+    (t : Peiffer.Sequence F (RankHeight n))
+    (h : t.Sublist (p ++ r)) :
+    descendingCountLT n rankCount t (p ++ [x] ++ r) := by
+  apply descending_count_lt_of_pointwise
+  · intro j _
+    have hj := rankCount_le_of_sublist h j
+    rw [rankCount_append] at hj
+    simp only [rankCount_append]
+    omega
+  · refine ⟨x.1.2.1.val,x.1.2.1.isLt,?_⟩
+    have hj := rankCount_le_of_sublist h x.1.2.1.val
+    rw [rankCount_append] at hj
+    simp only [rankCount_append,rankCount_singleton,ite_true]
+    omega
+
+#print axioms descendingCountLT
+#print axioms descending_count_induction
+#print axioms rankCount_le_of_sublist
+#print axioms descending_count_lt_of_pointwise
+#print axioms rank_type_lt_of_omitted_occurrence
+
+
 end QuandleResearch.Issue070
