@@ -1225,7 +1225,7 @@ lemma slopePerm_apply (p m N d : ℕ) [Fact p.Prime] (hN : N ≤ p)
     have hle := Nat.le_of_dvd (show 0 < d by omega) hdiv
     omega
   unfold slopePerm
-  rw [dif_neg hn]
+  rw [dite_eq_right hn]
   funext i
   apply Prod.ext <;> change (d : ZMod p) * _ = d • _ <;> rw [nsmul_eq_mul]
 
@@ -1266,8 +1266,8 @@ theorem roth_finite_parameters (p m R N L J K : ℕ) [Fact p.Prime]
   have hshort := product_shell_shortBox p m R hp' S X Y U hX
     (fun v hv i => Fintype.mem_piFinset.mp (hSB hv) i) b w hwR hS
   have hcardG : Fintype.card (Fin m → ZMod p × ZMod p) = (p * p)^m := by
-    simp [Fintype.card_fun, Fintype.card_prod, ZMod.card]
-  apply roth_of_short_differences N K S (shortBox p m R) (slopePerm p m)
+    simp [Fintype.card_prod, ZMod.card]
+  apply roth_of_short_differences N K S (shortBox p m R) (fun d => slopePerm p m d)
   · exact fun d hd a => slopePerm_apply p m N d hN hd a
   · rw [hcardG]
     exact lt_of_le_of_lt (Nat.mul_le_mul_left N (shortBox_card p m R)) hD
@@ -1296,7 +1296,7 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
         ((rothNumberNat N : ℝ) + 2) := by
   obtain ⟨p, hpbound, hprime⟩ := Nat.exists_infinite_primes
     (max (max N 2400000) (8 * t))
-  letI : Fact p.Prime := ⟨hprime⟩
+  let _ : Fact p.Prime := ⟨hprime⟩
   have hN : N ≤ p := le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) hpbound
   have hp : 2400000 ≤ p :=
     le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hpbound
@@ -1347,7 +1347,7 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
     calc
       _ < (t * t)^m * ((2 * R + 1) * (2 * R + 1))^m :=
         Nat.mul_lt_mul_of_pos_right hNt (by positivity)
-      _ = ((t * t) * ((2 * R + 1) * (2 * R + 1)))^m := by rw [mul_pow]
+      _ = ((t * t) * ((2 * R + 1) * (2 * R + 1)))^m := by simp only [mul_pow]
       _ ≤ G := Nat.pow_le_pow_left hbase m
   have hJ := div_mul_bounds A L hL
   have hK := div_mul_bounds (N * J) G hG
@@ -1357,7 +1357,7 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
   have hNG : N ≤ G := by
     have hpp : p ≤ p * p := by nlinarith
     have hpow : p * p ≤ (p * p)^m := by
-      simpa using (pow_le_pow_right' (show 1 ≤ p * p by positivity)
+      simpa using (pow_le_pow_right' (show 1 ≤ p * p by exact Nat.succ_le_of_lt (Nat.mul_pos hp0 hp0))
         (show 1 ≤ m by omega))
     exact hN.trans (hpp.trans hpow)
   have hden := finite_block_density p hp
@@ -1386,6 +1386,7 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
   have hN0 : N = 0 ∨ 0 < N := by omega
   rcases hN0 with hzero | hpos
   · subst N
+    simp only [Nat.cast_zero, zero_mul]
     positivity
   have hNp : 0 < (N : ℝ) := by exact_mod_cast hpos
   have hmain : (N : ℝ) * (73 / 250 : ℝ)^m * (G : ℝ) <
@@ -1402,7 +1403,10 @@ theorem roth_integer_parameters (N m t : ℕ) (hm : 0 < m) (ht : 0 < t)
       _ ≤ (L : ℝ) * ((G : ℝ) * ((rothNumberNat N : ℝ) + 2)) := by
         gcongr
       _ = _ := by ring
-  have hfinal := (mul_lt_mul_right hGp).mp hmain
+  have hfinal : (N : ℝ) * (73 / 250 : ℝ)^m <
+      (L : ℝ) * ((rothNumberNat N : ℝ) + 2) := by
+    by_contra hn
+    exact (not_lt_of_ge (mul_le_mul_of_nonneg_right (le_of_not_gt hn) hGp.le)) hmain
   dsimp [L] at hfinal
   push_cast at hfinal
   exact hfinal
@@ -1677,7 +1681,7 @@ theorem roth_eventual_of_constant (C : ℝ)
     congr 1
     dsimp [d]
     ring
-  apply (mul_le_mul_right (Real.exp_pos (d * u))).mp
+  apply (mul_le_mul_iff_of_pos_right (Real.exp_pos (d * u))).mp
   calc
     _ = (N : ℝ) * Real.exp (-(2 * b * u)) := by rw [mul_assoc, hc]
     _ ≤ Real.exp (d * u) * (rothNumberNat N : ℝ) := hmain.le
