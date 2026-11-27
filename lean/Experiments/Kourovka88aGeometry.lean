@@ -1347,4 +1347,36 @@ theorem lowerRank_region_boundary_mem (pick : WeightedSelector)
 #print axioms lowerRank_rotated_row_mem
 #print axioms lowerRank_region_boundary_mem
 
+
+/-- A lower-rank quadrilateral with an actual spherical realization
+gives the connector-weight estimate on a minimal period. Its boundary
+membership is derived from the interior rows, not postulated. -/
+theorem activePeriod_region_quadrilateral_weight (pick : WeightedSelector)
+    (i j : ℕ) (hji : j ≤ i)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (p v r u s t : RawWord)
+    (hword : (pick (gubaState pick i).1 h).val.toWord = p ++ v ++ r)
+    {D : Type} [Fintype D] (P : RibbonMap D) (read : D → Letter)
+    (he : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hc : P.Connected) (hE : P.EulerEquality) (d : D)
+    (hint : ∀ e, ¬ P.rotation.SameCycle d e →
+      ∃ (z : RankHeight j) (sign : Bool) (l q : RawWord),
+        orientedWord (rankHeightRows pick (gubaConjugatorChoice pick) j z) sign = l ++ q ∧
+        (P.vertexBoundary e).map read = q ++ l)
+    (hboundary : (P.vertexBoundary d).map read =
+      (v ++ t) ++ FreeGroup.invRev (s ++ u)) :
+    rawWeight v ≤ rawWeight u + rawWeight s + rawWeight t := by
+  have hb := lowerRank_region_boundary_mem pick (gubaConjugatorChoice pick) j
+    P read he hc hE d hint
+  rw [hboundary, weightedHeightStage_eq] at hb
+  have hn := weightedStages_normal pick (gubaConjugatorChoice pick) i
+  rw [← gubaState_stage pick i] at hn
+  letI : (gubaState pick i).1.Normal := hn
+  apply minBad_factor_quadrilateral_weight
+    (pick (gubaState pick i).1 h).property p v r u s t hword
+  rw [gubaState_stage pick i]
+  exact weightedStages_mono pick (gubaConjugatorChoice pick) hji hb
+
+#print axioms activePeriod_region_quadrilateral_weight
+
 end QuandleResearch.Issue070
