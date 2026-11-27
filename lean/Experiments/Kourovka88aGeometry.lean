@@ -8626,4 +8626,71 @@ theorem activeLongWord_pure_a_relative_bound (pick : WeightedSelector) (i : ℕ)
 #print axioms activeLongWord_pure_a_relative_bound
 
 
+
+/-! ## Signed section readings of the actual rank rows
+
+Transfer the pure-a bounds to the signed alphabet used by the
+ribbon, including the reverse orientation. This avoids treating
+an inverse side as a new independent positive word.
+-/
+
+theorem invRev_infix_of_infix {u v : RawWord} (h : u <:+: v) :
+    FreeGroup.invRev u <:+: FreeGroup.invRev v := by
+  obtain ⟨p,r,he⟩ := h
+  refine ⟨FreeGroup.invRev r, FreeGroup.invRev p, ?_⟩
+  rw [← he, FreeGroup.invRev_append, FreeGroup.invRev_append, List.append_assoc]
+
+theorem invRev_pure_a {v : RawWord} (ha : ∀ x ∈ v, x.1 = 0) :
+    ∀ x ∈ FreeGroup.invRev v, x.1 = 0 := by
+  intro x hx
+  rw [FreeGroup.invRev, List.mem_reverse] at hx
+  obtain ⟨y,hy,rfl⟩ := List.mem_map.mp hx
+  exact ha y hy
+
+/-- The actual signed positive side inherits the bound without
+assuming a positive factor decomposition as extra input. -/
+theorem activeLongWord_signed_pure_a_bound (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v : RawWord)
+    (hv : v <:+: (activeLongWord pick i h).map (fun x => (x,true)))
+    (ha : ∀ x ∈ v, x.1 = 0) :
+    rawWeight v ≤ 4 := by
+  obtain ⟨p,r,he⟩ := hv
+  obtain ⟨dp,dz,dr,hds,hp,hz,hr⟩ :=
+    read_factor_lift (fun x : Fin 2 => (x,true)) (activeLongWord pick i h)
+      p v r he.symm
+  have hf : dz <:+: activeLongWord pick i h := ⟨dp,dr,hds.symm⟩
+  have hz0 : ∀ x ∈ dz, x = 0 := by
+    intro x hx
+    have hm : (x,true) ∈ v := by
+      rw [← hz]
+      exact List.mem_map.mpr ⟨x,hx,rfl⟩
+    exact ha (x,true) hm
+  rw [← hz, ← positiveWeight_eq_rawWeight_map]
+  exact activeLongWord_pure_a_weight_bound pick i h dz hf hz0
+
+/-- In either orientation of the actual special side, a pure-a
+interval has weight at most four. The factor is a signed reading
+of the literal side, not a representative chosen in the quotient. -/
+theorem activeLongWord_either_side_pure_a_bound (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v : RawWord)
+    (hv : v <:+: (activeLongWord pick i h).map (fun x => (x,true)) ∨
+      v <:+: FreeGroup.invRev ((activeLongWord pick i h).map (fun x => (x,true))))
+    (ha : ∀ x ∈ v, x.1 = 0) :
+    rawWeight v ≤ 4 := by
+  rcases hv with hp | hn
+  · exact activeLongWord_signed_pure_a_bound pick i h v hp ha
+  · have hf := invRev_infix_of_infix hn
+    rw [FreeGroup.invRev_invRev] at hf
+    have hw := activeLongWord_signed_pure_a_bound pick i h (FreeGroup.invRev v)
+      hf (invRev_pure_a ha)
+    rwa [rawWeight_invRev] at hw
+
+#print axioms invRev_infix_of_infix
+#print axioms invRev_pure_a
+#print axioms activeLongWord_signed_pure_a_bound
+#print axioms activeLongWord_either_side_pure_a_bound
+
+
 end QuandleResearch.Issue070
