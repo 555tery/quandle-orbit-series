@@ -17949,4 +17949,136 @@ theorem guba_actual_single_block_pair_cyclic_exterior
 #print axioms guba_cyclic_boundary_no_monogons
 #print axioms guba_actual_single_block_pair_cyclic_exterior
 
+
+/-- Inversion preserves cyclic reduction, including the seam.
+Use the actual first and last signed letters of the nonempty
+word, rather than any quotient-level argument. -/
+theorem rawCyclic_invRev {w : RawWord}
+    (h : FreeGroup.IsCyclicallyReduced w) :
+    FreeGroup.IsCyclicallyReduced (FreeGroup.invRev w) := by
+  cases w with
+  | nil => exact FreeGroup.IsCyclicallyReduced.nil
+  | cons x xs =>
+    have hex : ∃ y, (x::xs).getLast? = some y := by
+      cases hy : (x::xs).getLast? with
+      | none => simp at hy
+      | some y => exact ⟨y,rfl⟩
+    obtain ⟨y,hy⟩ := hex
+    have he : RawEnds (x::xs) x y := ⟨rfl,hy⟩
+    have hinv := rawEnds_invRev he
+    apply FreeGroup.isCyclicallyReduced_iff.mpr
+    refine ⟨rawReduced_invRev h.isReduced,?_⟩
+    intro a ha b hb hab
+    rw [hinv.2] at ha
+    rw [hinv.1] at hb
+    have ha' : reverseLetter x = a := by simpa using ha
+    have hb' : reverseLetter y = b := by simpa using hb
+    subst a
+    subst b
+    change x.1 = y.1 at hab
+    have hxy := h.2 y (by simp [hy]) x (by simp) hab.symm
+    change (!x.2) = (!y.2)
+    exact congrArg Bool.not hxy.symm
+
+theorem rawCyclic_intPow {w : RawWord} (h : FreeGroup.IsCyclicallyReduced w)
+    (k : ℤ) : FreeGroup.IsCyclicallyReduced (rawIntPow w k) := by
+  have hn (m : ℕ) : FreeGroup.IsCyclicallyReduced (rawNatPow w m) := by
+    rw [rawNatPow_eq_flatten_replicate]
+    exact h.flatten_replicate m
+  cases k with
+  | ofNat m => exact hn m
+  | negSucc m => exact rawCyclic_invRev (hn (m+1))
+
+/-- The exterior reading of every coefficient power is cyclically
+reduced in the FREE group. This is not Guba's relative smoothness
+condition; it suffices only for the no-monogon argument. -/
+theorem gubaPowerBoundary_cyclic_exterior (pick : WeightedSelector) (n : ℕ)
+    (w : F) (hw : GubaPowerBoundary pick n w) :
+    FreeGroup.IsCyclicallyReduced (FreeGroup.invRev w.toWord) := by
+  have hpow (g : F) (hg : FreeGroup.IsCyclicallyReduced g.toWord) (k : ℤ) :
+      FreeGroup.IsCyclicallyReduced (FreeGroup.invRev (g^k).toWord) := by
+    have hr := rawCyclic_intPow hg k
+    have he : FreeGroup.mk (rawIntPow g.toWord k) = g^k := by
+      rw [rawIntPow_eval,FreeGroup.mk_toWord]
+    have hword : (g^k).toWord = rawIntPow g.toWord k := by
+      rw [← he,FreeGroup.toWord_mk,hr.isReduced.reduce_eq]
+    rw [hword]
+    exact rawCyclic_invRev hr
+  rcases hw with ⟨k,_,rfl⟩ | ⟨i,h,k,_,rfl⟩
+  · apply hpow
+    have ha : a.toWord = [(0,true)] := by decide
+    rw [ha]
+    exact FreeGroup.IsCyclicallyReduced.singleton
+  · exact hpow _ (minBad_cyclicallyReduced (pick (gubaState pick i.val).1 h).property) k
+
+/-- Choose a globally least counterexample with positive marked
+cells, actual connected spherical ribbon, and cyclically reduced
+exterior. All normalizations preserve the FULL type, including
+the global comparison across different boundary words. -/
+theorem exists_gubaPowerCounterexample_ribbon
+    (n : ℕ)
+    (hex : ∃ w : F, GubaPowerBoundary twoPeriodSelector n w ∧
+      w ∈ weightedHeightStage twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n) :
+    ∃ (w : F) (s : Peiffer.Sequence F (RankHeight n)),
+      GubaPowerBoundary twoPeriodSelector n w ∧
+      GubaTypeMinimalExpression twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n w s ∧
+      (∀ x ∈ s, x.2 = true) ∧
+      (∀ t : Peiffer.Sequence F (RankHeight n),
+        GubaPowerBoundary twoPeriodSelector n
+          (Peiffer.evaluation (rankHeightRel twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n) t) →
+        ¬ descendingCountLT (2*n) gubaTypeCoordinate t s) ∧
+      ∃ he : Peiffer.evaluation (fun i => FreeGroup.mk
+        (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n i)) s = w,
+        (boundaryRibbon (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n) w s he).Connected ∧
+        (boundaryRibbon (rankHeightRows twoPeriodSelector (gubaConjugatorChoice twoPeriodSelector) n) w s he).EulerEquality ∧
+        FreeGroup.IsCyclicallyReduced (FreeGroup.invRev w.toWord) := by
+  let pick := twoPeriodSelector
+  let X := gubaConjugatorChoice pick
+  obtain ⟨w,s,hw,hm,hmin⟩ := exists_gubaPowerCounterexample_minimal pick n hex
+  let t := s.map (positiveHeightOccurrence n)
+  have ht : GubaTypeMinimalExpression pick X n w t := by
+    refine ⟨?_,?_⟩
+    · change Peiffer.evaluation (rankHeightRel pick X n)
+        (s.map (positiveHeightOccurrence n)) = w
+      rw [positiveHeightOccurrence_evaluation]
+      exact hm.1
+    · intro u hu j hj habove
+      change ∀ k, j < k → k < 2*n →
+        gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) k =
+          gubaTypeCoordinate u k at habove
+      change gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) j ≤
+        gubaTypeCoordinate u j
+      simp only [gubaTypeCoordinate_positiveHeightOccurrence] at habove ⊢
+      exact hm.2 u hu j hj habove
+  have hp : ∀ x ∈ t, x.2 = true := by
+    intro x hx
+    obtain ⟨y,_,rfl⟩ := List.mem_map.mp hx
+    exact positiveHeightOccurrence_sign n y
+  have hmin' : ∀ u : Peiffer.Sequence F (RankHeight n),
+      GubaPowerBoundary pick n (Peiffer.evaluation (rankHeightRel pick X n) u) →
+      ¬ descendingCountLT (2*n) gubaTypeCoordinate u t := by
+    intro u hu hlt
+    apply hmin u hu
+    obtain ⟨j,hj,hstrict,habove⟩ := hlt
+    refine ⟨j,hj,?_,?_⟩
+    · change gubaTypeCoordinate u j <
+        gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) j at hstrict
+      simpa only [gubaTypeCoordinate_positiveHeightOccurrence] using hstrict
+    · intro k hk hkn
+      have he := habove k hk hkn
+      change gubaTypeCoordinate u k =
+        gubaTypeCoordinate (s.map (positiveHeightOccurrence n)) k at he
+      simpa only [gubaTypeCoordinate_positiveHeightOccurrence] using he
+  have he : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) t = w := by
+    simpa only [rankHeightRows_eval] using ht.1
+  have hne := gubaPowerBoundary_ne_one pick n w hw
+  exact ⟨w,t,hw,ht,hp,hmin',he,
+    guba23_gubaTypeMinimal_ribbon_connected pick X n w t ht hne he,
+    boundaryRibbon_euler _ w t he,gubaPowerBoundary_cyclic_exterior pick n w hw⟩
+
+#print axioms rawCyclic_invRev
+#print axioms rawCyclic_intPow
+#print axioms gubaPowerBoundary_cyclic_exterior
+#print axioms exists_gubaPowerCounterexample_ribbon
+
 end QuandleResearch.Issue070
