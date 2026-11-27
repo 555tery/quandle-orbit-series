@@ -60,4 +60,19 @@ example : answer ↔
 #print axioms weightedHeightStage_eq
 #print axioms answer_of_heightStages_short
 
+#print axioms rawWeight_le_of_sublist
+#print axioms weightedLength_mk_le
+#print axioms weightedLength_mul_le
+#print axioms reduce_positive
+#print axioms toWord_positiveWord
+#print axioms positiveWord_append
+#print axioms weightedLength_positive_mul
+#print axioms rawWeight_replicate
+#print axioms weightedLength_a_zpow
+#print axioms weightedLength_b_zpow
+#print axioms positiveWord_repeat
+#print axioms weightedLength_positive_pow
+#print axioms positiveWord_longBlock
+#print axioms weightedLength_longBlock
+
 end QuandleResearch.Issue070
