@@ -345,12 +345,12 @@ theorem cube_even_descend (s : ℕ → Bool)
   by_cases hp : p % 2 = 0
   · have h0 : p+2*j = 2*(p/2+j) := by omega
     have h1 : p+2*j+d = 2*(p/2+j+d/2) := by omega
-    rw [h0, h1, heven, heven] at hh
-    exact hh
+    rw [h1, h0] at hh
+    simpa only [heven] using hh
   · have h0 : p+2*j = 2*(p/2+j)+1 := by omega
     have h1 : p+2*j+d = 2*(p/2+j+d/2)+1 := by omega
-    rw [h0, h1, hodd, hodd] at hh
-    simpa using hh
+    rw [h1, h0] at hh
+    simpa [hodd] using hh
 
 /-- A least positive cube period is impossible: odd periods are
 excluded directly, and even periods contradict minimality. -/
@@ -392,11 +392,9 @@ theorem thueMorse_even (n : ℕ) : thueMorse (2*n) = thueMorse n := by
     simp [h0, hp, hdiv]
 
 theorem thueMorse_odd (n : ℕ) : thueMorse (2*n+1) = !(thueMorse n) := by
-  have h0 : 2*n+1 ≠ 0 := by omega
-  have hp : (2*n+1) % 2 ≠ 0 := by omega
   have hdiv : (2*n+1)/2 = n := by omega
   conv_lhs => rw [thueMorse]
-  simp [h0, hp, hdiv]
+  simp [hdiv]
 
 theorem thueMorse_cubeFree (p d : ℕ) (hd : 0 < d) :
     ¬ CubeAt thueMorse p d :=
@@ -409,7 +407,7 @@ def thueLetter (n : ℕ) : Fin 2 := if thueMorse n then 1 else 0
 theorem thueLetter_eq_iff (i j : ℕ) :
     thueLetter i = thueLetter j ↔ thueMorse i = thueMorse j := by
   unfold thueLetter
-  cases hi : thueMorse i <;> cases hj : thueMorse j <;> simp [hi, hj]
+  cases thueMorse i <;> cases thueMorse j <;> decide
 
 /-- Every finite prefix is an actual finite positive word in a,b. -/
 def thuePrefix (n : ℕ) : List (Fin 2) :=
@@ -522,14 +520,16 @@ theorem gubaPrefix_first (m : ℕ) :
     (gubaPrefix m)[0]'(by rw [gubaPrefix, thuePrefix_length]; omega) = 0 := by
   change (thuePrefix (prefixEnd m+1))[0]'(by rw [thuePrefix_length]; omega) = 0
   rw [thuePrefix_get]
-  have h : thueMorse 0 = false := by decide
+  have h : thueMorse 0 = false := by simp [thueMorse]
   simp [thueLetter, h]
 
 theorem gubaPrefix_second (m : ℕ) :
     (gubaPrefix m)[1]'(by rw [gubaPrefix, thuePrefix_length]; have h := (prefixEnd_eligible m).2.2; omega) = 1 := by
   change (thuePrefix (prefixEnd m+1))[1]'(by rw [thuePrefix_length]; have h := (prefixEnd_eligible m).2.2; omega) = 1
   rw [thuePrefix_get]
-  have h : thueMorse 1 = true := by decide
+  have h : thueMorse 1 = true := by
+    have h0 : thueMorse 0 = false := by simp [thueMorse]
+    simpa [h0] using thueMorse_odd 0
   simp [thueLetter, h]
 
 theorem positiveWord_length_le (q : List (Fin 2)) :
@@ -545,6 +545,7 @@ theorem exists_gubaEvenPrefix_weight_gt (bound : ℕ) :
   have h := positiveWord_length_le (gubaEvenPrefix bound)
   have hi := prefixEnd_gt_index (2*bound+1)
   rw [gubaEvenPrefix, gubaPrefix, thuePrefix_length] at h
+  rw [gubaEvenPrefix, gubaPrefix]
   omega
 
 /-- Least admissible Q index given a period and a previous weight.
@@ -592,7 +593,7 @@ theorem weightedLength_longRaw_twice (q : List (Fin 2)) (m : ℕ) :
   induction m with
   | zero => simp [longRaw, positiveWord, weightedLength, rawWeight]
   | succ m ih =>
-    rw [longRaw, weightedLength_positive_mul, weightedLength_longBlock]
+    rw [longRaw, positiveWord_append, weightedLength_positive_mul, weightedLength_longBlock]
     rw [Nat.mul_add, ih]
     ring
 
@@ -645,7 +646,9 @@ theorem markerInterval_of_large (S : ℕ → ℕ) (L D h l r : ℕ)
     omega
   · by_cases hmid : j+1 < h
     · refine ⟨j+1, by omega, hmid, ?_, ?_⟩
-      · simpa only [Nat.add_sub_cancel] using (le_of_lt hj)
+      · have he : j+1-1 = j := by omega
+        rw [he]
+        exact le_of_lt hj
       · have hej : j-1+1 = j := by omega
         have hsj := hs (j-1)
         rw [hej] at hsj
@@ -680,11 +683,13 @@ theorem positiveWeight_append (p q : List (Fin 2)) :
   rw [positiveWord_append, weightedLength_positive_mul]
 
 theorem positiveWeight_nil : positiveWeight [] = 0 := by
-  simp [positiveWeight, weightedLength, toWord_positiveWord, rawWeight]
+  change weightedLength (positiveWord []) = 0
+  rw [weightedLength, toWord_positiveWord]
+  rfl
 
 theorem positiveWeight_zero_imp_nil (q : List (Fin 2))
     (hq : positiveWeight q = 0) : q = [] := by
-  have hl := positiveWord_length_le q
+  have hl : q.length ≤ positiveWeight q := positiveWord_length_le q
   have hz : q.length = 0 := by omega
   exact List.length_eq_zero_iff.mp hz
 
@@ -762,7 +767,8 @@ theorem longRaw_resolvent_factor (q : List (Fin 2)) (k h : ℕ)
 
 theorem positiveWeight_separator :
     positiveWeight (List.replicate 3 (1 : Fin 2)) = 3*10^80 := by
-  rw [positiveWeight, weightedLength, toWord_positiveWord]
+  change weightedLength (positiveWord (List.replicate 3 (1 : Fin 2))) = 3*10^80
+  rw [weightedLength, toWord_positiveWord]
   norm_num [rawWeight, letterWeight]
 
 theorem positiveWeight_resolvent_end (q : List (Fin 2)) (k : ℕ)
