@@ -125,4 +125,9 @@ example : answer ↔
 #print axioms chosenEvenPrefix_weight_ge
 #print axioms guba19_chosen_resolvent
 
+#print axioms rawNatPow_eval
+#print axioms rawIntPow_eval
+#print axioms literalHeightWord_eval
+#print axioms literalHeightWord_zero
+
 end QuandleResearch.Issue070
