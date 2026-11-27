@@ -130,4 +130,10 @@ example : answer ↔
 #print axioms literalHeightWord_eval
 #print axioms literalHeightWord_zero
 
+#print axioms heightRelator_zero
+#print axioms heightRelator_add
+#print axioms heightRelator_neg
+#print axioms heightRelator_merge
+#print axioms heightRelator_merge_cancel
+
 end QuandleResearch.Issue070
