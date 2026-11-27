@@ -7082,4 +7082,70 @@ theorem coefficient_region_ordered_paths {D : Type} [Fintype D]
 #print axioms coefficient_region_ordered_paths
 
 
+
+/-! ## Two-sided relations from actual interval components
+
+The global interval refinement may have components with several
+peripheral vertices. When a coefficient component is exhausted by
+two distinct literal blocks, it yields the exact inverse-conjugacy
+relation of those two blocks modulo the protected vertex relations.
+There is no need to specify a sequence of cuts, or to independently
+assume the interior relator condition in the refined component.
+This is not a claim that a multi-outlet component is a corridor.
+-/
+theorem coefficient_two_block_relation {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) (N : Subgroup F) [N.Normal]
+    (keep : D → Prop) (hstep : ∀ d, keep (P.rotation d) ↔ keep d)
+    (tau : Equiv.Perm D)
+    (hE : P.EulerEquality) (href : SplitRefinement P.rotation tau)
+    (hedge : ∀ d, read (P.edge d) = reverseLetter (read d))
+    (hprotected : ∀ d, keep d →
+      (P.withRotation tau).vertexBoundary d = P.vertexBoundary d)
+    (hint : ∀ d, keep d → FreeGroup.mk ((P.vertexBoundary d).map read) ∈ N)
+    (hcomp : ∀ d e, (P.withRotation tau).SameComponent d e ↔
+      (P.coefficientRegions keep hstep).SameComponent d e)
+    (a b : D) (u v : List D)
+    (ha : (P.withRotation tau).vertexBoundary a = a :: u)
+    (hb : (P.withRotation tau).vertexBoundary b = b :: v)
+    (hsep : b ∉ a :: u)
+    (hab : (P.coefficientRegions keep hstep).SameComponent a b)
+    (hcover : ∀ d, (P.coefficientRegions keep hstep).SameComponent a d →
+      ¬ keep d → d ∈ a :: u ∨ d ∈ b :: v) :
+    ∃ g : F, FreeGroup.mk ((a :: u).map read) * g *
+      FreeGroup.mk ((b :: v).map read) * g⁻¹ ∈ N := by
+  let Q := P.withRotation tau
+  have hQE : Q.EulerEquality := P.splitRefinement_preserves_euler href hE
+  have hne : ¬ Q.rotation.SameCycle a b := by
+    intro h
+    have hm := (Q.mem_vertexBoundary_iff a b).mpr h
+    rw [show Q.vertexBoundary a = a :: u from ha] at hm
+    exact hsep hm
+  have hinside : ∀ d, Q.SameComponent a d → ¬ Q.rotation.SameCycle a d →
+      ¬ Q.rotation.SameCycle b d →
+      FreeGroup.mk ((Q.vertexBoundary d).map read) ∈ N := by
+    intro d hd hda hdb
+    have hk : keep d := by
+      by_contra hn
+      rcases hcover d ((hcomp a d).mp hd) hn with hm | hm
+      · apply hda
+        apply (Q.mem_vertexBoundary_iff a d).mp
+        rw [show Q.vertexBoundary a = a :: u from ha]
+        exact hm
+      · apply hdb
+        apply (Q.mem_vertexBoundary_iff b d).mp
+        rw [show Q.vertexBoundary b = b :: v from hb]
+        exact hm
+    rw [show Q.vertexBoundary d = P.vertexBoundary d from hprotected d hk]
+    exact hint d hk
+  obtain ⟨g,hg⟩ := component_two_boundary_inverse_conjugacy Q read N
+    hedge hQE a b ((hcomp a b).mpr hab) hne hinside
+  rw [show Q.vertexBoundary a = a :: u from ha,
+      show Q.vertexBoundary b = b :: v from hb] at hg
+  obtain ⟨z,rfl⟩ := QuotientGroup.mk'_surjective N g
+  refine ⟨z,(QuotientGroup.eq_one_iff _).mp ?_⟩
+  simpa only [map_mul,map_inv] using hg
+
+#print axioms coefficient_two_block_relation
+
+
 end QuandleResearch.Issue070
