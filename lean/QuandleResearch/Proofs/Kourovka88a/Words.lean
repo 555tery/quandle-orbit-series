@@ -358,6 +358,7 @@ theorem cubeFree_of_binary_rec (s : ℕ → Bool)
     (heven : ∀ n, s (2*n) = s n)
     (hodd : ∀ n, s (2*n+1) = !(s n)) :
     ∀ p d : ℕ, 0 < d → ¬ CubeAt s p d := by
+  classical
   intro p d hd hc
   have hex : ∃ n : ℕ, 0 < n ∧ ∃ q, CubeAt s q n := ⟨d, hd, p, hc⟩
   obtain ⟨hm, q, hq⟩ := Nat.find_spec hex
@@ -400,5 +401,36 @@ theorem thueMorse_odd (n : ℕ) : thueMorse (2*n+1) = !(thueMorse n) := by
 theorem thueMorse_cubeFree (p d : ℕ) (hd : 0 < d) :
     ¬ CubeAt thueMorse p d :=
   cubeFree_of_binary_rec thueMorse thueMorse_even thueMorse_odd p d hd
+
+
+/-- The two Boolean symbols as positive generator indices. -/
+def thueLetter (n : ℕ) : Fin 2 := if thueMorse n then 1 else 0
+
+theorem thueLetter_eq_iff (i j : ℕ) :
+    thueLetter i = thueLetter j ↔ thueMorse i = thueMorse j := by
+  unfold thueLetter
+  cases hi : thueMorse i <;> cases hj : thueMorse j <;> simp [hi, hj]
+
+/-- Every finite prefix is an actual finite positive word in a,b. -/
+def thuePrefix (n : ℕ) : List (Fin 2) :=
+  List.ofFn (fun i : Fin n => thueLetter i.val)
+
+theorem thuePrefix_length (n : ℕ) : (thuePrefix n).length = n := by
+  simp [thuePrefix]
+
+theorem thuePrefix_get (n i : ℕ) (hi : i < (thuePrefix n).length) :
+    (thuePrefix n)[i] = thueLetter i := by
+  simp [thuePrefix]
+
+/-- A triple repetition cannot occur inside any finite prefix.
+Both compared positions are required to be within that prefix. -/
+theorem thuePrefix_cubeFree (n p d : ℕ) (hd : 0 < d) (hfit : p+3*d ≤ n) :
+    ¬ (∀ (j : ℕ) (hj : j < 2*d),
+      (thuePrefix n)[p+j]'(by rw [thuePrefix_length]; omega) =
+        (thuePrefix n)[p+j+d]'(by rw [thuePrefix_length]; omega)) := by
+  intro hc
+  apply thueMorse_cubeFree p d hd
+  intro j hj
+  exact (thueLetter_eq_iff _ _).mp (by simpa only [thuePrefix_get] using hc j hj)
 
 end QuandleResearch.Issue070
