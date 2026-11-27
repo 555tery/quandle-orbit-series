@@ -281,4 +281,8 @@ example : answer ↔
 #print axioms minBad_factor_boundary_weight
 #print axioms activePeriod_factor_boundary_weight
 
+#print axioms quotient_quadrilateral_eq
+#print axioms minBad_factor_quadrilateral_weight
+#print axioms minBad_rotation
+
 end QuandleResearch.Issue070
