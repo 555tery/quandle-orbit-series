@@ -360,7 +360,7 @@ theorem minBad_cyclicallyReduced {N : Subgroup F} {c : F}
   have hv : v = c.toWord := by
     simpa [hunil] using hword
   rw [← hv]
-  exact FreeGroup.reduceCyclically.isCyclicallyReduced (FreeGroup.isReduced_toWord c)
+  exact FreeGroup.reduceCyclically.isCyclicallyReduced FreeGroup.isReduced_toWord
 
 /-- No shorter representative of the same element of the preceding
 quotient can be a minimal bad period. -/
@@ -409,7 +409,7 @@ theorem good_pow (N : Subgroup F) [N.Normal] {w : F}
 theorem rawWeight_rawNatPow (v : RawWord) (m : ℕ) :
     rawWeight (rawNatPow v m) = m * rawWeight v := by
   induction m with
-  | zero => rfl
+  | zero => simp [rawNatPow, rawWeight]
   | succ m ih =>
     rw [rawNatPow, rawWeight_append, ih, Nat.succ_mul]
 
