@@ -154,7 +154,7 @@ theorem rawWeight_le_of_sublist {u v : RawWord} (h : u.Sublist v) :
     have hx := letterWeight_pos x
     simp only [rawWeight]
     omega
-  | cons₂ x h ih =>
+  | cons_cons x h ih =>
     simp only [rawWeight]
     omega
 
@@ -206,15 +206,15 @@ theorem rawWeight_replicate (n : ℕ) (x : Letter) :
 
 /-- Exact weight of an arbitrary signed power of the short generator. -/
 theorem weightedLength_a_zpow (k : ℤ) : weightedLength (a ^ k) = k.natAbs := by
-  simp only [weightedLength, a, FreeGroup.toWord_of_zpow, rawWeight_replicate,
-    letterWeight, if_pos rfl, Nat.mul_one]
+  simp [weightedLength, a, FreeGroup.toWord_of_zpow, rawWeight_replicate,
+    letterWeight]
 
 /-- Exact weight of an arbitrary signed power of the long generator. -/
 theorem weightedLength_b_zpow (k : ℤ) :
     weightedLength (b ^ k) = k.natAbs * 10 ^ 80 := by
   have hb : (1 : Fin 2) ≠ 0 := by decide
   simp only [weightedLength, b, FreeGroup.toWord_of_zpow, rawWeight_replicate,
-    letterWeight, if_neg hb]
+    letterWeight, ite_eq_right hb]
 
 /-- Repeating a positive raw word realizes powers without cancellation. -/
 theorem positiveWord_repeat (q : List (Fin 2)) (n : ℕ) :
