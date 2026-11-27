@@ -14320,7 +14320,6 @@ theorem guba23_rankMinimal_no_height_splice
       exact hfc.symm.trans h
     · change S.rotation.SameCycle (if S.rotation.SameCycle f d then c else d) d
       rw [ite_eq_right h]
-      exact .refl _ _
   apply ribbon_rankMinimal_no_indexed_replacement pick X n w s hm S v z hCS hES he hroot
     (fun d => (idx (rep d)).val) omitted
   · intro d t h
@@ -14511,7 +14510,7 @@ theorem guba23_no_heavy_direct_long_side_walks
     change positiveWord (activeLongWord pick i.val hi) =
       positiveWord (p++z) * positiveWord r
     rw [← positiveWord_append]
-    exact congrArg positiveWord (hfirst.trans (List.append_assoc p z r).symm)
+    exact congrArg positiveWord hfirst
   have hrel (b : ℤ) : rankHeightRel pick X n (i,b) = heightRelator (P*S) C b := by
     rw [guba_rankHeightRel_active pick n i hi b,hX]
   rw [hrel] at hx hy
@@ -14749,5 +14748,142 @@ theorem distinct_rank_signed_period_overlap_weight (pick : WeightedSelector)
 #print axioms distinct_rank_signed_period_overlap
 #print axioms periodic_prefix_two_weight
 #print axioms distinct_rank_signed_period_overlap_weight
+
+
+/-! ## Full Guba type and coefficient-pair height reduction
+
+The source (Guba 1987, pp. 240--241, equation (6)) orders
+(n_j,N_j) at each rank, where N_j is the sum of absolute heights.
+The earlier count-only minimizer is NOT the same order. Keep it
+separate; in particular do not infer global count-minimality from
+the new order. A decrease in height at rank j takes priority over
+any count or height change at lower ranks.
+-/
+
+/-- The second coordinate of Guba's type. -/
+def rankHeightSum {n : ℕ} (s : Peiffer.Sequence F (RankHeight n)) (j : ℕ) : ℕ :=
+  ((s.filter (fun x => decide (x.1.2.1.val = j))).map
+    (fun x => x.1.2.2.natAbs)).sum
+
+theorem rankHeightSum_append {n : ℕ} (s t : Peiffer.Sequence F (RankHeight n))
+    (j : ℕ) :
+    rankHeightSum (s++t) j = rankHeightSum s j + rankHeightSum t j := by
+  simp only [rankHeightSum,List.filter_append,List.map_append,List.sum_append]
+
+/-- Flatten the pair (count,height) into descending coordinates:
+2*j+1 = count, 2*j = height. -/
+def gubaTypeCoordinate {n : ℕ} (s : Peiffer.Sequence F (RankHeight n)) (k : ℕ) : ℕ :=
+  if k % 2 = 0 then rankHeightSum s (k/2) else rankCount s (k/2)
+
+theorem gubaTypeCoordinate_count {n : ℕ} (s : Peiffer.Sequence F (RankHeight n)) (j : ℕ) :
+    gubaTypeCoordinate s (2*j+1) = rankCount s j := by
+  have hmod : (2*j+1)%2 = 1 := by omega
+  have hdiv : (2*j+1)/2 = j := by omega
+  simp [gubaTypeCoordinate,hmod,hdiv]
+
+theorem gubaTypeCoordinate_height {n : ℕ} (s : Peiffer.Sequence F (RankHeight n)) (j : ℕ) :
+    gubaTypeCoordinate s (2*j) = rankHeightSum s j := by
+  have hmod : (2*j)%2 = 0 := by omega
+  have hdiv : (2*j)/2 = j := by omega
+  simp [gubaTypeCoordinate,hmod,hdiv]
+
+/-- A lexicographically minimal full Guba type. -/
+def GubaTypeMinimalExpression (pick : WeightedSelector) (X : ConjugatorChoice)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n)) : Prop :=
+  Peiffer.evaluation (rankHeightRel pick X n) s = w ∧
+  ∀ t : Peiffer.Sequence F (RankHeight n),
+    Peiffer.evaluation (rankHeightRel pick X n) t = w →
+    ∀ j < 2*n, (∀ k, j < k → k < 2*n →
+      gubaTypeCoordinate s k = gubaTypeCoordinate t k) →
+      gubaTypeCoordinate s j ≤ gubaTypeCoordinate t j
+
+theorem exists_gubaTypeMinimalExpression (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      GubaTypeMinimalExpression pick X n w s := by
+  obtain ⟨s,hs⟩ := exists_minimal_rankHeight_expression pick X n w hw
+  exact exists_descending_count_min (2*n)
+    (fun t : Peiffer.Sequence F (RankHeight n) =>
+      Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    gubaTypeCoordinate ⟨s,hs.1⟩
+
+/-- A strict height decrease at rank j contradicts the full type,
+when count at j and both coordinates above j are preserved. -/
+theorem gubaTypeMinimal_no_height_decrease (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick X n w s)
+    (ht : Peiffer.evaluation (rankHeightRel pick X n) t = w)
+    (j : ℕ) (hj : j < n)
+    (hcount : ∀ k, j ≤ k → k < n → rankCount s k = rankCount t k)
+    (habove : ∀ k, j < k → k < n → rankHeightSum s k = rankHeightSum t k)
+    (hstrict : rankHeightSum t j < rankHeightSum s j) : False := by
+  have hle := hm.2 t ht (2*j) (by omega) (by
+    intro k hjk hkn
+    have hdiv : k/2 < n := by omega
+    by_cases hmod : k%2 = 0
+    · simp only [gubaTypeCoordinate,hmod,ite_true]
+      exact habove (k/2) (by omega) hdiv
+    · simp only [gubaTypeCoordinate,hmod,ite_false]
+      exact hcount (k/2) (by omega) hdiv)
+  rw [gubaTypeCoordinate_height,gubaTypeCoordinate_height] at hle
+  omega
+
+/-- The algebraic coefficient-pair surgery (Guba, equation (6)).
+Unlike the long-side merger, it generally keeps two cells. -/
+theorem coefficient_pair_height_redistribution {K : Type*} [Group K]
+    (D B : K) (d f u v : ℤ) (h : u+v=d-f) :
+    D^u*(B^d)⁻¹*D^v*B^f =
+      (D^u*(B^u)⁻¹) * B^(u-d) *
+      (D^v*(B^v)⁻¹) * (B^(u-d))⁻¹ := by
+  have he : u-d = -(v+f) := by omega
+  have h1 : (B^u)⁻¹ * B^(u-d) = (B^d)⁻¹ := by
+    rw [zpow_sub]
+    group
+  have h2 : (B^v)⁻¹ * (B^(u-d))⁻¹ = B^f := by
+    rw [he,zpow_neg,inv_inv,zpow_add]
+    group
+  calc
+    _ = D^u*((B^u)⁻¹ * B^(u-d))*D^v*((B^v)⁻¹ * (B^(u-d))⁻¹) := by rw [h1,h2]
+    _ = _ := by group
+
+/-- If the positive and negative periodic cells are cut in their
+interiors, the redistributed heights are strictly smaller in sum.
+No bound on their initial heights is necessary. -/
+theorem coefficient_pair_strict_height (d f r t : ℤ)
+    (hr : 0 < r) (hrd : r < d) (ht : 0 < t) (htf : t < f) :
+    (d-r-t).natAbs + (r+t-f).natAbs < d.natAbs + f.natAbs := by
+  have hd : 0 ≤ d := by omega
+  have hf : 0 ≤ f := by omega
+  have hd' := Int.natAbs_of_nonneg hd
+  have hf' := Int.natAbs_of_nonneg hf
+  by_cases hu : 0 ≤ d-r-t <;> by_cases hv : 0 ≤ r+t-f
+  · have hu' := Int.natAbs_of_nonneg hu
+    have hv' := Int.natAbs_of_nonneg hv
+    omega
+  · have hu' := Int.natAbs_of_nonneg hu
+    have hv' := Int.natAbs_of_nonneg (show 0 ≤ -(r+t-f) by omega)
+    rw [Int.natAbs_neg] at hv'
+    omega
+  · have hu' := Int.natAbs_of_nonneg (show 0 ≤ -(d-r-t) by omega)
+    rw [Int.natAbs_neg] at hu'
+    have hv' := Int.natAbs_of_nonneg hv
+    omega
+  · have hu' := Int.natAbs_of_nonneg (show 0 ≤ -(d-r-t) by omega)
+    have hv' := Int.natAbs_of_nonneg (show 0 ≤ -(r+t-f) by omega)
+    rw [Int.natAbs_neg] at hu' hv'
+    omega
+
+#print axioms rankHeightSum
+#print axioms rankHeightSum_append
+#print axioms gubaTypeCoordinate
+#print axioms gubaTypeCoordinate_count
+#print axioms gubaTypeCoordinate_height
+#print axioms GubaTypeMinimalExpression
+#print axioms exists_gubaTypeMinimalExpression
+#print axioms gubaTypeMinimal_no_height_decrease
+#print axioms coefficient_pair_height_redistribution
+#print axioms coefficient_pair_strict_height
 
 end QuandleResearch.Issue070
