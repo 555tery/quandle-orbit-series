@@ -35,6 +35,21 @@ jobs:
           sed -i 's/rev = "v4.35.0"/rev = "v4.36.0"/' ../small-groups/lakefile.toml
           cp lean-toolchain ../small-groups/lean-toolchain
           rm -f ../small-groups/lake-manifest.json
+          # Mathlib 4.36 moved Abelianization into the Group namespace.
+          # The old alias no longer provides the expected typeclass instances.
+          # Only qualify references; never alter theorem statements or proof obligations.
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          for p in Path("../small-groups/SmallPresentation").rglob("*.lean"):
+              s = p.read_text()
+              t = re.sub(r"(?<![\w.])Abelianization\b", "Group.Abelianization", s)
+              # Do not change file imports or declarations named Abelianization.
+              if t != s:
+                  p.write_text(t)
+                  print("Qualified Abelianization in", p)
+          PY
+          git -C ../small-groups diff --stat
           cat >> lakefile.toml <<'EOF'
 
           [[require]]
@@ -46,7 +61,7 @@ jobs:
       - name: Compile imported geometry and local prerequisites
         run: |
           set -o pipefail
-          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
+          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity SmallPresentation.SmallCancellationGeometryIdentityVertexWords QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
       - name: Verify marked identity and ribbon bridge
         run: |
           set -o pipefail
@@ -64,7 +79,10 @@ jobs:
           names = ["exists_peiffer_expression", "marked_evaluation",
                    "boundaryIdentity_evaluation", "boundaryIdentity_only_marked",
                    "boundaryRibbon", "rankHeight_normalClosure", "rankHeightRows_eval",
-                   "exists_rankHeight_identity", "rankHeightRibbon", "boundaryRibbon_euler", "rankHeightRibbon_euler"]
+                   "exists_rankHeight_identity", "rankHeightRibbon", "boundaryRibbon_euler", "rankHeightRibbon_euler",
+                   "boundaryOccurrence_pos", "boundaryDart_occurrence",
+                   "boundaryDart_sameVertex_iff", "boundaryRibbon_read", "boundaryComponent",
+                   "boundaryComponent_connected", "boundaryComponent_sphere"]
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
               if match:
