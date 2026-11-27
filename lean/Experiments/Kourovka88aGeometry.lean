@@ -9048,14 +9048,14 @@ theorem guba23_component_exact_vertex_product {D K : Type}
           · exact hd (haf.trans h')
           · rcases h'.2 with h' | h'
             · exact hd (hac.trans h'.symm)
-            · exact h h'
+            · exact h h'.symm
         obtain ⟨y,hy,hyS⟩ := hcov d hnS
         refine ⟨shift y,List.mem_cons_of_mem _ (List.mem_map.mpr ⟨y,hy,rfl⟩),?_⟩
         rcases (P.edgeSplice_sameVertex_iff c hn _ _).mp hyS with hh | hh
         · exact hh
         · rcases hh.1 with hh' | hh'
-          · exact ((outside y.2 (hl y hy)).1 (hac.trans hh')).elim
-          · exact ((outside y.2 (hl y hy)).2 hh').elim
+          · exact ((outside y.2 (hl y hy)).1 (hac.trans hh'.symm)).elim
+          · exact ((outside y.2 (hl y hy)).2 hh'.symm).elim
     · have hp (t : List (K × D)) (ht : ∀ z ∈ t, ¬ S.rotation.SameCycle f z.2) :
           ((t.map shift).map (fun z => z.1 * cycleProduct P.rotation v z.2 * z.1⁻¹)).prod =
             k⁻¹ * (t.map (fun z => z.1 * cycleProduct S.rotation v z.2 * z.1⁻¹)).prod * k := by
