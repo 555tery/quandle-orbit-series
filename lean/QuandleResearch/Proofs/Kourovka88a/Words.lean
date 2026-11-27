@@ -757,7 +757,7 @@ theorem longRaw_resolvent_factor (q : List (Fin 2)) (k h : ℕ)
   refine ⟨(List.replicate (k+1) q).flatten ++ t, ?_⟩
   rw [← ht]
   change (longRaw q k ++ longBlock q k) ++ t = _
-  rw [hrec, longBlock, resolventRaw]
+  rw [hrec, longBlock q k, resolventRaw]
   simp only [List.append_assoc]
 
 theorem positiveWeight_separator :
