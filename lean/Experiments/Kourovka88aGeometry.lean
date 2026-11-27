@@ -15220,6 +15220,7 @@ theorem gubaTypeMinimal_no_compatible_coefficient_cuts
       change q (rankHeightRel pick (gubaConjugatorChoice pick) n (j,k)) = _
       rw [guba_rankHeightRel_active pick n j hactive k,heightRelator]
       simp only [map_mul,map_inv,map_zpow]
+      rfl
     have hcuts := coefficient_pair_cut_contours (q L) (q C) (q a)
       (q t₁) (q s₁) (q t₂) (q s₂) d f u v
       (by simpa only [map_mul,map_zpow] using h₁)
@@ -15832,9 +15833,11 @@ theorem guba23_gubaTypeMinimal_no_same_rank_height_splice
     intro h
     exact hze ((boundaryDart_sameVertex_iff rows w s hs hw e).mpr h)
   obtain ⟨omitted,_,ho,_,_⟩ := guba23_vertex_factor_as_occurrence rows w s hs e 1 heidx
-  have hom : omitted = i' := Fin.ext (by
+  have hom : omitted = i' := by
+    apply Fin.ext
     change (idx e).val = i'.val+1 at hi'
-    omega)
+    exact Nat.add_right_cancel (ho.symm.trans hi')
+  clear hi'
   subst i'
   let rep : _ → _ := fun d => if S.rotation.SameCycle f d then c else d
   have hrep (d : _) : S.rotation.SameCycle (rep d) d := by
@@ -15955,6 +15958,9 @@ theorem guba23_no_heavy_direct_long_side_walks_full_type
   obtain ⟨hij,hpu,hrv⟩ := activeLongWord_heavy_factor_cut_eq pick i.val j.val hi hj
     p z r u v hfirst hsecond hheavy
   have hij' : i = j := Fin.ext hij
+  have hlabels : s[index.val].1.2.1 = s[index'.val].1.2.1 :=
+    hlabel.trans (hij'.trans hlabel'.symm)
+  clear hlabel'
   subst j
   subst u
   subst v
@@ -15977,7 +15983,7 @@ theorem guba23_no_heavy_direct_long_side_walks_full_type
     hn hL hM hx hy hp hq'
   rw [← hrel] at hg
   apply guba23_gubaTypeMinimal_no_same_rank_height_splice pick X n w s hm hw hs
-    c hn hrc hre index index' (k+m) g hidx hidx' (hlabel.trans hlabel'.symm)
+    c hn hrc hre index index' (k+m) g hidx hidx' hlabels
   simpa only [hlabel] using hg
 
 /-- Literal long-side cuts with actual rank labels, in the same full-type-minimal ribbon used by the final reduction. -/
