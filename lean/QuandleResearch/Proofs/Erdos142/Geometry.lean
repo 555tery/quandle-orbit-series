@@ -1224,7 +1224,7 @@ lemma slopePerm_apply (p m N d : ℕ) [Fact p.Prime] (hN : N ≤ p)
     have hle := Nat.le_of_dvd (show 0 < d by omega) hdiv
     omega
   unfold slopePerm
-  rw [dite_eq_right hn]
+  simp [hn]
   funext i
   apply Prod.ext <;> change (d : ZMod p) * _ = d • _ <;> rw [nsmul_eq_mul]
 
