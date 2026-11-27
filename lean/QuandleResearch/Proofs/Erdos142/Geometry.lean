@@ -1069,7 +1069,6 @@ lemma shortBox_card (p m R : ℕ) :
     (shortBox p m R).card ≤ ((2 * R + 1) * (2 * R + 1)) ^ m := by
   unfold shortBox
   rw [Fintype.card_piFinset_const]
-  change ((shortResidues p R).product (shortResidues p R)).card ^ m ≤ _
   have hc : ((shortResidues p R).product (shortResidues p R)).card =
       (shortResidues p R).card * (shortResidues p R).card :=
     Finset.card_product _ _
@@ -1445,7 +1444,7 @@ theorem roth_exp_parameters (N m : ℕ) (hN : 1 ≤ N) (hm : 0 < m) :
     have he : (m : ℝ) * (v + v) = Real.log (N : ℝ) := by
       dsimp [v]
       field_simp
-      <;> ring
+      ring
     rw [he, Real.exp_log hNp]
   have hbase : E * E < (t : ℝ) * (t : ℝ) := by
     nlinarith [mul_pos (show 0 < (t : ℝ) - E by linarith)
@@ -1580,13 +1579,13 @@ existence argument for the threshold. -/
 lemma roth_at_least_one (N : ℕ) (hN : 1 ≤ N) :
     1 ≤ rothNumberNat N := by
   apply ThreeAPFree.le_rothNumberNat ({0} : Finset ℕ)
-  · simpa using (threeAPFree_singleton (0 : ℕ))
+  · simp
   · intro x hx
     have he : x = 0 := Finset.mem_singleton.mp hx
     omega
   · simp
 
-lemma exp_dominates_linear (d M : ℝ) (hd : 0 < d) (hM : 0 ≤ M) :
+lemma exp_dominates_linear (d M : ℝ) (hd : 0 < d) (_hM : 0 ≤ M) :
     ∃ U : ℝ, 1 ≤ U ∧ ∀ u : ℝ, U ≤ u → M * u ≤ Real.exp (d * u) := by
   let U := max 1 (4 * M / d^2)
   refine ⟨U, le_max_left _ _, ?_⟩
@@ -1676,8 +1675,10 @@ theorem roth_eventual_of_constant (C : ℝ)
   have hmain : (N : ℝ) * Real.exp (-(2 * b * u)) <
       Real.exp (d * u) * (rothNumberNat N : ℝ) := by
     calc
-      _ = ((N : ℝ) * Real.exp (-(2 * b * u + a))) * Real.exp a := by
-        rw [mul_assoc, hleft]
+      _ = (N : ℝ) * (Real.exp (-(2 * b * u + a)) * Real.exp a) :=
+        congrArg (fun x : ℝ => (N : ℝ) * x) hleft.symm
+      _ = ((N : ℝ) * Real.exp (-(2 * b * u + a))) * Real.exp a :=
+        (mul_assoc _ _ _).symm
       _ < (1536 * (1000001 * (1 / b + 1) + 1) * u *
           (rothNumberNat N : ℝ)) * Real.exp a := hmult
       _ = (M * u) * (rothNumberNat N : ℝ) := by dsimp [M]; ring
@@ -1691,7 +1692,9 @@ theorem roth_eventual_of_constant (C : ℝ)
     ring
   apply (mul_le_mul_iff_of_pos_right (Real.exp_pos (d * u))).mp
   calc
-    _ = (N : ℝ) * Real.exp (-(2 * b * u)) := by rw [mul_assoc, hc]
+    _ = (N : ℝ) * (Real.exp (-C * u) * Real.exp (d * u)) := mul_assoc _ _ _
+    _ = (N : ℝ) * Real.exp (-(2 * b * u)) :=
+      congrArg (fun x : ℝ => (N : ℝ) * x) hc
     _ ≤ Real.exp (d * u) * (rothNumberNat N : ℝ) := hmain.le
     _ = _ := mul_comm _ _
 
