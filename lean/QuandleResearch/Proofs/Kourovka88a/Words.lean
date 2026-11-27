@@ -1216,4 +1216,123 @@ theorem gubaEvenPrefix_longRaw_tripleB_iff (m h i : ℕ) :
     (gubaPrefix_no_tripleB (2*m+1)) (gubaPrefix_head_zero (2*m+1))
     (gubaPrefix_last_zero (2*m+1)) h i
 
+
+/-! ## Complete resolvent positions
+
+A complete resolvent has two markers, with none in its interior.
+Matching a resolvent inside another long word must therefore match
+two consecutive block starts. This fixes the source position in
+the same-rank case and gives the exact intervening power length
+for the cross-rank case.
+-/
+
+theorem repeated_length (q : List (Fin 2)) (k : ℕ) :
+    (List.replicate k q).flatten.length = k*q.length := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [List.replicate_succ, List.flatten_cons, List.length_append,
+      ih, Nat.succ_mul, Nat.add_comm]
+
+theorem longBlock_length (q : List (Fin 2)) (j : ℕ) :
+    (longBlock q j).length = 3+(j+1)*q.length := by
+  simp [longBlock, repeated_length]
+
+theorem longRaw_length_step (q : List (Fin 2)) (j : ℕ) :
+    (longRaw q (j+1)).length = (longRaw q j).length + (3+(j+1)*q.length) := by
+  rw [longRaw, List.length_append, longBlock_length]
+
+theorem longRaw_length_strictMono (q : List (Fin 2)) :
+    StrictMono (fun j => (longRaw q j).length) := by
+  apply strictMono_nat_of_lt_succ
+  intro j
+  rw [longRaw_length_step]
+  omega
+
+theorem tripleBAt_factor_iff (p v s : List (Fin 2)) (i : ℕ)
+    (hfit : i+3 ≤ v.length) :
+    TripleBAt (p++v++s) (p.length+i) ↔ TripleBAt v i := by
+  have hf : p.length+i+3 ≤ (p++v).length := by
+    simp only [List.length_append]
+    omega
+  rw [tripleBAt_append_left (p++v) s _ hf,
+      tripleBAt_append_right p v _ (by omega), Nat.add_sub_cancel_left]
+
+theorem resolvent_tripleB_iff (q : List (Fin 2))
+    (hq : ∀ i, ¬ TripleBAt q i) (hhead : q[0]? = some 0)
+    (hlast : q[q.length-1]? = some 0) (k i : ℕ) :
+    TripleBAt (resolventRaw q k) i ↔
+      i = 0 ∨ i = (longBlock q (k-1)).length := by
+  unfold resolventRaw
+  rw [tripleBAt_guarded_append _ _ i (Or.inl (longBlock_last_zero q hlast (k-1)))]
+  rw [longBlock_tripleB_iff q hq hhead hlast, separator_tripleB_iff]
+  have hlen := longBlock_length q (k-1)
+  omega
+
+/-- The marker positions of a complete resolvent must be consecutive
+marker positions of the containing long word. -/
+theorem resolvent_occurrence_gap (q v p s : List (Fin 2))
+    (hq : ∀ i, ¬ TripleBAt q i) (hqh : q[0]? = some 0)
+    (hql : q[q.length-1]? = some 0)
+    (hv : ∀ i, ¬ TripleBAt v i) (hvh : v[0]? = some 0)
+    (hvl : v[v.length-1]? = some 0)
+    (h k : ℕ) (hk : 0 < k)
+    (heq : longRaw q h = p ++ resolventRaw v k ++ s) :
+    ∃ j, j+1 < h ∧ p.length = (longRaw q j).length ∧
+      (j+1)*q.length = k*v.length := by
+  let L := (longBlock v (k-1)).length
+  have hL : L = 3+k*v.length := by
+    dsimp [L]
+    rw [longBlock_length, show k-1+1 = k by omega]
+  have hrlen : (resolventRaw v k).length = L+3 := by
+    simp [resolventRaw, L]
+  have hstart : TripleBAt (longRaw q h) p.length := by
+    rw [heq, show p.length = p.length+0 by omega]
+    apply (tripleBAt_factor_iff p (resolventRaw v k) s 0 (by omega)).mpr
+    exact (resolvent_tripleB_iff v hv hvh hvl k 0).mpr (Or.inl rfl)
+  have hend : TripleBAt (longRaw q h) (p.length+L) := by
+    rw [heq]
+    apply (tripleBAt_factor_iff p (resolventRaw v k) s L (by omega)).mpr
+    exact (resolvent_tripleB_iff v hv hvh hvl k L).mpr (Or.inr rfl)
+  obtain ⟨j,hj,hjpos⟩ := (longRaw_tripleB_iff q hq hqh hql h _).mp hstart
+  obtain ⟨t,ht,htpos⟩ := (longRaw_tripleB_iff q hq hqh hql h _).mp hend
+  have hmono := longRaw_length_strictMono q
+  have hjt : j < t := by
+    apply hmono.lt_iff_lt.mp
+    omega
+  have hconsecutive : t = j+1 := by
+    by_contra hne
+    have hlt : j+1 < t := by omega
+    have hmidL := hmono (Nat.lt_succ_self j)
+    have hmidR := hmono hlt
+    let i := (longRaw q (j+1)).length-p.length
+    have hi : p.length+i = (longRaw q (j+1)).length := by dsimp [i]; omega
+    have hip : 0 < i := by dsimp [i]; omega
+    have hil : i < L := by dsimp [i]; omega
+    have hm : TripleBAt (longRaw q h) (p.length+i) :=
+      (longRaw_tripleB_iff q hq hqh hql h _).mpr ⟨j+1, by omega, hi⟩
+    rw [heq] at hm
+    have hm' := (tripleBAt_factor_iff p (resolventRaw v k) s i (by omega)).mp hm
+    have hc := (resolvent_tripleB_iff v hv hvh hvl k i).mp hm'
+    change i = 0 ∨ i = L at hc
+    omega
+  subst t
+  have hstep := longRaw_length_step q j
+  exact ⟨j,ht,hjpos,by omega⟩
+
+/-- For a fixed prefix Q, every occurrence of its kth resolvent starts
+at the kth block, and the following block exists. -/
+theorem samePrefix_resolvent_position (q p s : List (Fin 2))
+    (hq : ∀ i, ¬ TripleBAt q i) (hhead : q[0]? = some 0)
+    (hlast : q[q.length-1]? = some 0) (h k : ℕ) (hk : 0 < k)
+    (heq : longRaw q h = p ++ resolventRaw q k ++ s) :
+    k < h ∧ p.length = (longRaw q (k-1)).length := by
+  obtain ⟨j,hj,hpos,hgap⟩ := resolvent_occurrence_gap q q p s
+    hq hhead hlast hq hhead hlast h k hk heq
+  have hqpos : 0 < q.length := (List.getElem?_eq_some_iff.mp hhead).choose
+  have hidx := Nat.mul_right_cancel hqpos hgap
+  have hsub : k-1 = j := by omega
+  rw [hsub]
+  exact ⟨by omega,hpos⟩
+
 end QuandleResearch.Issue070
