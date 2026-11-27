@@ -255,4 +255,150 @@ theorem weightedLength_longBlock (q : List (Fin 2)) (j : ℕ) :
     norm_num [rawWeight, letterWeight]
   rw [hb]
 
+
+/-! ## A cube-free infinite binary word
+
+We prove cube-freeness from the even/odd recurrences, without importing
+a combinatorics-on-words existence axiom. This supplies a candidate
+infinite positive word; Guba's further restrictions on prefixes and
+overlaps still have to be checked against the original construction.
+-/
+
+/-- Three consecutive equal nonempty blocks of period d, starting at p.
+The pointwise formulation avoids unnecessary list indexing proofs. -/
+def CubeAt (s : ℕ → Bool) (p d : ℕ) : Prop :=
+  ∀ j < 2 * d, s (p + j) = s (p + j + d)
+
+/-- In a sequence with complementary pairs at even indices, an equal
+adjacent pair can start only at an odd index. -/
+theorem adjacent_eq_odd (s : ℕ → Bool)
+    (heven : ∀ n, s (2*n) = s n)
+    (hodd : ∀ n, s (2*n+1) = !(s n))
+    (t : ℕ) (h : s t = s (t+1)) : t % 2 = 1 := by
+  by_contra hn
+  have ht : t = 2 * (t/2) := by omega
+  have ht1 : t+1 = 2 * (t/2)+1 := by omega
+  rw [ht1] at h
+  have hleft : s t = s (t/2) := by
+    calc
+      s t = s (2*(t/2)) := congrArg s ht
+      _ = s (t/2) := heven _
+  rw [hleft, hodd] at h
+  cases hs : s (t/2) <;> simp [hs] at h
+
+/-- A cube of odd positive period would force its first block to
+alternate, but an odd number of alternations contradicts periodicity. -/
+theorem no_odd_cube (s : ℕ → Bool)
+    (heven : ∀ n, s (2*n) = s n)
+    (hodd : ∀ n, s (2*n+1) = !(s n))
+    (p d : ℕ) (hd : d % 2 = 1) : ¬ CubeAt s p d := by
+  intro hc
+  have hstep : ∀ j < d, s (p+j+1) = !(s (p+j)) := by
+    intro j hj
+    have h0 := hc j (by omega)
+    have h1 := hc (j+1) (by omega)
+    have hne : s (p+j) ≠ s (p+j+1) := by
+      intro heq
+      have heq' : s (p+j+d) = s (p+j+d+1) := by
+        calc
+          _ = s (p+j) := h0.symm
+          _ = s (p+j+1) := heq
+          _ = s (p+(j+1)+d) := h1
+          _ = _ := congrArg s (by omega)
+      have hleft := adjacent_eq_odd s heven hodd (p+j) heq
+      have hright := adjacent_eq_odd s heven hodd (p+j+d) heq'
+      omega
+    cases hx : s (p+j) <;> cases hy : s (p+j+1) <;> simp_all
+  have halt : ∀ j ≤ d, s (p+j) =
+      if j % 2 = 0 then s p else !(s p) := by
+    intro j
+    induction j with
+    | zero => simp
+    | succ j ih =>
+      intro hj
+      have hrec := ih (by omega)
+      have hflip := hstep j (by omega)
+      have hidx : p+(j+1) = p+j+1 := by omega
+      rw [hidx, hflip, hrec]
+      by_cases hj' : j % 2 = 0
+      · have hs : (j+1) % 2 ≠ 0 := by omega
+        simp [hj', hs]
+      · have hs : (j+1) % 2 = 0 := by omega
+        simp [hj', hs]
+  have hfirst := hc 0 (by omega)
+  have hlast := halt d le_rfl
+  have hne : d % 2 ≠ 0 := by omega
+  simp only [Nat.add_zero] at hfirst
+  simp [hne] at hlast
+  have hb : s p = !(s p) := hfirst.trans hlast
+  cases hs : s p <;> simp [hs] at hb
+
+/-- A cube of even period descends to a cube of half the period by
+taking every second letter; both parities of the starting index work. -/
+theorem cube_even_descend (s : ℕ → Bool)
+    (heven : ∀ n, s (2*n) = s n)
+    (hodd : ∀ n, s (2*n+1) = !(s n))
+    (p d : ℕ) (hd : d % 2 = 0) (hc : CubeAt s p d) :
+    CubeAt s (p/2) (d/2) := by
+  intro j hj
+  have hh := hc (2*j) (by omega)
+  by_cases hp : p % 2 = 0
+  · have h0 : p+2*j = 2*(p/2+j) := by omega
+    have h1 : p+2*j+d = 2*(p/2+j+d/2) := by omega
+    rw [h0, h1, heven, heven] at hh
+    exact hh
+  · have h0 : p+2*j = 2*(p/2+j)+1 := by omega
+    have h1 : p+2*j+d = 2*(p/2+j+d/2)+1 := by omega
+    rw [h0, h1, hodd, hodd] at hh
+    simpa using hh
+
+/-- A least positive cube period is impossible: odd periods are
+excluded directly, and even periods contradict minimality. -/
+theorem cubeFree_of_binary_rec (s : ℕ → Bool)
+    (heven : ∀ n, s (2*n) = s n)
+    (hodd : ∀ n, s (2*n+1) = !(s n)) :
+    ∀ p d : ℕ, 0 < d → ¬ CubeAt s p d := by
+  intro p d hd hc
+  have hex : ∃ n : ℕ, 0 < n ∧ ∃ q, CubeAt s q n := ⟨d, hd, p, hc⟩
+  obtain ⟨hm, q, hq⟩ := Nat.find_spec hex
+  let m := Nat.find hex
+  change 0 < m at hm
+  change CubeAt s q m at hq
+  by_cases hpar : m % 2 = 0
+  · have hpos : 0 < m/2 := by omega
+    have hsmall : m/2 < m := by omega
+    have hcube := cube_even_descend s heven hodd q m hpar hq
+    have hmin : m ≤ m/2 := Nat.find_min' hex ⟨hpos, q/2, hcube⟩
+    omega
+  · exact no_odd_cube s heven hodd q m (by omega) hq
+
+/-- The Thue–Morse word, using parity of binary digits recursively. -/
+def thueMorse (n : ℕ) : Bool :=
+  if h : n = 0 then false
+  else if n % 2 = 0 then thueMorse (n/2)
+  else !(thueMorse (n/2))
+termination_by n
+decreasing_by all_goals omega
+
+theorem thueMorse_even (n : ℕ) : thueMorse (2*n) = thueMorse n := by
+  by_cases hn : n = 0
+  · subst n
+    rfl
+  · have h0 : 2*n ≠ 0 := by omega
+    have hp : (2*n) % 2 = 0 := by omega
+    have hdiv : (2*n)/2 = n := by omega
+    conv_lhs => rw [thueMorse]
+    simp [h0, hp, hdiv]
+
+theorem thueMorse_odd (n : ℕ) : thueMorse (2*n+1) = !(thueMorse n) := by
+  have h0 : 2*n+1 ≠ 0 := by omega
+  have hp : (2*n+1) % 2 ≠ 0 := by omega
+  have hdiv : (2*n+1)/2 = n := by omega
+  conv_lhs => rw [thueMorse]
+  simp [h0, hp, hdiv]
+
+theorem thueMorse_cubeFree (p d : ℕ) (hd : 0 < d) :
+    ¬ CubeAt thueMorse p d :=
+  cubeFree_of_binary_rec thueMorse thueMorse_even thueMorse_odd p d hd
+
 end QuandleResearch.Issue070
