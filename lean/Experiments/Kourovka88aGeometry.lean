@@ -16437,4 +16437,118 @@ theorem guba_positive_cell_four_blocks
 #print axioms GubaFourBlockRead_length
 #print axioms guba_positive_cell_four_blocks
 
+
+/-- On the actual one-letter spherical ribbon, there is a direct
+paired factor wholly within a single block on each of two indexed
+interior cells (which may coincide). Its weight is at least 1/54
+of the perimeter of one of those cells. No arbitrary block
+partitions, side certificates, or strip existence assumptions are
+needed. The remaining work is to exclude the possible block
+pairings and same-cell strips. -/
+theorem guba_oneDart_actual_single_block_pair
+    (n : ℕ) (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) n i)) s = a)
+    (hpos : ∀ x ∈ s, x.2 = true) (ha : a ≠ 1) :
+    let pick := twoPeriodSelector
+    let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
+    let P := boundaryRibbon rows a s hs
+    let root := boundaryDart rows a s ha
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows a) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows a) (boundaryIdentity s)
+    P.Connected → P.EulerEquality → P.vertexBoundary root = [root] →
+    ∃ (d e : _) (i j : Fin s.length) (bs cs : List (List _))
+        (v : List _) (t : _) (b c : List _),
+      (idx d).val = i.val+1 ∧ (idx e).val = j.val+1 ∧
+      P.vertexBoundary d = bs.flatMap id ∧ P.vertexBoundary e = cs.flatMap id ∧
+      (∃ h : ∃ g : F, ¬ Good (gubaState pick s[i.val].1.2.1.val).1 g,
+        GubaFourBlockRead read bs (activeLongWord pick s[i.val].1.2.1.val h)
+          (pick (gubaState pick s[i.val].1.2.1.val).1 h).val s[i.val].1.2.2) ∧
+      (∃ h : ∃ g : F, ¬ Good (gubaState pick s[j.val].1.2.1.val).1 g,
+        GubaFourBlockRead read cs (activeLongWord pick s[j.val].1.2.1.val h)
+          (pick (gubaState pick s[j.val].1.2.1.val).1 h).val s[j.val].1.2.2) ∧
+      b ∈ bs ∧ c ∈ cs ∧
+      (∃ p q : List _, b = p ++ (v++[t]) ++ q) ∧
+      (∃ p q : List _, c = p ++ (((v++[t]).map P.edge).reverse) ++ q) ∧
+      (∀ x ∈ v, P.face (P.face x) = x) ∧
+      rawWeight ((P.vertexBoundary d).map read) ≤ 54 * rawWeight ((v++[t]).map read) := by
+  classical
+  intro pick rows P root read idx hc hE hz
+  have hmono : ∀ d, P.face d ≠ d := guba_oneDart_no_monogons n s hs hpos
+  obtain ⟨vert,hvert,hend⟩ := ribbon_low_end_vertex P root hc hE hmono
+  obtain ⟨d₀,rfl⟩ := Quotient.exists_rep vert
+  have hd₀ : ¬ P.rotation.SameCycle root d₀ :=
+    fun h => hvert (Quotient.sound h.symm)
+  have hidx₀ : idx d₀ ≠ boundaryOccurrence s := by
+    intro h
+    exact hd₀ ((boundaryDart_sameVertex_iff rows a s hs ha d₀).mpr h)
+  obtain ⟨d,i,bs,hd,hi,hbs,hiRead⟩ :=
+    guba_positive_cell_four_blocks pick n a s hs hpos d₀ hidx₀
+  have hcount : ribbonVertexEndCount P (P.vertexOf d) ≤ 5 := by
+    rw [show P.vertexOf d = P.vertexOf d₀ from Quotient.sound hd]
+    exact hend
+  obtain ⟨p,u,q,z,hpart,hbig,hL⟩ := ribbon_long_direct_strip P read d 5 hcount
+  have hidxD : idx d ≠ boundaryOccurrence s := by
+    intro h
+    exact hd₀ (((boundaryDart_sameVertex_iff rows a s hs ha d).mpr h).trans hd)
+  have hlarge := guba_rankRibbon_interior_large pick n a s hs d hidxD
+  change 5 * (2 + 2 * 10^80) < 4 * rawWeight ((P.vertexBoundary d).map read) at hlarge
+  have hnotRoot : ¬ P.rotation.SameCycle root (P.edge z) := by
+    intro hroot
+    obtain ⟨x,_,hopp⟩ := ribbon_direct_strip_two_walks P d z p u q hpart hbig
+    let l := ((u++[z]).map P.edge).reverse
+    have hnd := P.vertexBoundary_nodup d
+    rw [hpart] at hnd
+    have hn : (u++[z]).Nodup :=
+      (List.nodup_append.mp (List.nodup_append.mp hnd).1).2.1
+    have hlnd : l.Nodup := (hn.map P.edge.injective).reverse
+    have hlmem : ∀ t ∈ l, t = root := by
+      intro t ht
+      have h := hroot.trans (walk_departure_sameCycle P.rotation hopp t ht)
+      have hm := (P.mem_vertexBoundary_iff root t).mpr h
+      rw [hz,List.mem_singleton] at hm
+      exact hm
+    have hsub : l.Subperm [root] := by
+      apply hlnd.subperm
+      intro t ht
+      exact List.mem_singleton.mpr (hlmem t ht)
+    have hlen := hsub.length_le
+    change l.length ≤ 1 at hlen
+    simp only [l,List.length_reverse,List.length_map,List.length_append,List.length_singleton] at hlen
+    have hu : u = [] := List.length_eq_zero_iff.mp (by omega)
+    have he : P.edge z = root := hlmem _ (by simp [l,hu])
+    have hweight : rawWeight (l.map read) = rawWeight ((u++[z]).map read) := by
+      change rawWeight (((u++[z]).map P.edge).reverse.map read) = _
+      rw [boundaryRibbon_inverse_read rows a s hs,rawWeight_invRev]
+    have hr := boundaryRibbon_read rows a s hs ha
+    change (P.vertexBoundary root).map read = FreeGroup.invRev a.toWord at hr
+    rw [hz] at hr
+    have hone : rawWeight ((u++[z]).map read) = 1 := by
+      rw [← hweight]
+      change rawWeight (((u++[z]).map P.edge).reverse.map read) = 1
+      rw [hu,List.nil_append,List.map_singleton,List.reverse_singleton,he,hr,rawWeight_invRev]
+      change weightedLength a = 1
+      simpa using weightedLength_a_zpow 1
+    rw [hone] at hL
+    omega
+  have hidxE : idx (P.edge z) ≠ boundaryOccurrence s := by
+    intro h
+    exact hnotRoot ((boundaryDart_sameVertex_iff rows a s hs ha (P.edge z)).mpr h)
+  obtain ⟨e,j,cs,he,hj,hcs,hjRead⟩ :=
+    guba_positive_cell_four_blocks pick n a s hs hpos (P.edge z) hidxE
+  obtain ⟨v,t,b,c,hb,hc',hp,hq,_,hbig',hW⟩ :=
+    ribbon_direct_strip_single_block_pair P read d e z p u q hpart hbig he bs cs hbs hcs
+  have hblen : bs.length = 4 := by
+    obtain ⟨h,hh⟩ := hiRead
+    exact GubaFourBlockRead_length _ _ _ _ _ hh
+  have hclen : cs.length = 4 := by
+    obtain ⟨h,hh⟩ := hjRead
+    exact GubaFourBlockRead_length _ _ _ _ _ hh
+  rw [hblen,hclen] at hW
+  refine ⟨d,e,i,j,bs,cs,v,t,b,c,hi,hj,hbs,hcs,hiRead,hjRead,hb,hc',hp,hq,hbig',?_⟩
+  omega
+
+#print axioms guba_oneDart_actual_single_block_pair
+
 end QuandleResearch.Issue070
