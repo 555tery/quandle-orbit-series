@@ -7416,4 +7416,124 @@ theorem edgeSplice_explicit_inverse_conjugator {D : Type} [Fintype D]
 #print axioms edgeSplice_explicit_inverse_conjugator
 
 
+
+/-! ## Absorbing trivial vertices without changing the marked base
+
+An interior vertex whose cycle product is one can be absorbed into
+the first marked vertex without conjugating the product at its
+original marked corner. Thus successive absorptions need not pay
+for repeated changes of base along the growing merged cycle.
+The reduction below leaves two adjacent exceptional vertices, with
+both original based products exactly preserved. It is topological
+and algebraic; it does not bound the metric length of the eventual
+connector by Guba's small fraction of a perimeter.
+-/
+
+/-- Inserting a trivial cycle into another cycle preserves the
+product at every old corner of the latter. -/
+theorem cycleProduct_cutAt_trivial_insert {D K : Type} [Finite D] [Group K]
+    (sigma : Equiv.Perm D) (v : D → K) (x y a : D)
+    (hxy : ¬ sigma.SameCycle x y)
+    (hxa : sigma.SameCycle x a)
+    (hy : cycleProduct sigma v y = 1) :
+    cycleProduct (cutAt sigma x y) v a = cycleProduct sigma v a := by
+  let k := (orbitEquiv sigma x).symm ⟨a,hxa⟩
+  have hka : sigma^[k.val] x = a := by
+    simpa only [Equiv.Perm.coe_pow] using
+      congrArg Subtype.val ((orbitEquiv sigma x).apply_symm_apply ⟨a,hxa⟩)
+  let l := List.ofFn (fun i : Fin k.val => sigma^[i.val] x)
+  have hw : Walk sigma x a l := by
+    rw [← hka]
+    exact Walk.of_iterate sigma k.val x
+  have hka' : (cutAt sigma x y)^[k.val] x = a :=
+    (cutAt_iterate_before_return sigma x y hxy k.val k.isLt).trans hka
+  have hl : List.ofFn (fun i : Fin k.val => (cutAt sigma x y)^[i.val] x) = l := by
+    apply congrArg List.ofFn
+    funext i
+    exact cutAt_iterate_before_return sigma x y hxy i.val (i.isLt.trans k.isLt)
+  have hw' : Walk (cutAt sigma x y) x a l := by
+    have h := Walk.of_iterate (cutAt sigma x y) k.val x
+    rwa [hka',hl] at h
+  have hs := walk_cycleProduct_transport sigma v hw
+  have ht := walk_cycleProduct_transport (cutAt sigma x y) v hw'
+  rw [cycleProduct_cutAt_merge sigma v x y hxy,hy,mul_one] at ht
+  exact mul_left_cancel (ht.symm.trans hs)
+
+/-- A connected spherical ribbon with two exceptional vertices
+can be changed by absorbing only trivial vertices until an actual
+edge joins the marked cycles. All darts, the edge permutation,
+and the two original based products are retained. -/
+theorem two_boundary_adjacent_reduction {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K)
+    (hc : P.Connected) (hE : P.EulerEquality)
+    (a b : D) (hab : ¬ P.rotation.SameCycle a b)
+    (hint : ∀ d, ¬ P.rotation.SameCycle a d →
+      ¬ P.rotation.SameCycle b d → cycleProduct P.rotation v d = 1) :
+    ∃ Q : RibbonMap D, Q.Connected ∧ Q.EulerEquality ∧ Q.edge = P.edge ∧
+      cycleProduct Q.rotation v a = cycleProduct P.rotation v a ∧
+      cycleProduct Q.rotation v b = cycleProduct P.rotation v b ∧
+      (∀ d, ¬ Q.rotation.SameCycle a d →
+        ¬ Q.rotation.SameCycle b d → cycleProduct Q.rotation v d = 1) ∧
+      ¬ Q.rotation.SameCycle a b ∧
+      ∃ c, Q.rotation.SameCycle a c ∧ Q.rotation.SameCycle b (Q.edge c) := by
+  classical
+  obtain ⟨c,hac,hce⟩ := guba22_exists_leaving_edge P hc a b hab
+  by_cases hb : P.rotation.SameCycle b (P.edge c)
+  · exact ⟨P,hc,hE,rfl,rfl,rfl,hint,hab,c,hac,hb⟩
+  · have hn : ¬ P.rotation.SameCycle c (P.edge c) :=
+      fun h => hce (hac.trans h)
+    have hnc : ¬ P.rotation.SameCycle (P.rotation c) (P.edge c) := by
+      simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+    let S := P.edgeSplice c
+    have hES : S.EulerEquality := (P.edgeSplice_euler_iff c hn).mpr hE
+    have hCS : S.Connected := guba22_edgeSplice_connected P hc c hn
+    have hca : P.rotation.SameCycle a (P.rotation c) :=
+      hac.trans (Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _))
+    have hzero : cycleProduct P.rotation v (P.edge c) = 1 :=
+      hint _ hce hb
+    have haS : cycleProduct S.rotation v a = cycleProduct P.rotation v a :=
+      cycleProduct_cutAt_trivial_insert P.rotation v (P.rotation c) (P.edge c)
+        a hnc hca.symm hzero
+    have hbS : cycleProduct S.rotation v b = cycleProduct P.rotation v b :=
+      cycleProduct_cutAt_unchanged P.rotation v _ _ _ (fun h => hab (hca.trans h.symm)) hb
+    have habS : ¬ S.rotation.SameCycle a b := by
+      intro h
+      rcases (P.edgeSplice_sameVertex_iff c hn a b).mp h with h | h
+      · exact hab h
+      · rcases h.2 with h' | h'
+        · exact hab (hac.trans h'.symm)
+        · exact hb h'
+    have hintS : ∀ d, ¬ S.rotation.SameCycle a d →
+        ¬ S.rotation.SameCycle b d → cycleProduct S.rotation v d = 1 := by
+      intro d hd hbd
+      have hda : ¬ P.rotation.SameCycle d (P.rotation c) := by
+        intro h
+        exact hd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc (hca.trans h.symm))
+      have hde : ¬ P.rotation.SameCycle d (P.edge c) := by
+        intro h
+        have hx : S.rotation.SameCycle (P.rotation c) (P.edge c) :=
+          cutAt_sameCycle_of_not_sameCycle P.rotation _ _ hnc
+        exact hd ((sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc hca).trans
+          (hx.trans (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc h.symm)))
+      change cycleProduct (cutAt P.rotation (P.rotation c) (P.edge c)) v d = 1
+      rw [cycleProduct_cutAt_unchanged P.rotation v _ _ _ hda hde]
+      apply hint d
+      · intro h
+        exact hd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc h)
+      · intro h
+        exact hbd (sameCycle_cutAt_of_sameCycle P.rotation _ _ hnc h)
+    obtain ⟨Q,hQC,hQE,hQedge,hQa,hQb,hQi,hQab,z,hza,hzb⟩ :=
+      two_boundary_adjacent_reduction S v hCS hES a b habS hintS
+    refine ⟨Q,hQC,hQE,?_,hQa.trans haS,hQb.trans hbS,hQi,hQab,z,hza,hzb⟩
+    exact hQedge
+termination_by Fintype.card P.Vertex
+decreasing_by
+  have hcount := (P.edgeSplice_counts c hn).1
+  change Fintype.card (P.edgeSplice c).Vertex < Fintype.card P.Vertex
+  omega
+
+#print axioms cycleProduct_cutAt_trivial_insert
+#print axioms two_boundary_adjacent_reduction
+
+
 end QuandleResearch.Issue070
