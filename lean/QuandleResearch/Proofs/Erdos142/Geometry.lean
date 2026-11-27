@@ -1194,6 +1194,84 @@ theorem product_shell_shortBox (p m R : ℕ) [NeZero p]
   exact Finset.mem_product.mpr ⟨hsM, haM⟩
 
 
+
+/-! Specialize the transfer to the actual prime torus. -/
+
+def slopePerm (p m d : ℕ) [Fact p.Prime] :
+    (Fin m → ZMod p × ZMod p) ≃ (Fin m → ZMod p × ZMod p) :=
+  if h : (d : ZMod p) = 0 then Equiv.refl _ else
+    { toFun := fun a i => ((d : ZMod p) * (a i).1, (d : ZMod p) * (a i).2)
+      invFun := fun a i => ((d : ZMod p)⁻¹ * (a i).1, (d : ZMod p)⁻¹ * (a i).2)
+      left_inv := by
+        intro a
+        funext i
+        apply Prod.ext <;> dsimp <;> rw [← mul_assoc, inv_mul_cancel₀ h, one_mul]
+      right_inv := by
+        intro a
+        funext i
+        apply Prod.ext <;> dsimp <;> rw [← mul_assoc, mul_inv_cancel₀ h, one_mul] }
+
+lemma slopePerm_apply (p m N d : ℕ) [Fact p.Prime] (hN : N ≤ p)
+    (hd : d ∈ Finset.Ico 1 N) (a : Fin m → ZMod p × ZMod p) :
+    slopePerm p m d a = d • a := by
+  have hd' := Finset.mem_Ico.mp hd
+  have hn : (d : ZMod p) ≠ 0 := by
+    intro hz
+    have hdiv := (ZMod.natCast_eq_zero_iff d p).mp hz
+    have hle := Nat.le_of_dvd (show 0 < d by omega) hdiv
+    omega
+  unfold slopePerm
+  rw [dif_neg hn]
+  funext i
+  apply Prod.ext <;> change (d : ZMod p) * _ = d • _ <;> rw [nsmul_eq_mul]
+
+/-- Finite-parameter construction: all density, shell, slope and AP
+arguments are internal.  Only numerical inequalities on the parameters
+remain as hypotheses, suitable for the final asymptotic optimization. -/
+theorem roth_finite_parameters (p m R N L J K : ℕ) [Fact p.Prime]
+    (hN : N ≤ p) (hp : 2400000 ≤ p) (hL : 0 < L)
+    (w : ℝ) (hw : 0 < w)
+    (hwR : 2 * w ≤ ((R : ℝ) / (p : ℝ))^2)
+    (hwidth : (m : ℝ) * 1000001 < (L : ℝ) * w)
+    (hD : N * ((2 * R + 1) * (2 * R + 1)) ^ m < (p * p)^m)
+    (hJ : L * J ≤ (finiteBlock p).card ^ m)
+    (hK : (p * p)^m * K ≤ N * J) :
+    K ≤ rothNumberNat N := by
+  classical
+  have hp' : 0 < p := by omega
+  obtain ⟨X, Y, U, hX⟩ := finiteBlock_lift_functions p
+  let B : Finset (Fin m → ZMod p × ZMod p) :=
+    Fintype.piFinset fun _ => finiteBlock p
+  let F : (Fin m → ZMod p × ZMod p) → ℝ :=
+    fun v => ∑ i, potential ((X (v i) : ℝ) / (p : ℝ)) (U (v i))
+  have hB : B.card = (finiteBlock p).card ^ m := by
+    exact Fintype.card_piFinset_const _ _
+  have hF (v : Fin m → ZMod p × ZMod p) (hv : v ∈ B) :
+      0 ≤ F v ∧ F v < (L : ℝ) * w := by
+    have hm := Fintype.mem_piFinset.mp hv
+    have hb (i : Fin m) := potential_bounds ((hX (v i) (hm i)).2.2)
+    constructor
+    · exact Finset.sum_nonneg (fun i _ => (hb i).1)
+    · have hsum : F v ≤ ∑ _i : Fin m, (1000001 : ℝ) :=
+        Finset.sum_le_sum fun i _ => (hb i).2
+      have hsum' : F v ≤ (m : ℝ) * 1000001 := by
+        simpa using hsum
+      exact lt_of_le_of_lt hsum' hwidth
+  obtain ⟨S, hSB, hJS, b, hS⟩ := exists_potential_shell B F w L J hw hL hF
+    (by rw [hB]; exact hJ)
+  have hshort := product_shell_shortBox p m R hp' S X Y U hX
+    (fun v hv i => Fintype.mem_piFinset.mp (hSB hv) i) b w hwR hS
+  have hcardG : Fintype.card (Fin m → ZMod p × ZMod p) = (p * p)^m := by
+    simp [Fintype.card_fun, Fintype.card_prod, ZMod.card]
+  apply roth_of_short_differences N K S (shortBox p m R) (slopePerm p m)
+  · exact fun d hd a => slopePerm_apply p m N d hN hd a
+  · rw [hcardG]
+    exact lt_of_le_of_lt (Nat.mul_le_mul_left N (shortBox_card p m R)) hD
+  · exact hshort
+  · rw [hcardG]
+    exact le_trans hK (Nat.mul_le_mul_left N hJS)
+
+
 end
 
 end QuandleResearch.Erdos142
