@@ -17575,6 +17575,7 @@ blocks of the SAME indexed cell gives a smaller-type minimal
 filling of an actual coefficient power. All the contour
 hypotheses of the previous loop theorem are now derived
 from the literal four-block certificate. -/
+set_option maxRecDepth 4096 in
 theorem gubaType_actual_self_long_pair_minimal_power_filling
     (pick : WeightedSelector) (n : ℕ) (w : F)
     (s : Peiffer.Sequence F (RankHeight n))
@@ -17745,6 +17746,7 @@ counterexample from the coefficient-power family. This closes
 that induction branch without an external smoothness or
 power-survival hypothesis. The other heavy-pair cases and
 exterior-period pairings still have to be excluded. -/
+set_option maxRecDepth 4096 in
 theorem gubaPowerCounterexample_no_actual_self_long_pair
     (pick : WeightedSelector) (n : ℕ) (w : F)
     (s : Peiffer.Sequence F (RankHeight n))
@@ -18235,12 +18237,14 @@ theorem distinct_rank_arbitrary_period_factor_weight
   · change rawWeight z ≤ rawWeight (if si then c else c⁻¹).toWord at hs
     rw [hcw] at hs
     change rawWeight z ≤ 2 * max (weightedLength c) (weightedLength d)
-    exact hs.trans ((le_max_left _ _).trans (by omega))
+    exact hs.trans ((le_max_left (weightedLength c) (weightedLength d)).trans
+      (by omega : max (weightedLength c) (weightedLength d) ≤ 2 * max (weightedLength c) (weightedLength d)))
   rcases rawNatPow_factor_short_or_period _ n z hz' with hs | ⟨p,q,hd,hq,hper'⟩
   · change rawWeight z ≤ rawWeight (if sj then d else d⁻¹).toWord at hs
     rw [hdw] at hs
     change rawWeight z ≤ 2 * max (weightedLength c) (weightedLength d)
-    exact hs.trans ((le_max_right _ _).trans (by omega))
+    exact hs.trans ((le_max_right (weightedLength c) (weightedLength d)).trans
+      (by omega : max (weightedLength c) (weightedLength d) ≤ 2 * max (weightedLength c) (weightedLength d)))
   exact distinct_rank_signed_period_overlap_weight pick X i j hij hi hj si sj
     l r p q z hc hd hp hq hper hper'
 
@@ -18331,9 +18335,9 @@ theorem heightRelator_power_mem_iff (N : Subgroup F) [N.Normal]
     (X C : F) (k : ℤ) (h : heightRelator X C k ∈ N) :
     C^k ∈ N ↔ a^k ∈ N := by
   let q := QuotientGroup.mk' N
+  have hq : q (heightRelator X C k) = 1 := (QuotientGroup.eq_one_iff _).mpr h
   have he : q X * q (C^k) * (q X)⁻¹ * (q (a^k))⁻¹ = 1 := by
-    simpa only [heightRelator,map_mul,map_inv] using
-      (QuotientGroup.eq_one_iff _).mpr h
+    simpa only [heightRelator,map_mul,map_inv] using hq
   have hc : q X * q (C^k) * (q X)⁻¹ = q (a^k) := by
     calc
       _ = (q X * q (C^k) * (q X)⁻¹ * (q (a^k))⁻¹) * q (a^k) := by group
@@ -18341,10 +18345,13 @@ theorem heightRelator_power_mem_iff (N : Subgroup F) [N.Normal]
   constructor
   · intro hm
     apply (QuotientGroup.eq_one_iff _).mp
-    rw [← hc,(QuotientGroup.eq_one_iff _).mpr hm,mul_one,mul_inv_cancel]
+    change q (a^k) = 1
+    have hqC : q (C^k) = 1 := (QuotientGroup.eq_one_iff _).mpr hm
+    rw [← hc,hqC,mul_one,mul_inv_cancel]
   · intro hm
     apply (QuotientGroup.eq_one_iff _).mp
-    have hq := (QuotientGroup.eq_one_iff _).mpr hm
+    change q (C^k) = 1
+    have hq : q (a^k) = 1 := (QuotientGroup.eq_one_iff _).mpr hm
     calc
       q (C^k) = (q X)⁻¹ * (q X * q (C^k) * (q X)⁻¹) * q X := by group
       _ = 1 := by rw [hc,hq,mul_one,inv_mul_cancel]
@@ -18804,6 +18811,7 @@ theorem ribbon_independent_low_end_bound {D : Type} [Fintype D]
   have hstep (d : D) : P.vertexOf (P.face d) = P.vertexOf (P.edge d) := by
     rw [RibbonMap.face_apply]
     apply Quotient.sound
+    change P.rotation.SameCycle (P.rotation.symm (P.edge d)) (P.edge d)
     have h := Equiv.Perm.sameCycle_apply_left.mpr
       (Equiv.Perm.SameCycle.refl P.rotation (P.rotation.symm (P.edge d)))
     simpa only [Equiv.apply_symm_apply] using h.symm
@@ -18820,9 +18828,12 @@ theorem ribbon_independent_low_end_bound {D : Type} [Fintype D]
     let S := Finset.univ.filter (fun d => P.faceOf d = P.faceOf a)
     change 2 ≤ ∑ d ∈ S, charge d
     have hs0 : a ∈ S := by simp [S]
-    have hs1 : P.face a ∈ S := by simp [S,hfaceStep]
-    have hs2 : P.face (P.face a) ∈ S := by simp [S,hfaceStep]
-    have hs3 : P.face (P.face (P.face a)) ∈ S := by simp [S,hfaceStep]
+    have hs1 : P.face a ∈ S := by
+      simp only [S,Finset.mem_filter,Finset.mem_univ,true_and,hfaceStep]
+    have hs2 : P.face (P.face a) ∈ S := by
+      simp only [S,Finset.mem_filter,Finset.mem_univ,true_and,hfaceStep]
+    have hs3 : P.face (P.face (P.face a)) ∈ S := by
+      simp only [S,Finset.mem_filter,Finset.mem_univ,true_and,hfaceStep]
     have pay (d e : D) (hd : d ∈ S) (he : e ∈ S) (hne : d ≠ e)
         (h1 : charge d = 1) (h2 : charge e = 1) :
         2 ≤ ∑ x ∈ S, charge x := by
@@ -18838,9 +18849,9 @@ theorem ribbon_independent_low_end_bound {D : Type} [Fintype D]
       simp [charge,hd]
     by_cases hbig : P.face (P.face a) = a
     · apply pay a (P.face a) hs0 hs1 (Ne.symm (hmono a))
-      · simp [charge,hbig]
+      · simp only [charge,if_pos hbig]
       · have h := congrArg P.face hbig
-        simp [charge,h]
+        simp only [charge,if_pos h]
     · by_cases ha : P.vertexOf a ∈ low
       · have h1 := hnext a ha
         by_cases h2 : P.vertexOf (P.face (P.face a)) ∈ low
@@ -18869,7 +18880,7 @@ theorem ribbon_independent_low_end_bound {D : Type} [Fintype D]
         intro d _
         by_cases hb : P.face (P.face d) = d <;>
           by_cases hl : P.vertexOf d ∈ low <;>
-          simp [charge,loss,ribbonEndIndicator,hb,hl]
+          simp only [charge,loss,ribbonEndIndicator,hb,hl,if_true,if_false,Nat.zero_add,Nat.add_zero,not_false_eq_true,not_true_eq_false]
       _ = _ := by simp
   have hloss : (∑ d : D, loss d) = ∑ v ∈ low, ribbonVertexEndCount P v := by
     rw [← Finset.sum_fiberwise Finset.univ P.vertexOf loss]
@@ -18919,8 +18930,8 @@ theorem ribbon_retained_low_end_vertex {D : Type} [Fintype D]
   have htot := ribbon_nonbigon_dart_bound P z hc hE hmono
   rw [← ribbon_vertex_end_sum P] at htot
   have hcount : low.card + high.card = Fintype.card P.Vertex := by
-    have h := Finset.card_sdiff (Finset.subset_univ low)
-    change high.card = Fintype.card P.Vertex - low.card at h
+    have h : high.card = Fintype.card P.Vertex - low.card := by
+      simp only [high,Finset.card_sdiff,Finset.inter_univ,Finset.card_univ]
     have hs : low.card ≤ Fintype.card P.Vertex := Finset.card_le_univ _
     omega
   have hsplit : (∑ v ∈ low, ribbonVertexEndCount P v) +
