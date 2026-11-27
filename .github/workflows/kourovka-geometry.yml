@@ -92,7 +92,7 @@ jobs:
           s = p.read_text()
           old = "    cases hx : sign x <;> cases hy : sign y <;> simp_all\n    all_goals omega"
           assert s.count(old) == 1
-          p.write_text(s.replace(old, "    cases hx : sign x <;> cases hy : sign y <;> (simp_all; omega)"))
+          p.write_text(s.replace(old, "    cases hx : sign x <;> cases hy : sign y <;> simp_all <;> omega"))
           PY
           git -C .lake/small-groups diff --stat
           cat >> lakefile.toml <<'EOF'
