@@ -8587,4 +8587,39 @@ theorem guba_longRaw_zero_factor_bound (m n : ℕ)
 #print axioms guba_longRaw_zero_factor_bound
 
 
+
+/-- The bound of four applies to the actual rank-dependent choice
+of the positive conjugating word, with signed-letter weights. -/
+theorem activeLongWord_pure_a_weight_bound (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (z : List (Fin 2)) (hz : z <:+: activeLongWord pick i h)
+    (ha : ∀ x ∈ z, x = 0) : positiveWeight z ≤ 4 := by
+  have hlen : z.length ≤ 4 := by
+    exact guba_longRaw_zero_factor_bound
+      (chooseEvenPrefixIndex (pick (gubaState pick i).1 h).val (gubaState pick i).2)
+      (10^20) z hz ha
+  have hmap : ∀ x ∈ z.map (fun x => (x,true)), x.1 = 0 := by
+    intro x hx
+    obtain ⟨y,hy,rfl⟩ := List.mem_map.mp hx
+    exact ha y hy
+  rw [positiveWeight_eq_rawWeight_map, pure_a_word_weight _ hmap, List.length_map]
+  exact hlen
+
+/-- A uniform relative bound using only the actual chosen prefix
+weight. The large margin is useful when later dividing a long
+side into sections. No geometric smoothness condition is asserted. -/
+theorem activeLongWord_pure_a_relative_bound (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (z : List (Fin 2)) (hz : z <:+: activeLongWord pick i h)
+    (ha : ∀ x ∈ z, x = 0) :
+    10^37 * positiveWeight z < positiveWeight (activePrefix pick i h) := by
+  calc
+    _ ≤ 10^37 * 4 := Nat.mul_le_mul_left _ (activeLongWord_pure_a_weight_bound pick i h z hz ha)
+    _ < 6*10^80 := by norm_num
+    _ ≤ _ := activePrefix_weight_ge pick i h
+
+#print axioms activeLongWord_pure_a_weight_bound
+#print axioms activeLongWord_pure_a_relative_bound
+
+
 end QuandleResearch.Issue070
