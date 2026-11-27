@@ -7608,4 +7608,43 @@ theorem vertex_short_corner_connector {D : Type} [Fintype D]
 #print axioms vertex_short_corner_connector
 
 
+
+/-! ## Guba Lemma 1: numerical closing step of the bond induction
+
+Source: V. S. Guba, A finitely generated complete group, Math. USSR
+Izv. 29 (1987), pp. 243--244. The principal-cell perimeter and
+connector budgets alone are insufficient: the estimate on q uses
+the lower-rank periodic compatibility theorem (Lemma 39, via
+Lemma 2), and the transfer estimate uses Lemma 21. Both are
+explicit premises here. This is not the existence of a bond.
+-/
+
+/-- If a principal-cell bond has the local degree, transfer,
+periodic-overlap and connector bounds in Lemma 1, the desired
+4 T beta^{-1} bound follows with the original constants. -/
+theorem guba1_bond_connector_arithmetic (P L t q s1 s2 C b : ℚ)
+    (hC : 0 < C)
+    (hP : P ≤ 3*10^11*L)
+    (hdegree : (1/10^17 : ℚ)*L ≤ t)
+    (htransfer : (9/10 : ℚ)*t ≤ s1+s2+q)
+    (hshort : s1+s2 ≤ 2*(1/10^19 : ℚ)*t)
+    (hoverlap : q ≤ (1+1/120 : ℚ)*C)
+    (hb : b ≤ (1+2*(1/10^19 : ℚ))*P) :
+    b < 4*10^28*C := by
+  norm_num at hP hdegree htransfer hshort hoverlap hb ⊢
+  linarith only [hC,hP,hdegree,htransfer,hshort,hoverlap,hb]
+
+/-- The local long-section corollary follows once the actual
+period-to-section size comparison is established. No diagram
+existence or periodicity assumption is discharged by arithmetic. -/
+theorem guba1_long_section_connector_arithmetic (C L b : ℚ)
+    (hb : b < 4*10^28*C)
+    (hscale : 4*10^28*C ≤ (1/10^19 : ℚ)*L) :
+    b < (1/10^19 : ℚ)*L :=
+  lt_of_lt_of_le hb hscale
+
+#print axioms guba1_bond_connector_arithmetic
+#print axioms guba1_long_section_connector_arithmetic
+
+
 end QuandleResearch.Issue070
