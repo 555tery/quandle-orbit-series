@@ -385,4 +385,107 @@ theorem boundaryRibbon_inverse_read (rows : I → RawWord) (w : F)
 #print axioms orientedWord_rawWeight
 #print axioms boundaryRibbon_inverse_read
 
+
+/-! ## Directly paired boundary segments
+
+A literal factor of a based boundary reading lifts to a consecutive
+list of darts in that boundary. If two such segments on the long
+sides are paired edge-for-edge in opposite orders, the two positive
+factors coincide. This is the direct adjacency case, not the general
+case of contiguity through a lower-rank subdiagram.
+-/
+
+/-- A three-block decomposition of the reading lifts to a three-block
+decomposition of the original dart list, with all readings retained. -/
+theorem read_factor_lift {D : Type} (read : D → Letter) (ds : List D)
+    (p z r : RawWord) (h : ds.map read = p ++ z ++ r) :
+    ∃ dp dz dr : List D, ds = dp ++ dz ++ dr ∧
+      dp.map read = p ∧ dz.map read = z ∧ dr.map read = r := by
+  obtain ⟨dpr,dr,hds,hpr,hr⟩ := List.map_eq_append_iff.mp h
+  obtain ⟨dp,dz,hdpr,hp,hz⟩ := List.map_eq_append_iff.mp hpr
+  exact ⟨dp,dz,dr,by rw [hds,hdpr],hp,hz,hr⟩
+
+/-- Extract the actual consecutive darts for a literal factor of an
+interior row, at the original zero corner. -/
+theorem boundaryRibbon_interior_factor (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (j : Fin (boundaryIdentity s).length) (i : I)
+    (hi : (boundaryIdentity s)[j].1.2 = some i)
+    (hp : 0 < (orientedWord
+      (markedRows rows w (boundaryIdentity s)[j].1.2)
+      (boundaryIdentity s)[j].2).length)
+    (p z r : RawWord)
+    (hf : orientedWord (rows i) (boundaryIdentity s)[j].2 = p ++ z ++ r) :
+    ∃ dp dz dr : List (DiscDarts (markedRows rows w) (boundaryIdentity s)),
+      (boundaryRibbon rows w s hs).vertexBoundary
+        (discAt (markedRows rows w) (boundaryIdentity s) j ⟨0,hp⟩) =
+          dp ++ dz ++ dr ∧
+      dp.map (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) = p ∧
+      dz.map (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) = z ∧
+      dr.map (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) = r := by
+  exact read_factor_lift _ _ p z r
+    ((boundaryRibbon_interior_read rows w s hs j i hi hp).trans hf)
+
+/-- A directly paired pair of dart lists on oppositely read positive
+sides has the same underlying positive factor. -/
+theorem boundaryRibbon_paired_positive_eq (rows : I → RawWord) (w : F)
+    (s : Peiffer.Sequence F I)
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rows i)) s = w)
+    (ds dt : List (DiscDarts (markedRows rows w) (boundaryIdentity s)))
+    (z t : List (Fin 2))
+    (hpair : dt = (ds.map (boundaryRibbon rows w s hs).edge).reverse)
+    (hz : ds.map (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) =
+      z.map (fun x => (x,true)))
+    (ht : dt.map (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)) =
+      FreeGroup.invRev (t.map (fun x => (x,true)))) :
+    z = t := by
+  have he := boundaryRibbon_inverse_read rows w s hs ds
+  rw [← hpair,hz,ht] at he
+  have hm := FreeGroup.invRev_injective he
+  have hf := congrArg (List.map Prod.fst) hm
+  simpa only [List.map_map, Function.comp_def, List.map_id_fun] using hf.symm
+
+/-- Weighted bound for a directly paired segment lying in opposite
+long sides. The two factor decompositions specify the locations in
+the positive words; equality of the factors is deduced from the
+actual edge pairing rather than assumed. -/
+theorem boundaryRibbon_direct_long_overlap (pick : WeightedSelector)
+    (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w)
+    (ds dt : List (DiscDarts
+      (markedRows (rankHeightRows pick (gubaConjugatorChoice pick) n) w)
+      (boundaryIdentity s)))
+    (i j : RankHeight n)
+    (hi : ∃ v : F, ¬ Good (gubaState pick i.1.val).1 v)
+    (hj : ∃ v : F, ¬ Good (gubaState pick j.1.val).1 v)
+    (p z r u t v : List (Fin 2))
+    (hfirst : activeLongWord pick i.1.val hi = p ++ z ++ r)
+    (hsecond : activeLongWord pick j.1.val hj = u ++ t ++ v)
+    (hdiff : i.1.val ≠ j.1.val ∨ p.length ≠ u.length)
+    (hpair : dt = (ds.map
+      (boundaryRibbon (rankHeightRows pick (gubaConjugatorChoice pick) n) w s hs).edge).reverse)
+    (hz : ds.map (discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick (gubaConjugatorChoice pick) n) w) (boundaryIdentity s)) =
+      z.map (fun x => (x,true)))
+    (ht : dt.map (discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick (gubaConjugatorChoice pick) n) w) (boundaryIdentity s)) =
+      FreeGroup.invRev (t.map (fun x => (x,true)))) :
+    240*10^17*rawWeight (ds.map (discRead (chosenSection (Fin 2))
+      (markedRows (rankHeightRows pick (gubaConjugatorChoice pick) n) w) (boundaryIdentity s))) ≤
+      min (positiveWeight (activeLongWord pick i.1.val hi))
+        (positiveWeight (activeLongWord pick j.1.val hj)) := by
+  have he := boundaryRibbon_paired_positive_eq _ w s hs ds dt z t hpair hz ht
+  rw [← he] at hsecond
+  rw [hz, ← positiveWeight_eq_rawWeight_map]
+  exact activeLongWord_overlap_bound_both pick i.1.val j.1.val hi hj
+    p z r u v hfirst hsecond hdiff
+
+#print axioms read_factor_lift
+#print axioms boundaryRibbon_interior_factor
+#print axioms boundaryRibbon_paired_positive_eq
+#print axioms boundaryRibbon_direct_long_overlap
+
 end QuandleResearch.Issue070
