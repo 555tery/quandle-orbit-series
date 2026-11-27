@@ -3335,4 +3335,80 @@ theorem rankRibbon_boundary_component_has_high_cell (pick : WeightedSelector)
 #print axioms rankRibbon_boundary_component_has_high_cell
 
 
+/-- Select the high-rank cell at its original zero corner inside the
+actual connected marked component. Its literal signed row is retained
+after restriction. Thus the second marked vertex has the large
+perimeter of a genuine Guba row, not just a conjugate group value.
+The two marked vertices do not yet supply a system of contiguity arcs. -/
+theorem guba_boundary_component_large_row (pick : WeightedSelector)
+    (n j : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w)
+    (hw : w ≠ 1) (hnew : w ∉ weightedHeightStage pick (gubaConjugatorChoice pick) j) :
+    let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    let C := P.componentRibbon z
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∃ (d : {e : DiscDarts (markedRows rows w) (boundaryIdentity s) // P.SameComponent z e})
+      (i : RankHeight n),
+      ¬ C.rotation.SameCycle ⟨z, Relation.EqvGen.refl z⟩ d ∧
+      (boundaryIdentity s)[discOccurrence (markedRows rows w)
+        (boundaryIdentity s) d.val].1.2 = some i ∧
+      j ≤ i.1.val ∧
+      5 * (2 + 2 * 10^80) < 4 * rawWeight ((C.vertexBoundary d).map (fun e => read e.val)) := by
+  classical
+  intro rows P z C read
+  obtain ⟨d,i,hc,hd,hi,hj⟩ := rankRibbon_boundary_component_has_high_cell
+    pick (gubaConjugatorChoice pick) n j w s hs hw hnew
+  obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
+  have hi' : (boundaryIdentity s)[idx].1.2 = some i := by
+    simpa only [discOccurrence_at] using hi
+  let d0 := discAt (markedRows rows w) (boundaryIdentity s) idx
+    ⟨0, Nat.zero_lt_of_lt k.isLt⟩
+  have hcyc : P.rotation.SameCycle
+      (discAt (markedRows rows w) (boundaryIdentity s) idx k) d0 := by
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle _ _
+    rw [disc_sameCycle_iff]
+    simp only [d0, discOccurrence_at]
+  have hc0 : P.SameComponent z d0 :=
+    Relation.EqvGen.trans _ _ _ hc (P.component_of_vertexCycle hcyc)
+  have hd0 : ¬ P.rotation.SameCycle z d0 :=
+    fun h => hd (h.trans hcyc.symm)
+  let e : {d // P.SameComponent z d} := ⟨d0,hc0⟩
+  refine ⟨e,i,?_,?_,hj,?_⟩
+  · intro h
+    apply hd0
+    exact (P.restrict_sameVertex_iff (P.SameComponent z)
+      (P.component_membership_edge z) (P.component_membership_rotation z)
+      ⟨z, Relation.EqvGen.refl z⟩ e).mp h
+  · change (boundaryIdentity s)[discOccurrence (markedRows rows w)
+      (boundaryIdentity s) d0].1.2 = some i
+    simpa only [d0, discOccurrence_at] using hi'
+  · have hrow : rows i ≠ [] := by
+      intro hnil
+      have hpos : 0 < (orientedWord
+          (markedRows rows w (boundaryIdentity s)[idx].1.2)
+          (boundaryIdentity s)[idx].2).length := Nat.zero_lt_of_lt k.isLt
+      rw [orientedWord_length, hi'] at hpos
+      simp [markedRows, hnil] at hpos
+    change 5 * (2 + 2 * 10^80) <
+      4 * rawWeight (((P.componentRibbon z).vertexBoundary e).map (fun d => read d.val))
+    rw [component_vertex_read]
+    change 5 * (2 + 2 * 10^80) <
+      4 * rawWeight (((boundaryRibbon rows w s hs).vertexBoundary d0).map read)
+    rw [show d0 = discAt (markedRows rows w) (boundaryIdentity s) idx
+      ⟨0, Nat.zero_lt_of_lt k.isLt⟩ from rfl]
+    change 5 * (2 + 2 * 10^80) <
+      4 * rawWeight (((boundaryRibbon rows w s hs).vertexBoundary
+        (discAt (markedRows rows w) (boundaryIdentity s) idx
+          ⟨0, Nat.zero_lt_of_lt k.isLt⟩)).map
+        (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)))
+    rw [boundaryRibbon_interior_read rows w s hs idx i hi' (Nat.zero_lt_of_lt k.isLt),
+      orientedWord_rawWeight]
+    exact guba_rankHeightRows_large pick n i hrow
+
+#print axioms guba_boundary_component_large_row
+
+
 end QuandleResearch.Issue070
