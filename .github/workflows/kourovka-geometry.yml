@@ -127,7 +127,8 @@ jobs:
                    "read_factor_lift", "boundaryRibbon_interior_factor", "boundaryRibbon_paired_positive_eq", "boundaryRibbon_direct_long_overlap",
                    "guba_rankHeightRows_weight", "guba_rankHeightRows_large", "answer_of_guba_large_cell",
                    "MinimalExpression", "exists_minimalExpression", "peiffer_evaluation_append", "minimalExpression_block_length", "minimalExpression_no_cancel_pair", "minimalExpression_no_trivial_term", "exists_minimal_rankHeight_expression", "minimal_rankHeight_no_merge_pair",
-                   "rankHeightRel_neg", "positiveHeightOccurrence", "positiveHeightOccurrence_term", "positiveHeightOccurrence_sign", "positiveHeightOccurrence_rank", "positiveHeightOccurrence_evaluation", "exists_positive_minimal_rankHeight_expression", "minimal_rankHeight_nonzero_height"]
+                   "rankHeightRel_neg", "positiveHeightOccurrence", "positiveHeightOccurrence_term", "positiveHeightOccurrence_sign", "positiveHeightOccurrence_rank", "positiveHeightOccurrence_evaluation", "exists_positive_minimal_rankHeight_expression", "minimal_rankHeight_nonzero_height",
+                   "shiftOccurrence", "shiftOccurrence_term", "peiffer_move_occurrence", "minimalExpression_of_equal_value_length", "minimalExpression_move_pair", "minimal_rankHeight_no_separated_merge_pair"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
