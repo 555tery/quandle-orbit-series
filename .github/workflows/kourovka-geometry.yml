@@ -1,0 +1,75 @@
+name: Kourovka 8.8(a) geometry integration
+on:
+  push:
+    branches: ['lean/kourovka-8-8a']
+    paths: ['lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
+  pull_request:
+    branches: ['lean/mathlib-4.36-q57']
+    paths: ['lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kourovka-geometry-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  geometry:
+    if: github.event_name != 'pull_request' || github.head_ref == 'lean/kourovka-8-8a'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lean
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Prepare pinned upstream in disposable runner
+        run: |
+          git clone https://github.com/32805433/Small-Groups.git ../small-groups
+          git -C ../small-groups checkout --detach 4a302a9ce13b5aa39f1db413df511be39df4ef31
+          test "$(git -C ../small-groups rev-parse HEAD)" = 4a302a9ce13b5aa39f1db413df511be39df4ef31
+          # Align only the dependency configuration in this runner, not its proofs.
+          sed -i 's/rev = "v4.35.0"/rev = "v4.36.0"/' ../small-groups/lakefile.toml
+          cp lean-toolchain ../small-groups/lean-toolchain
+          rm -f ../small-groups/lake-manifest.json
+          cat >> lakefile.toml <<'EOF'
+
+          [[require]]
+          name = "small_groups"
+          path = "../small-groups"
+          EOF
+          lake update
+          lake exe cache get
+      - name: Compile imported geometry and local prerequisites
+        run: |
+          set -o pipefail
+          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
+      - name: Verify marked identity and ribbon bridge
+        run: |
+          set -o pipefail
+          lake env lean Experiments/Kourovka88aGeometry.lean 2>&1 | tee geometry-audit.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          ansi = re.compile(r"\x1b\[[0-9;]*m")
+          build, audit = [ansi.sub("", Path(f).read_text()) for f in
+                         ["geometry-build.log", "geometry-audit.log"]]
+          for line in (build + "\n" + audit).splitlines():
+              if "warning:" in line.lower():
+                  assert re.search(r"imports `[^\x60]+` from package `mathlib`, which is designed for use with the module system; consider adding `module` to the start of this file$", line), line
+          allowed = {"propext", "Classical.choice", "Quot.sound"}
+          names = ["exists_peiffer_expression", "marked_evaluation",
+                   "boundaryIdentity_evaluation", "boundaryIdentity_only_marked",
+                   "boundaryRibbon", "rankHeight_normalClosure", "rankHeightRows_eval",
+                   "exists_rankHeight_identity", "rankHeightRibbon"]
+          for name in names:
+              match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
+              if match:
+                  assert {a.strip() for a in match.group(1).split(",") if a.strip()} <= allowed, name
+              else:
+                  assert re.search(r"'[^']*\." + name + r"' does not depend on any axioms", audit), name
+          print(f"Verified {len(names)} bridge declarations with only permitted axioms.")
+          PY
