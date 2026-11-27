@@ -3364,7 +3364,10 @@ theorem guba_boundary_component_large_row (pick : WeightedSelector)
     pick (gubaConjugatorChoice pick) n j w s hs hw hnew
   obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
   have hi' : (boundaryIdentity s)[idx].1.2 = some i := by
-    simpa only [discOccurrence_at] using hi
+    change (boundaryIdentity s)[discOccurrence (markedRows rows w)
+      (boundaryIdentity s) (discAt (markedRows rows w) (boundaryIdentity s) idx k)].1.2 = some i at hi
+    rw [discOccurrence_at] at hi
+    exact hi
   let d0 := discAt (markedRows rows w) (boundaryIdentity s) idx
     ⟨0, Nat.zero_lt_of_lt k.isLt⟩
   have hcyc : P.rotation.SameCycle
