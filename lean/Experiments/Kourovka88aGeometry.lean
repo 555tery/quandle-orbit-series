@@ -13964,8 +13964,12 @@ theorem ribbon_long_direct_strip {D : Type} [Fintype D]
       ribbonEndIndicator P := by
     funext e
     by_cases h : P.face (P.face e) = e
-    · simp only [stop,ribbonEndIndicator,h,not_true_eq_false,if_false,if_true]
-    · simp only [stop,ribbonEndIndicator,h,not_false_eq_true,if_false,if_true]
+    · have hn : ¬ stop e := fun h' => h' h
+      change (if stop e then 1 else 0) = (if P.face (P.face e) = e then 0 else 1)
+      rw [ite_eq_right hn,ite_eq_left h]
+    · have hn : stop e := h
+      change (if stop e then 1 else 0) = (if P.face (P.face e) = e then 0 else 1)
+      rw [ite_eq_left hn,ite_eq_right h]
   rw [hindicator,hsum] at hn
   have hnon : blocks ≠ [] := by
     intro h
@@ -14271,8 +14275,10 @@ theorem guba23_rankMinimal_no_height_splice
   have he : ∀ d, v (S.edge d) = (v d)⁻¹ := by
     intro d
     change FreeGroup.mk [read (R.edge d)] = (FreeGroup.mk [read d])⁻¹
-    rw [relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
-      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d]
+    have hedge : read (R.edge d) = reverseLetter (read d) :=
+      relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+        (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
+    rw [hedge]
     exact signedLetterValue_reverse _
   have hv (Q : RibbonMap _) (d : _) :
       cycleProduct Q.rotation v d = FreeGroup.mk ((Q.vertexBoundary d).map read) := by
@@ -14306,9 +14312,11 @@ theorem guba23_rankMinimal_no_height_splice
   let rep : _ → _ := fun d => if S.rotation.SameCycle f d then c else d
   have hrep (d : _) : S.rotation.SameCycle (rep d) d := by
     by_cases h : S.rotation.SameCycle f d
-    · rw [rep,if_pos h]
+    · change S.rotation.SameCycle (if S.rotation.SameCycle f d then c else d) d
+      rw [ite_eq_left h]
       exact hfc.symm.trans h
-    · rw [rep,if_neg h]
+    · change S.rotation.SameCycle (if S.rotation.SameCycle f d then c else d) d
+      rw [ite_eq_right h]
       exact .refl _ _
   apply ribbon_rankMinimal_no_indexed_replacement pick X n w s hm S v z hCS hES he hroot
     (fun d => (idx (rep d)).val) omitted
@@ -14323,7 +14331,8 @@ theorem guba23_rankMinimal_no_height_splice
         exact hn ((oldSame c e).mpr hidx)
       obtain ⟨t,ht⟩ := guba22_cycleProduct_conjugator S.rotation v f d h
       refine ⟨i,((u*t*g,(s[i.val].1.2.1,k)),true),?_,hio,rfl,?_⟩
-      · simp only [rep,if_pos h,hi]
+      · change (idx (if S.rotation.SameCycle f d then c else d)).val = i.val+1
+        rw [ite_eq_left h,hi]
       · change (u*t*g) * rankHeightRel pick X n (s[i.val].1.2.1,k) *
           (u*t*g)⁻¹ = u * cycleProduct S.rotation v d * u⁻¹
         rw [ht,hmerge]
@@ -14337,9 +14346,15 @@ theorem guba23_rankMinimal_no_height_splice
         have hidx' : idx e = idx d := Fin.ext (by rw [ho,hj,hh])
         exact h (hfe.trans (liftSame e d ((oldSame e d).mpr hidx')))
       refine ⟨j,y,?_,hjo,congrArg Prod.fst hy,?_⟩
-      · simp only [rep,if_neg h,hj]
+      · change (idx (if S.rotation.SameCycle f d then c else d)).val = j.val+1
+        rw [ite_eq_right h]
+        exact hj
       · rw [guba23_splice_keep_vertex_product R v c d hn h,hv]
-        simpa only [rankHeightRows_eval] using hval
+        have hrel : (fun i => FreeGroup.mk (rows i)) = rankHeightRel pick X n := by
+          funext i
+          exact rankHeightRows_eval pick X n i
+        rw [hrel] at hval
+        exact hval
 
 #print axioms indexed_rankCount_eq_rank_only
 #print axioms ribbon_rankMinimal_no_indexed_replacement
