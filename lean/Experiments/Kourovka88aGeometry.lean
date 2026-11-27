@@ -3543,4 +3543,103 @@ theorem rankRibbon_outer_region_has_top_outlet (pick : WeightedSelector)
 #print axioms rankRibbon_outer_region_has_top_outlet
 
 
+/-! ## Peripheral weight before the first failure of the commutator
+
+At the preceding rank neither generator is trivial. Therefore none
+of the four signed letters is trivial in that quotient. Every
+coefficient region incident to the periphery has at least two
+outlets, and their disjoint supports account for the full peripheral
+weight. This is an incidence partition, not yet a contiguity system:
+regions with three or more outlets and repeated incidences on a
+single peripheral vertex still have to be controlled.
+-/
+
+/-- Survival of the free-group commutator implies survival of every
+signed generator. -/
+theorem signed_letter_survives_of_commWord (N : Subgroup F) [N.Normal]
+    (hcomm : commWord ∉ N) (x : Letter) : FreeGroup.mk [x] ∉ N := by
+  have ha : a ∉ N := by
+    intro h
+    apply hcomm
+    apply (QuotientGroup.eq_one_iff _).mp
+    have hqa : QuotientGroup.mk' N a = 1 := (QuotientGroup.eq_one_iff _).mpr h
+    simp [commWord, hqa]
+  have hb : b ∉ N := by
+    intro h
+    apply hcomm
+    apply (QuotientGroup.eq_one_iff _).mp
+    have hqb : QuotientGroup.mk' N b = 1 := (QuotientGroup.eq_one_iff _).mpr h
+    simp [commWord, hqb]
+  have hg (i : Fin 2) : FreeGroup.of i ∉ N := by
+    fin_cases i
+    · exact ha
+    · exact hb
+  obtain ⟨i,sg⟩ := x
+  intro hx
+  cases sg with
+  | false =>
+    rw [FreeGroup.mk_eq_inv_of] at hx
+    exact hg i (by simpa only [inv_inv] using N.inv_mem hx)
+  | true =>
+    rw [FreeGroup.mk_eq_of] at hx
+    exact hg i hx
+
+/-- Partition every non-lower-rank incidence by its actual coefficient
+region. All summands have at least two outlets, with no weight lost.
+The only survival premise is at the preceding rank, as available in
+an induction on the first failure of the commutator. -/
+theorem rankRibbon_outlet_weight_partition (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n j : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hcomm : commWord ∉ weightedHeightStage pick X j) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let keep := lowerRankDart pick X n j w s
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let weight := fun d => letterWeight (read d)
+    ∃ hkeep : ∀ d, keep (P.rotation d) ↔ keep d,
+      let S := P.coefficientRegions keep hkeep
+      ∃ (B R : Finset (DiscDarts (markedRows rows w) (boundaryIdentity s))),
+        (∀ d, d ∈ B ↔ ¬ keep d) ∧ R ⊆ B ∧
+        Set.PairwiseDisjoint (↑R : Set _) (guba22_component_support S B) ∧
+        (∀ a ∈ R, 2 ≤ (guba22_component_support S B a).card) ∧
+        (∑ a ∈ R, ∑ d ∈ guba22_component_support S B a, weight d) =
+          ∑ d ∈ B, weight d := by
+  classical
+  intro rows P keep read weight
+  obtain ⟨hkeep,hout⟩ := rankRibbon_lower_regions_no_unique_outlet pick X n j w s hs
+  let S := P.coefficientRegions keep hkeep
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  let B := Finset.univ.filter (fun d => ¬ keep d)
+  have hB (d) : d ∈ B ↔ ¬ keep d := by simp [B]
+  obtain ⟨R,hsub,hdis,hsum⟩ := guba22_component_partition_weight S B weight
+  refine ⟨hkeep,B,R,hB,hsub,hdis,?_,hsum⟩
+  intro a ha
+  have haB := hsub ha
+  have hka := (hB a).mp haB
+  obtain ⟨b,hab,hkb,hba⟩ := hout a hka
+    (signed_letter_survives_of_commWord N hcomm (read a))
+  have hbB := (hB b).mpr hkb
+  have hpair : ({a,b} : Finset _) ⊆ guba22_component_support S B a := by
+    intro d hd
+    rcases Finset.mem_insert.mp hd with rfl | hd
+    · exact (guba22_mem_component_support S B a a).mpr
+        ⟨haB,Relation.EqvGen.refl a⟩
+    · have he := Finset.mem_singleton.mp hd
+      subst d
+      exact (guba22_mem_component_support S B a b).mpr ⟨hbB,hab⟩
+  calc
+    2 = ({a,b} : Finset _).card := by simp [Ne.symm hba]
+    _ ≤ (guba22_component_support S B a).card := Finset.card_le_card hpair
+
+#print axioms signed_letter_survives_of_commWord
+#print axioms rankRibbon_outlet_weight_partition
+
+
 end QuandleResearch.Issue070
