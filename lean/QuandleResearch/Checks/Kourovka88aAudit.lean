@@ -148,4 +148,8 @@ example : answer ↔
 #print axioms rawWeight_rawNatPow
 #print axioms minBad_not_literal_power
 
+#print axioms thueFactor_period_bound
+#print axioms thueFactor_twoPeriods_bound
+#print axioms gubaEvenPrefix_period_bound
+
 end QuandleResearch.Issue070
