@@ -18596,4 +18596,50 @@ theorem guba_long_period_factor_not_heavy (pick : WeightedSelector)
 #print axioms activeLongWord_arbitrary_period_factor_bound
 #print axioms guba_long_period_factor_not_heavy
 
+
+/-- Inverse reading of a repeated raw word is repetition of
+the inverse base. This permits the same mixed estimate on both
+long sides without introducing an orientation premise. -/
+theorem rawNatPow_invRev (v : RawWord) (m : ℕ) :
+    FreeGroup.invRev (rawNatPow v m) =
+      rawNatPow (FreeGroup.invRev v) m := by
+  induction m with
+  | zero => rfl
+  | succ m ih =>
+    rw [rawNatPow,FreeGroup.invRev_append,ih]
+    rw [rawNatPow_eq_flatten_replicate (FreeGroup.invRev v) (m+1),
+      List.replicate_succ,List.flatten_cons,
+      ← rawNatPow_eq_flatten_replicate]
+
+/-- Mixed overlap estimate for either long side of a cell and
+either orientation of an arbitrary periodic base. -/
+theorem guba_signed_long_period_factor_not_heavy (pick : WeightedSelector)
+    (i : ℕ) (hi : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (v z : RawWord) (m : ℕ) (k : ℤ) (sg : Bool)
+    (hv : rawWeight v ≤ weightedLength (pick (gubaState pick i).1 hi).val)
+    (hz : z <:+: (if sg then (activeLongWord pick i hi).map (fun x => (x,true))
+      else FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true))))))
+    (hpow : z <:+: rawNatPow v m) :
+    54*rawWeight z <
+      2*positiveWeight (activeLongWord pick i hi) +
+        k.natAbs*weightedLength (pick (gubaState pick i).1 hi).val + k.natAbs := by
+  cases sg with
+  | true =>
+    exact guba_long_period_factor_not_heavy pick i hi v z m k hv hz hpow
+  | false =>
+    change z <:+: FreeGroup.invRev ((activeLongWord pick i hi).map (fun x => (x,true))) at hz
+    have hlong := invRev_infix_of_infix hz
+    rw [FreeGroup.invRev_invRev] at hlong
+    have hperiod := invRev_infix_of_infix hpow
+    rw [rawNatPow_invRev] at hperiod
+    have hv' : rawWeight (FreeGroup.invRev v) ≤
+        weightedLength (pick (gubaState pick i).1 hi).val := by
+      rwa [rawWeight_invRev]
+    have hb := guba_long_period_factor_not_heavy pick i hi
+      (FreeGroup.invRev v) (FreeGroup.invRev z) m k hv' hlong hperiod
+    rwa [rawWeight_invRev] at hb
+
+#print axioms rawNatPow_invRev
+#print axioms guba_signed_long_period_factor_not_heavy
+
 end QuandleResearch.Issue070
