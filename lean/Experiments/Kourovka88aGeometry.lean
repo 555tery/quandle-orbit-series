@@ -7238,4 +7238,68 @@ theorem coefficient_minBad_block_has_other_outlet {D : Type} [Fintype D]
 #print axioms coefficient_minBad_block_has_other_outlet
 
 
+
+/-! ## Metric information supplied by a two-sided quotient relation
+
+The algebraic boundary theorem alone does not give short connectors:
+conjugacy can have an arbitrarily long witness. Retain its actual
+weighted length in the replacement estimate rather than treating
+conjugacy as equality or silently ignoring that length.
+-/
+
+/-- A literal factor of a minimal bad period can be replaced by the
+inverse of the opposite reading conjugated by the actual witness. -/
+theorem minBad_factor_inverse_conjugacy_weight {N : Subgroup F} [N.Normal]
+    {c : F} (hc : MinBad N c) (p u r v : RawWord) (g : F)
+    (hword : c.toWord = p ++ u ++ r)
+    (hrel : FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹ ∈ N) :
+    rawWeight u ≤ rawWeight v + 2 * weightedLength g := by
+  let q := QuotientGroup.mk' N
+  have he : q (FreeGroup.mk u) * q g * q (FreeGroup.mk v) * (q g)⁻¹ = 1 := by
+    have h : q (FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹) = 1 :=
+      (QuotientGroup.eq_one_iff _).mpr hrel
+    simpa only [map_mul,map_inv] using h
+  have hq : q (FreeGroup.mk u) =
+      q (FreeGroup.mk (g.toWord ++ FreeGroup.invRev v ++
+        FreeGroup.invRev g.toWord)) := by
+    simp only [← FreeGroup.mul_mk, ← FreeGroup.inv_mk, FreeGroup.mk_toWord,
+      map_mul, map_inv]
+    calc
+      q (FreeGroup.mk u) =
+          (q (FreeGroup.mk u) * q g * q (FreeGroup.mk v) * (q g)⁻¹) *
+            (q g * (q (FreeGroup.mk v))⁻¹ * (q g)⁻¹) := by group
+      _ = _ := by rw [he,one_mul]
+  have hmin := minBad_factor_weight_min hc p u r
+    (g.toWord ++ FreeGroup.invRev v ++ FreeGroup.invRev g.toWord) hword hq
+  rw [rawWeight_append,rawWeight_append,rawWeight_invRev,rawWeight_invRev] at hmin
+  change rawWeight u ≤ rawWeight v + 2 * rawWeight g.toWord
+  -- Both occurrences of the conjugator are charged with their literal weights.
+  omega
+
+/-- Minimize the actual weighted conjugating word among witnesses
+of the two-block relation. This introduces no new axiom or claim
+that a short geometric bond exists. -/
+theorem exists_minimal_inverse_conjugator_weight (N : Subgroup F)
+    (u v : RawWord)
+    (hex : ∃ g : F, FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹ ∈ N) :
+    ∃ g : F, FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹ ∈ N ∧
+      ∀ h : F, FreeGroup.mk u * h * FreeGroup.mk v * h⁻¹ ∈ N →
+        weightedLength g ≤ weightedLength h := by
+  classical
+  let P : ℕ → Prop := fun n =>
+    ∃ g : F, FreeGroup.mk u * g * FreeGroup.mk v * g⁻¹ ∈ N ∧
+      weightedLength g = n
+  have hP : ∃ n, P n := by
+    obtain ⟨g,hg⟩ := hex
+    exact ⟨weightedLength g,g,hg,rfl⟩
+  obtain ⟨g,hg,hw⟩ := Nat.find_spec hP
+  refine ⟨g,hg,?_⟩
+  intro h hh
+  rw [hw]
+  exact Nat.find_min' hP ⟨h,hh,rfl⟩
+
+#print axioms minBad_factor_inverse_conjugacy_weight
+#print axioms exists_minimal_inverse_conjugator_weight
+
+
 end QuandleResearch.Issue070
