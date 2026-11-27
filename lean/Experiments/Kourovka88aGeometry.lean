@@ -17065,4 +17065,162 @@ theorem gubaType_separating_interior_subfilling
 #print axioms spherical_loop_separating_cut
 #print axioms gubaType_separating_interior_subfilling
 
+
+/-- A literal four-block dart certificate also determines the
+entire based group product, without any assumption on height. -/
+theorem GubaFourBlockRead_eval {D : Type} (read : D → Letter)
+    (bs : List (List D)) (X : List (Fin 2)) (C : F) (k : ℤ)
+    (h : GubaFourBlockRead read bs X C k) :
+    FreeGroup.mk ((bs.flatMap id).map read) =
+      heightRelator (positiveWord X) C k := by
+  obtain ⟨U,V,W,A,hbs,hU,hV,hW,hA⟩ := h
+  rw [hbs]
+  simp only [List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil,
+    List.map_append,hU,hV,hW,hA,← FreeGroup.mul_mk,← FreeGroup.inv_mk,
+    rawIntPow_eval,FreeGroup.mk_toWord]
+  change positiveWord X * (C^k * ((positiveWord X)⁻¹ * (a^k)⁻¹)) =
+    heightRelator (positiveWord X) C k
+  simp only [heightRelator,mul_assoc]
+
+/-- Extract the actual long-side splice from the two four-block
+certificates and the literal paired dart factor. No separately
+supplied prefix walks, quotient identities or aligned positive
+positions are required. The factor must lie in the positive
+long side of one cell and the negative long side of a distinct
+cell. -/
+theorem guba23_no_heavy_actual_opposite_long_blocks
+    (pick : WeightedSelector)
+    (n : ℕ) (w : F) (s : Peiffer.Sequence F (RankHeight n))
+    (hm : GubaTypeMinimalExpression pick (gubaConjugatorChoice pick) n w s)
+    (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w) :
+    let X := gubaConjugatorChoice pick
+    let rows := rankHeightRows pick X n
+    let R := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ (x y c : _) (index index' : Fin s.length)
+      (hi : ∃ a : F, ¬ Good (gubaState pick s[index.val].1.2.1.val).1 a)
+      (hj : ∃ a : F, ¬ Good (gubaState pick s[index'.val].1.2.1.val).1 a)
+      (bs cs : List (List _)) (l U r l' r' : List _),
+      (idx x).val = index.val+1 →
+      (idx y).val = index'.val+1 →
+      ¬ R.rotation.SameCycle x y →
+      R.vertexBoundary x = bs.flatMap id →
+      R.vertexBoundary y = cs.flatMap id →
+      GubaFourBlockRead read bs (activeLongWord pick s[index.val].1.2.1.val hi)
+        (pick (gubaState pick s[index.val].1.2.1.val).1 hi).val s[index.val].1.2.2 →
+      GubaFourBlockRead read cs (activeLongWord pick s[index'.val].1.2.1.val hj)
+        (pick (gubaState pick s[index'.val].1.2.1.val).1 hj).val s[index'.val].1.2.2 →
+      bs[0]? = some (l ++ (U++[c]) ++ r) →
+      cs[2]? = some (l' ++ (((U++[c]).map R.edge).reverse) ++ r') →
+      min (positiveWeight (activeLongWord pick s[index.val].1.2.1.val hi))
+        (positiveWeight (activeLongWord pick s[index'.val].1.2.1.val hj)) <
+        240*10^17*rawWeight ((U++[c]).map read) → False := by
+  classical
+  intro X rows R root read idx x y c index index' hi hj bs cs l U r l' r'
+    hxidx hyidx hxy hxb hyb hread hread' hb hc hheavy
+  let i := s[index.val].1.2.1
+  let j := s[index'.val].1.2.1
+  let k := s[index.val].1.2.2
+  let m := s[index'.val].1.2.2
+  let ds := U++[c]
+  let dt := (ds.map R.edge).reverse
+  have hx : FreeGroup.mk ((R.vertexBoundary x).map read) =
+      rankHeightRel pick X n (i,k) := by
+    rw [hxb,GubaFourBlockRead_eval _ _ _ _ _ hread]
+    exact (guba_rankHeightRel_active pick n i hi k).symm
+  have hy : FreeGroup.mk ((R.vertexBoundary y).map read) =
+      rankHeightRel pick X n (j,m) := by
+    rw [hyb,GubaFourBlockRead_eval _ _ _ _ _ hread']
+    exact (guba_rankHeightRel_active pick n j hj m).symm
+  obtain ⟨U₁,V₁,W₁,A₁,hbs,hU₁,hV₁,hW₁,hA₁⟩ := hread
+  obtain ⟨U₂,V₂,W₂,A₂,hcs,hU₂,hV₂,hW₂,hA₂⟩ := hread'
+  rw [hbs] at hb
+  rw [hcs] at hc
+  change some U₁ = some (l++ds++r) at hb
+  change some W₂ = some (l'++dt++r') at hc
+  have hu : U₁ = l++ds++r := Option.some.inj hb
+  have hv : W₂ = l'++dt++r' := Option.some.inj hc
+  have hxpart : R.vertexBoundary x = (l++ds)++(r++V₁++W₁++A₁) := by
+    rw [hxb,hbs,hu]
+    simp only [List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil,List.append_assoc]
+  let M := U₂++V₂++l'
+  let N := r'++A₂
+  have hypart : R.vertexBoundary y = M++(dt++N) := by
+    rw [hyb,hcs,hv]
+    simp only [M,N,List.flatMap_cons,List.flatMap_nil,id_eq,List.append_nil,List.append_assoc]
+  have hpair := boundaryRibbon_inverse_read rows w s hs ds
+  change dt.map read = FreeGroup.invRev (ds.map read) at hpair
+  rw [hu] at hU₁
+  simp only [List.map_append] at hU₁
+  rw [hv] at hW₂
+  simp only [List.map_append] at hW₂
+  have hback := congrArg FreeGroup.invRev hW₂
+  rw [FreeGroup.invRev_invRev,FreeGroup.invRev_append,FreeGroup.invRev_append,
+    hpair,FreeGroup.invRev_invRev] at hback
+  simp only [List.append_assoc] at hback
+  obtain ⟨p,z,q,hfirst,hp,hz,hq⟩ := read_factor_lift
+    (fun a : Fin 2 => (a,true)) (activeLongWord pick i.val hi)
+      (l.map read) (ds.map read) (r.map read) hU₁.symm
+  have hback' : (activeLongWord pick j.val hj).map (fun a => (a,true)) =
+      (FreeGroup.invRev (r'.map read) ++ ds.map read) ++ FreeGroup.invRev (l'.map read) := by
+    simpa only [List.append_assoc] using hback.symm
+  obtain ⟨p',z',q',hsecond,hp',hz',hq'⟩ := read_factor_lift
+    (fun a : Fin 2 => (a,true)) (activeLongWord pick j.val hj)
+      (FreeGroup.invRev (r'.map read)) (ds.map read)
+      (FreeGroup.invRev (l'.map read)) hback'
+  have hdt : dt.map read = FreeGroup.invRev (z'.map (fun a => (a,true))) := by
+    rw [hpair,hz']
+  have hpre' : l'.map read = FreeGroup.invRev (q'.map (fun a => (a,true))) := by
+    rw [hq',FreeGroup.invRev_invRev]
+  have hM : FreeGroup.mk (M.map read) =
+      positiveWord (activeLongWord pick j.val hj) *
+        ((pick (gubaState pick j.val).1 hj).val)^m * (positiveWord q')⁻¹ := by
+    simp only [M,List.map_append,hU₂,hV₂,hpre',← FreeGroup.mul_mk,
+      ← FreeGroup.inv_mk,rawIntPow_eval,FreeGroup.mk_toWord]
+    rfl
+  have hweight : positiveWeight z = rawWeight (ds.map read) := by
+    rw [positiveWeight_eq_rawWeight_map,hz]
+  have hheavy' : min (positiveWeight (activeLongWord pick i.val hi))
+      (positiveWeight (activeLongWord pick j.val hj)) <
+        240*10^17*positiveWeight z := by rwa [hweight]
+  have hxc : R.rotation.SameCycle x c := by
+    apply (R.mem_vertexBoundary_iff x c).mp
+    rw [hxpart]
+    simp [ds]
+  have hye : R.rotation.SameCycle y (R.edge c) := by
+    apply (R.mem_vertexBoundary_iff y (R.edge c)).mp
+    rw [hypart]
+    simp [dt,ds,List.map_append]
+  have hne : ¬ R.rotation.SameCycle c (R.edge c) := by
+    intro h
+    exact hxy (hxc.trans (h.trans hye.symm))
+  have hic : (idx c).val = index.val+1 := by
+    have h := (disc_sameCycle_iff _ _ _ _).mp hxc
+    change idx x = idx c at h
+    rwa [← h]
+  have hie : (idx (R.edge c)).val = index'.val+1 := by
+    have h := (disc_sameCycle_iff _ _ _ _).mp hye
+    change idx y = idx (R.edge c) at h
+    rwa [← h]
+  have hroot (d : _) (v : Fin s.length) (hv : (idx d).val = v.val+1) :
+      ¬ R.rotation.SameCycle root d := by
+    intro h
+    have he := (boundaryDart_sameVertex_iff rows w s hs hw d).mp h
+    change idx d = boundaryOccurrence s at he
+    rw [he] at hv
+    change 0 = v.val+1 at hv
+    omega
+  exact guba23_no_heavy_direct_long_side_cuts_full_type pick n w s hm hw hs
+    c x y l U (r++V₁++W₁++A₁) M N i j k m index index' hi hj
+    p z q p' z' q' hne (hroot c index hic) (hroot (R.edge c) index' hie)
+    hic rfl hie rfl hfirst hsecond hxpart hypart hp.symm hz.symm hdt
+    hheavy' hx hy hM
+
+#print axioms GubaFourBlockRead_eval
+#print axioms guba23_no_heavy_actual_opposite_long_blocks
+
 end QuandleResearch.Issue070
