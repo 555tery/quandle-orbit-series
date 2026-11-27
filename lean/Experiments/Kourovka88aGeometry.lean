@@ -3929,7 +3929,7 @@ theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
     exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt
   obtain ⟨g,hg⟩ := component_two_boundary_inverse_conjugacy T read N he hET a b hab hne hinside
   obtain ⟨u,rfl⟩ := QuotientGroup.mk'_surjective N g
-  refine ⟨u,(QuotientGroup.eq_one_iff N).mp ?_⟩
+  refine ⟨u,(QuotientGroup.eq_one_iff _).mp ?_⟩
   simp only [map_mul, map_inv]
   exact hg
 
@@ -4013,8 +4013,8 @@ theorem guba19_total_vertex_dart_weight {D : Type} [Fintype D]
       apply Finset.sum_congr rfl
       intro d hd
       have hcyc := (P.mem_vertexBoundary_iff a d).mp (List.mem_toFinset.mp hd)
-      have heq : P.vertexOf d = P.vertexOf a := Quotient.sound hcyc.symm
-      simp only [weight, heq, ribbonVertexPerimeter_at]
+      simp only [weight, ribbonVertexPerimeter_at]
+      rw [ribbon_perimeter_sameCycle P read a d hcyc]
 
 #print axioms ribbon_perimeter_sameCycle
 #print axioms ribbonVertexPerimeter
@@ -4177,6 +4177,101 @@ theorem contractEdge_keep_sameVertex {D : Type} [Fintype D]
 #print axioms contractEdge_peripheral_boundary
 #print axioms contractEdge_peripheral_read
 #print axioms contractEdge_keep_sameVertex
+
+
+/-! ## Finite compression of interior edges
+
+Iterate the actual edge contraction on strictly decreasing finite
+dart types. All surviving edge pairings are inherited from the
+original ribbon. Every original peripheral dart survives, and its
+full ordered peripheral boundary survives as well. The terminal
+condition only excludes non-loop edges between interior vertices:
+deletion of interior loops and contiguity-band compression are
+subsequent, distinct operations.
+-/
+
+theorem exists_interior_edge_compression {D : Type} [Fintype D]
+    (P : RibbonMap D) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality) :
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D),
+      Q.EulerEquality ∧ (P.Connected → Q.Connected) ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) →
+        (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) ∧
+      (∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e))) ∧
+      (∀ d, keep (f d) → keep (f (Q.edge d)) →
+        Q.rotation.SameCycle d (Q.edge d)) := by
+  classical
+  have main : ∀ (n : ℕ) (A : Type) [Fintype A] (R : RibbonMap A)
+      (interior : A → Prop), Fintype.card A = n →
+      (∀ d e, R.rotation.SameCycle d e → (interior d ↔ interior e)) →
+      R.EulerEquality →
+      ∃ (B : Type) (_ : Fintype B) (T : RibbonMap B) (j : B ↪ A),
+        T.EulerEquality ∧ (R.Connected → T.Connected) ∧
+        (∀ d, j (T.edge d) = R.edge (j d)) ∧
+        (∀ d, ¬ interior d → ∃ e, j e = d) ∧
+        (∀ d, ¬ interior (j d) →
+          (T.vertexBoundary d).map j = R.vertexBoundary (j d)) ∧
+        (∀ d e, T.rotation.SameCycle d e → (interior (j d) ↔ interior (j e))) ∧
+        (∀ d, interior (j d) → interior (j (T.edge d)) →
+          T.rotation.SameCycle d (T.edge d)) := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | h n ih =>
+      intro A inst R interior hcard hinv heuler
+      by_cases hex : ∃ a, interior a ∧ interior (R.edge a) ∧
+          ¬ R.rotation.SameCycle a (R.edge a)
+      · obtain ⟨a,ha,ha',hn⟩ := hex
+        let U := R.contractEdge a
+        let inc : R.ContractDart a ↪ A := ⟨Subtype.val,Subtype.val_injective⟩
+        let inside : R.ContractDart a → Prop := fun d => interior d.val
+        have hlt : Fintype.card (R.ContractDart a) < n := by
+          have hh := R.contractEdge_card_darts a
+          omega
+        have hU : U.EulerEquality := R.contractEdge_euler a hn heuler
+        have hI : ∀ d e, U.rotation.SameCycle d e → (inside d ↔ inside e) :=
+          contractEdge_keep_sameVertex R interior hinv a ha ha' hn
+        obtain ⟨B,instB,T,j,hT,hconn,hedge,hsurv,hread,hcycles,hterminal⟩ :=
+          ih (Fintype.card (R.ContractDart a)) hlt (R.ContractDart a)
+            U inside rfl hI hU
+        let f : B ↪ A := j.trans inc
+        refine ⟨B,instB,T,f,hT,?_,?_,?_,?_,?_,?_⟩
+        · intro hc
+          exact hconn (R.contractEdge_connected hc a hn)
+        · intro d
+          change (j (T.edge d)).val = R.edge (j d).val
+          rw [hedge, R.contractEdge_edge_val a]
+        · intro d hd
+          let e : R.ContractDart a := ⟨d,fun h => hd (h ▸ ha),
+            fun h => hd (h ▸ ha')⟩
+          obtain ⟨b,hb⟩ := hsurv e hd
+          exact ⟨b,congrArg Subtype.val hb⟩
+        · intro d hd
+          change (T.vertexBoundary d).map (fun b => (j b).val) =
+            R.vertexBoundary (j d).val
+          calc
+            _ = ((T.vertexBoundary d).map j).map Subtype.val := by
+              rw [List.map_map]
+              rfl
+            _ = (U.vertexBoundary (j d)).map Subtype.val :=
+              congrArg (List.map Subtype.val) (hread d hd)
+            _ = _ := contractEdge_peripheral_boundary R interior hinv a ha ha' (j d) hd
+        · exact hcycles
+        · exact hterminal
+      · refine ⟨A,inst,R,Function.Embedding.refl A,heuler,
+          fun h => h,fun _ => rfl,?_,?_,hinv,?_⟩
+        · intro d _
+          exact ⟨d,rfl⟩
+        · intro d _
+          exact List.map_id _
+        · intro d hd hd'
+          by_contra hn
+          exact hex ⟨d,hd,hd',hn⟩
+  exact main (Fintype.card D) D P keep rfl hkeep hE
+
+#print axioms exists_interior_edge_compression
 
 
 end QuandleResearch.Issue070
