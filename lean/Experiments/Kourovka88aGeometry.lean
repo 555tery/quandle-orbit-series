@@ -1022,4 +1022,116 @@ theorem exists_positive_rankMinimalExpression (pick : WeightedSelector)
 #print axioms rankCount_positiveHeightOccurrence
 #print axioms exists_positive_rankMinimalExpression
 
+
+/-! ## Lift lower-rank corrections into graded replacements
+
+A replacement need only preserve the boundary modulo the lower-rank
+normal subgroup. An actual expression for the discrepancy can then
+be appended without increasing any count at or above the current
+rank. This is the algebraic mechanism needed for a graded surgery.
+-/
+
+/-- Include a lower-rank occurrence in the larger rank interval. -/
+def liftRankOccurrence {j n : ℕ} (hjn : j ≤ n)
+    (x : Peiffer.Occurrence F (RankHeight j)) :
+    Peiffer.Occurrence F (RankHeight n) :=
+  ((x.1.1,(⟨x.1.2.1.val,lt_of_lt_of_le x.1.2.1.isLt hjn⟩,x.1.2.2)),x.2)
+
+theorem liftRankOccurrence_term (pick : WeightedSelector)
+    (X : ConjugatorChoice) {j n : ℕ} (hjn : j ≤ n)
+    (x : Peiffer.Occurrence F (RankHeight j)) :
+    Peiffer.term (rankHeightRel pick X n) (liftRankOccurrence hjn x) =
+      Peiffer.term (rankHeightRel pick X j) x := by
+  rfl
+
+theorem liftRankOccurrence_evaluation (pick : WeightedSelector)
+    (X : ConjugatorChoice) {j n : ℕ} (hjn : j ≤ n)
+    (s : Peiffer.Sequence F (RankHeight j)) :
+    Peiffer.evaluation (rankHeightRel pick X n) (s.map (liftRankOccurrence hjn)) =
+      Peiffer.evaluation (rankHeightRel pick X j) s := by
+  induction s with
+  | nil => rfl
+  | cons x xs ih =>
+    change Peiffer.term (rankHeightRel pick X n) (liftRankOccurrence hjn x) *
+        Peiffer.evaluation (rankHeightRel pick X n) (xs.map (liftRankOccurrence hjn)) =
+      Peiffer.term (rankHeightRel pick X j) x *
+        Peiffer.evaluation (rankHeightRel pick X j) xs
+    rw [liftRankOccurrence_term, ih]
+
+theorem rankCount_liftRankOccurrence_zero {j n : ℕ} (hjn : j ≤ n)
+    (s : Peiffer.Sequence F (RankHeight j)) (k : ℕ) (hjk : j ≤ k) :
+    rankCount (s.map (liftRankOccurrence hjn)) k = 0 := by
+  induction s with
+  | nil => rfl
+  | cons x xs ih =>
+    have hne : (liftRankOccurrence hjn x).1.2.1.val ≠ k := by
+      change x.1.2.1.val ≠ k
+      exact ne_of_lt (lt_of_lt_of_le x.1.2.1.isLt hjk)
+    unfold rankCount at ih ⊢
+    simpa only [List.map_cons, List.filter_cons, hne, decide_false, Bool.false_eq_true,
+      if_false] using ih
+
+/-- Every lower-stage kernel element can be filled using only
+occurrences strictly below the specified rank. -/
+theorem exists_lowerRank_filling (pick : WeightedSelector)
+    (X : ConjugatorChoice) {j n : ℕ} (hjn : j ≤ n) (w : F)
+    (hw : w ∈ weightedHeightStage pick X j) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      Peiffer.evaluation (rankHeightRel pick X n) s = w ∧
+      ∀ k, j ≤ k → rankCount s k = 0 := by
+  obtain ⟨s,hs⟩ := exists_minimal_rankHeight_expression pick X j w hw
+  refine ⟨s.map (liftRankOccurrence hjn), ?_, ?_⟩
+  · rw [liftRankOccurrence_evaluation]
+    exact hs.1
+  · intro k hk
+    exact rankCount_liftRankOccurrence_zero hjn s k hk
+
+/-- Graded reductions are impossible even when the proposed block
+replacement agrees with the original block only modulo lower ranks.
+The correction is explicitly filled by a finite lower-rank expression. -/
+theorem rankMinimal_block_no_reduction_mod_lower (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (p b r t : Peiffer.Sequence F (RankHeight n))
+    (hs : RankMinimalExpression pick X n w (p ++ b ++ r))
+    (j : ℕ) (hj : j < n)
+    (hmod : (Peiffer.evaluation (rankHeightRel pick X n) t)⁻¹ *
+      Peiffer.evaluation (rankHeightRel pick X n) b ∈ weightedHeightStage pick X j)
+    (habove : ∀ k, j < k → k < n → rankCount b k = rankCount t k)
+    (hstrict : rankCount t j < rankCount b j) : False := by
+  obtain ⟨q,hq,hzero⟩ := exists_lowerRank_filling pick X hj.le _ hmod
+  have he : Peiffer.evaluation (rankHeightRel pick X n) b =
+      Peiffer.evaluation (rankHeightRel pick X n) (t ++ q) := by
+    rw [peiffer_evaluation_append, hq]
+    group
+  apply rankMinimal_block_no_reduction pick X n w p b r (t ++ q)
+    hs he j hj
+  · intro k hjk hkn
+    rw [rankCount_append, hzero k hjk.le, add_zero]
+    exact habove k hjk hkn
+  · rw [rankCount_append, hzero j (le_refl j), add_zero]
+    exact hstrict
+
+/-- Choose an actual marked spherical ribbon from a positive,
+rank-minimal expression, retaining its complete rank profile. -/
+theorem exists_rankMinimal_ribbon_expression (pick : WeightedSelector)
+    (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (hw : w ∈ weightedHeightStage pick X n) :
+    ∃ s : Peiffer.Sequence F (RankHeight n),
+      RankMinimalExpression pick X n w s ∧
+      (∀ x ∈ s, x.2 = true) ∧
+      ∃ he : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w,
+        (boundaryRibbon (rankHeightRows pick X n) w s he).EulerEquality := by
+  obtain ⟨s,hs,hpos⟩ := exists_positive_rankMinimalExpression pick X n w hw
+  have he : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w := by
+    simpa only [rankHeightRows_eval] using hs.1
+  exact ⟨s,hs,hpos,he,boundaryRibbon_euler _ w s he⟩
+
+#print axioms liftRankOccurrence
+#print axioms liftRankOccurrence_term
+#print axioms liftRankOccurrence_evaluation
+#print axioms rankCount_liftRankOccurrence_zero
+#print axioms exists_lowerRank_filling
+#print axioms rankMinimal_block_no_reduction_mod_lower
+#print axioms exists_rankMinimal_ribbon_expression
+
 end QuandleResearch.Issue070
