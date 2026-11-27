@@ -1,0 +1,103 @@
+name: Erdos 142 leading constant
+on:
+  push:
+    branches: ['lean/erdos142-leading-constant']
+    paths: ['lean/**', '.github/workflows/erdos142-leading-constant.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: erdos142-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  geometry:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: lean
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install sandbox and Lean
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify sandbox and bundled kernels
+        run: |
+          set -euo pipefail
+          lean --version
+          lake --version
+          bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev /bin/true
+          sysroot="$(lean --print-prefix)"
+          for exe in leanexport leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
+            test -x "$sysroot/bin/$exe"
+          done
+      - run: lake update
+      - run: lake exe cache get
+      - name: Compile geometric checkpoint
+        run: |
+          set -euo pipefail
+          lake build QuandleResearch.Proofs.Erdos142.Geometry 2>&1 | tee erdos142-build.log
+      - name: Generate exact audit and comparator targets
+        run: |
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          module = "QuandleResearch.Proofs.Erdos142.Geometry"
+          src = Path(module.replace(".", "/") + ".lean").read_text()
+          names = re.findall(r"^(theorem|lemma|def) (\w+)", src, re.M)
+          assert names and len({n for _, n in names}) == len(names)
+          qual = lambda n: "QuandleResearch.Erdos142." + n
+          Path("Erdos142Audit.lean").write_text("import " + module + "\n" + "\n".join("#print axioms " + qual(n) for _, n in names) + "\n")
+          Path("erdos142-comparator.json").write_text(json.dumps({
+              "challenge_module": module,
+              "solution_module": module,
+              "theorem_names": [qual(n) for k, n in names if k != "def"],
+              "definition_names": [qual(n) for k, n in names if k == "def"],
+              "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"]
+          }, indent=2))
+          PY
+      - name: Axiom and warning audit
+        run: |
+          set -euo pipefail
+          lake env lean Erdos142Audit.lean 2>&1 | tee erdos142-axioms.log
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          config = json.loads(Path("erdos142-comparator.json").read_text())
+          allowed = set(config["permitted_axioms"])
+          ansi = re.compile(r"\x1b\[[0-9;]*m")
+          logs = [ansi.sub("", Path(f).read_text()) for f in ("erdos142-build.log", "erdos142-axioms.log")]
+          for line in "\n".join(logs).splitlines():
+              if "warning:" in line.lower():
+                  assert re.search(r"imports `[^\x60]+` from package `mathlib`, which is designed for use with the module system; consider adding `module` to the start of this file$", line), line
+          for name in config["theorem_names"] + config["definition_names"]:
+              match = re.search("'" + re.escape(name) + r"' depends on axioms:\s*\[([^\]]*)\]", logs[1])
+              if match:
+                  used = {s.strip() for s in match.group(1).split(",") if s.strip()}
+                  assert used <= allowed, (name, used - allowed)
+              else:
+                  assert "'" + name + "' does not depend on any axioms" in logs[1], name
+          print("All audited declarations use only standard permitted axioms.")
+          PY
+      - name: Replay all declarations with six kernels
+        run: |
+          set -euo pipefail
+          lake comparator --config erdos142-comparator.json --paranoid 2>&1 | tee erdos142-paranoid.log
+          for kernel in "Lean default" "Lean paranoid" lean4lean nanoda con-leche con-ron; do
+            grep -F "$kernel kernel accepts the solution" erdos142-paranoid.log
+          done
+          grep -F "Your solution is okay!" erdos142-paranoid.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: erdos142-audit
+          path: |
+            lean/erdos142-build.log
+            lean/erdos142-axioms.log
+            lean/erdos142-comparator.json
+            lean/erdos142-paranoid.log
+          if-no-files-found: warn
