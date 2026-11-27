@@ -18768,4 +18768,176 @@ theorem guba_mixed_factor_light_at_larger_rank (pick : WeightedSelector)
 #print axioms guba_mixed_factor_not_heavy_at_dominating_rank
 #print axioms guba_mixed_factor_light_at_larger_rank
 
+
+/-- A refined Euler charge for a connected spherical ribbon:
+if the discarded vertices form an independent set, their nonbigon
+departures alone satisfy the sharper bound 2V-4. Bigon faces
+pay one unit at each dart; every other face contains at least
+two retained darts. No label or small-cancellation premise. -/
+theorem ribbon_independent_low_end_bound {D : Type} [Fintype D]
+    (P : RibbonMap D) (z : D) (low : Finset P.Vertex)
+    (hc : P.Connected) (hE : P.EulerEquality)
+    (hmono : ∀ d, P.face d ≠ d)
+    (hind : ∀ d, P.vertexOf d ∈ low → P.vertexOf (P.edge d) ∉ low) :
+    (∑ v ∈ low, ribbonVertexEndCount P v) + 4 ≤
+      2 * Fintype.card P.Vertex := by
+  classical
+  let charge : D → ℕ := fun d =>
+    if P.face (P.face d) = d then 1 else
+      if P.vertexOf d ∈ low then 0 else 1
+  let loss : D → ℕ := fun d =>
+    if P.vertexOf d ∈ low then ribbonEndIndicator P d else 0
+  have hstep (d : D) : P.vertexOf (P.face d) = P.vertexOf (P.edge d) := by
+    rw [RibbonMap.face_apply]
+    apply Quotient.sound
+    have h := Equiv.Perm.sameCycle_apply_left.mpr
+      (Equiv.Perm.SameCycle.refl P.rotation (P.rotation.symm (P.edge d)))
+    simpa only [Equiv.apply_symm_apply] using h.symm
+  have hnext (d : D) (hd : P.vertexOf d ∈ low) :
+      P.vertexOf (P.face d) ∉ low := by
+    rw [hstep]
+    exact hind d hd
+  have hfaceStep (d : D) : P.faceOf (P.face d) = P.faceOf d :=
+    Quotient.sound (Equiv.Perm.sameCycle_apply_left.mpr (.refl _ _))
+  have hface : ∀ f : P.Face,
+      2 ≤ ∑ d ∈ Finset.univ.filter (fun d => P.faceOf d = f), charge d := by
+    intro f
+    obtain ⟨a,rfl⟩ := Quotient.exists_rep f
+    let S := Finset.univ.filter (fun d => P.faceOf d = P.faceOf a)
+    change 2 ≤ ∑ d ∈ S, charge d
+    have hs0 : a ∈ S := by simp [S]
+    have hs1 : P.face a ∈ S := by simp [S,hfaceStep]
+    have hs2 : P.face (P.face a) ∈ S := by simp [S,hfaceStep]
+    have hs3 : P.face (P.face (P.face a)) ∈ S := by simp [S,hfaceStep]
+    have pay (d e : D) (hd : d ∈ S) (he : e ∈ S) (hne : d ≠ e)
+        (h1 : charge d = 1) (h2 : charge e = 1) :
+        2 ≤ ∑ x ∈ S, charge x := by
+      have hsub : ({d,e} : Finset D) ⊆ S := by
+        intro x hx
+        simp only [Finset.mem_insert,Finset.mem_singleton] at hx
+        rcases hx with rfl | rfl <;> assumption
+      have hle := Finset.sum_le_sum_of_subset_of_nonneg hsub
+        (f := charge) (fun _ _ _ => Nat.zero_le _)
+      rw [Finset.sum_pair hne,h1,h2] at hle
+      exact hle
+    have high (d : D) (hd : P.vertexOf d ∉ low) : charge d = 1 := by
+      simp [charge,hd]
+    by_cases hbig : P.face (P.face a) = a
+    · apply pay a (P.face a) hs0 hs1 (Ne.symm (hmono a))
+      · simp [charge,hbig]
+      · have h := congrArg P.face hbig
+        simp [charge,h]
+    · by_cases ha : P.vertexOf a ∈ low
+      · have h1 := hnext a ha
+        by_cases h2 : P.vertexOf (P.face (P.face a)) ∈ low
+        · apply pay (P.face a) (P.face (P.face (P.face a))) hs1 hs3
+          · intro he
+            exact hbig (P.face.injective he).symm
+          · exact high _ h1
+          · exact high _ (hnext _ h2)
+        · exact pay (P.face a) (P.face (P.face a)) hs1 hs2
+            (Ne.symm (hmono (P.face a))) (high _ h1) (high _ h2)
+      · by_cases h1 : P.vertexOf (P.face a) ∈ low
+        · exact pay a (P.face (P.face a)) hs0 hs2 (Ne.symm hbig)
+            (high _ ha) (high _ (hnext _ h1))
+        · exact pay a (P.face a) hs0 hs1 (Ne.symm (hmono a))
+            (high _ ha) (high _ h1)
+  have hsum : 2 * Fintype.card P.Face ≤ ∑ d : D, charge d := by
+    rw [← Finset.sum_fiberwise Finset.univ P.faceOf charge]
+    calc
+      _ = ∑ _f : P.Face, (2 : ℕ) := by simp [Nat.mul_comm]
+      _ ≤ _ := Finset.sum_le_sum (fun f _ => hface f)
+  have htotal : (∑ d : D, charge d) + (∑ d : D, loss d) = Fintype.card D := by
+    rw [← Finset.sum_add_distrib]
+    calc
+      _ = ∑ _d : D, (1 : ℕ) := by
+        apply Finset.sum_congr rfl
+        intro d _
+        by_cases hb : P.face (P.face d) = d <;>
+          by_cases hl : P.vertexOf d ∈ low <;>
+          simp [charge,loss,ribbonEndIndicator,hb,hl]
+      _ = _ := by simp
+  have hloss : (∑ d : D, loss d) = ∑ v ∈ low, ribbonVertexEndCount P v := by
+    rw [← Finset.sum_fiberwise Finset.univ P.vertexOf loss]
+    have heq : ∀ v : P.Vertex,
+        (∑ d ∈ Finset.univ.filter (fun d => P.vertexOf d = v), loss d) =
+          if v ∈ low then ribbonVertexEndCount P v else 0 := by
+      intro v
+      by_cases hv : v ∈ low
+      · rw [if_pos hv]
+        unfold ribbonVertexEndCount
+        apply Finset.sum_congr rfl
+        intro d hd
+        have he := (Finset.mem_filter.mp hd).2
+        simp [loss,he,hv]
+      · rw [if_neg hv]
+        apply Finset.sum_eq_zero
+        intro d hd
+        have he := (Finset.mem_filter.mp hd).2
+        simp [loss,he,hv]
+    simp only [heq]
+    rw [← Finset.sum_filter]
+    simp
+  rw [hloss] at htotal
+  have hd := P.card_darts
+  have hcc := P.card_components_of_connected hc z
+  change Fintype.card P.Vertex + Fintype.card P.Face =
+    Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
+  omega
+
+/-- If the compressed low-rank vertices are independent and each
+has at least three nonbigon departures, there exists a retained
+nonmarked vertex with at most eleven departures. The low-rank
+regions are charged explicitly rather than ignored in Euler's
+formula. Degree-two region suppression remains a separate task. -/
+theorem ribbon_retained_low_end_vertex {D : Type} [Fintype D]
+    (P : RibbonMap D) (z : D) (low : Finset P.Vertex)
+    (hc : P.Connected) (hE : P.EulerEquality)
+    (hmono : ∀ d, P.face d ≠ d)
+    (hind : ∀ d, P.vertexOf d ∈ low → P.vertexOf (P.edge d) ∉ low)
+    (hroot : P.vertexOf z ∉ low)
+    (hdeg : ∀ v ∈ low, 3 ≤ ribbonVertexEndCount P v) :
+    ∃ v : P.Vertex, v ∉ low ∧ v ≠ P.vertexOf z ∧
+      ribbonVertexEndCount P v ≤ 11 := by
+  classical
+  let high := (Finset.univ : Finset P.Vertex) \ low
+  have hlow := ribbon_independent_low_end_bound P z low hc hE hmono hind
+  have htot := ribbon_nonbigon_dart_bound P z hc hE hmono
+  rw [← ribbon_vertex_end_sum P] at htot
+  have hcount : low.card + high.card = Fintype.card P.Vertex := by
+    have h := Finset.card_sdiff (Finset.subset_univ low)
+    change high.card = Fintype.card P.Vertex - low.card at h
+    have hs : low.card ≤ Fintype.card P.Vertex := Finset.card_le_univ _
+    omega
+  have hsplit : (∑ v ∈ low, ribbonVertexEndCount P v) +
+      (∑ v ∈ high, ribbonVertexEndCount P v) =
+      ∑ v : P.Vertex, ribbonVertexEndCount P v := by
+    have h := Finset.sum_sdiff (f := ribbonVertexEndCount P) (Finset.subset_univ low)
+    change (∑ v ∈ high, ribbonVertexEndCount P v) +
+      (∑ v ∈ low, ribbonVertexEndCount P v) = _ at h
+    omega
+  have hmin : 3*low.card ≤ ∑ v ∈ low, ribbonVertexEndCount P v := by
+    calc
+      _ = ∑ _v ∈ low, (3 : ℕ) := by simp [Nat.mul_comm]
+      _ ≤ _ := Finset.sum_le_sum hdeg
+  have hroot' : P.vertexOf z ∈ high := by simp [high,hroot]
+  by_contra! hn
+  have hother : 12*(high.erase (P.vertexOf z)).card ≤
+      ∑ v ∈ high.erase (P.vertexOf z), ribbonVertexEndCount P v := by
+    calc
+      _ = ∑ _v ∈ high.erase (P.vertexOf z), (12 : ℕ) := by simp [Nat.mul_comm]
+      _ ≤ _ := Finset.sum_le_sum (fun v hv => by
+        have hm := Finset.mem_erase.mp hv
+        have hv' : v ∉ low := (Finset.mem_sdiff.mp hm.2).2
+        have hh := hn v hv' hm.1
+        omega)
+  have hs : (∑ v ∈ high.erase (P.vertexOf z), ribbonVertexEndCount P v) ≤
+      ∑ v ∈ high, ribbonVertexEndCount P v :=
+    Finset.sum_le_sum_of_subset (Finset.erase_subset _ _)
+  have hcard := Finset.card_erase_add_one hroot'
+  omega
+
+#print axioms ribbon_independent_low_end_bound
+#print axioms ribbon_retained_low_end_vertex
+
 end QuandleResearch.Issue070
