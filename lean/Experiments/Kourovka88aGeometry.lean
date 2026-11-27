@@ -13595,4 +13595,92 @@ theorem oneDart_bigon_run_has_end {D : Type} [Fintype D]
 #print axioms ribbon_no_closed_bigon_belt
 #print axioms oneDart_bigon_run_has_end
 
+
+/-- Every actual interior vertex, at every corner, has the large
+raw perimeter already proved for nonempty active rows. In contrast
+to guba_boundary_component_large_row, no rank restriction or
+choice of a high-rank witness is needed. -/
+theorem guba_rankRibbon_interior_large
+    (pick : WeightedSelector) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w) :
+    let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
+    let P := boundaryRibbon rows w s hs
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ d, discOccurrence (markedRows rows w) (boundaryIdentity s) d ≠
+      boundaryOccurrence s →
+      5 * (2 + 2 * 10^80) < 4 * rawWeight ((P.vertexBoundary d).map read) := by
+  classical
+  intro rows P read d hd
+  obtain ⟨idx,k,rfl⟩ := exists_discAt (markedRows rows w) (boundaryIdentity s) d
+  rw [discOccurrence_at] at hd
+  have hlabel : ∃ i : RankHeight n, (boundaryIdentity s)[idx].1.2 = some i := by
+    obtain ⟨v,hv⟩ := idx
+    cases v with
+    | zero => exact (hd (Fin.ext rfl)).elim
+    | succ m =>
+      have hm : m < s.length := by simpa [boundaryIdentity] using hv
+      refine ⟨s[m].1.2,?_⟩
+      simp [boundaryIdentity,markOccurrence]
+  obtain ⟨i,hi⟩ := hlabel
+  have hp : 0 < (orientedWord
+      (markedRows rows w (boundaryIdentity s)[idx].1.2)
+      (boundaryIdentity s)[idx].2).length := Nat.zero_lt_of_lt k.isLt
+  have hrow : rows i ≠ [] := by
+    intro hn
+    have h := hp
+    rw [orientedWord_length,hi] at h
+    simp [markedRows,hn] at h
+  let z := discAt (markedRows rows w) (boundaryIdentity s) idx ⟨0,hp⟩
+  have hcyc : P.rotation.SameCycle z
+      (discAt (markedRows rows w) (boundaryIdentity s) idx k) := by
+    change (discRotation (markedRows rows w) (boundaryIdentity s)).SameCycle z _
+    rw [disc_sameCycle_iff]
+    simp only [z,discOccurrence_at]
+  rw [ribbon_vertex_weight_sameCycle P read z _ hcyc]
+  change 5 * (2 + 2 * 10^80) <
+    4 * rawWeight (((boundaryRibbon rows w s hs).vertexBoundary
+      (discAt (markedRows rows w) (boundaryIdentity s) idx ⟨0,hp⟩)).map
+      (discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)))
+  rw [boundaryRibbon_interior_read rows w s hs idx i hi hp,orientedWord_rawWeight]
+  exact guba_rankHeightRows_large pick n i hrow
+
+/-- Close the non-singleton hypothesis of the direct-strip
+termination theorem using the actual row perimeter, not an
+additional assumption. This is valid already before the
+endpoint normalization of the selected periods. -/
+theorem guba_marked_leaf_direct_runs_end
+    (pick : WeightedSelector) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick (gubaConjugatorChoice pick) n i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick (gubaConjugatorChoice pick) n
+    let P := boundaryRibbon rows w s hs
+    let z := boundaryDart rows w s hw
+    P.Connected → P.vertexBoundary z = [z] →
+      ∀ d, ∃ e, P.rotation.SameCycle d e ∧ P.face (P.face e) ≠ e := by
+  classical
+  intro rows P z hc hz d
+  apply oneDart_bigon_run_has_end P hc z hz _ d
+  intro hf
+  have hn := (oneDart_leaf P z hz).2.2
+  have hidx : discOccurrence (markedRows rows w) (boundaryIdentity s) (P.edge z) ≠
+      boundaryOccurrence s := by
+    intro he
+    exact hn ((boundaryDart_sameVertex_iff rows w s hs hw (P.edge z)).mpr he)
+  have hlarge := guba_rankRibbon_interior_large pick n w s hs (P.edge z) hidx
+  let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+  change 5 * (2 + 2 * 10^80) <
+    4 * rawWeight ((P.vertexBoundary (P.edge z)).map read) at hlarge
+  rw [fixed_vertex_read_singleton P (P.edge z) hf,List.map_cons,List.map_nil] at hlarge
+  have hweight : rawWeight [read (P.edge z)] ≤ 10^80 := by
+    rcases read (P.edge z) with ⟨i,sg⟩
+    fin_cases i <;> norm_num [rawWeight,letterWeight]
+  omega
+
+#print axioms guba_rankRibbon_interior_large
+#print axioms guba_marked_leaf_direct_runs_end
+
 end QuandleResearch.Issue070
