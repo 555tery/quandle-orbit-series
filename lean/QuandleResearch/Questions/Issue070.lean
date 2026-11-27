@@ -63,8 +63,8 @@ theorem good_iff_quotient (N : Subgroup F) [N.Normal] (w : F) :
     obtain ⟨x, rfl⟩ := QuotientGroup.mk'_surjective N q
     refine ⟨x, k, (QuotientGroup.eq_one_iff _).mp ?_⟩
     change QuotientGroup.mk' N (x * w * x⁻¹ * (a ^ k)⁻¹) = 1
-    rw [map_mul, map_mul, map_mul, map_inv, map_inv, map_zpow, hq]
-    simp
+    simp only [map_mul, map_inv, map_zpow]
+    rw [hq, mul_inv_cancel]
 
 /-- Union of an increasing sequence, expressed as a Mathlib supremum. -/
 theorem mem_limit_iff (N : ℕ → Subgroup F) (hN : Monotone N) (w : F) :
@@ -97,9 +97,11 @@ theorem answer_of_chain (N : ℕ → Subgroup F) (hN : Monotone N)
   refine ⟨F ⧸ L, inferInstance, ?_, inferInstance, q a, ?_⟩
   · intro hc
     letI : IsCyclic (F ⧸ L) := hc
+    letI : CommGroup (F ⧸ L) := IsCyclic.commGroup
     apply hcomm
     change q (a * b * a⁻¹ * b⁻¹) = 1
-    rw [map_mul, map_mul, map_mul, map_inv, map_inv, mul_comm (q a) (q b)]
+    simp only [map_mul, map_inv]
+    rw [mul_comm (q a) (q b)]
     group
   · intro g
     obtain ⟨w, rfl⟩ := QuotientGroup.mk'_surjective L g
