@@ -16883,4 +16883,186 @@ theorem activeLongWord_paired_signed_factor_alignment
 
 #print axioms activeLongWord_paired_signed_factor_alignment
 
+
+/-! ## Self-paired long sides: a genuine smaller-type subfilling
+
+The edge joining two corners of the same cell must be treated as
+a loop, not as the distinct-cell splice. A cut at rotation(c)
+and edge(c) separates the sphere because their preceding darts
+lie in one face cycle. The isolated component omits the original
+cell and contains only intact original occurrences. This is a
+strict full-type descent, independent of the ranks inside it.
+-/
+/-- Proper indexed subfamilies strictly decrease full Guba type,
+even when their boundary word changes. -/
+theorem gubaType_proper_indexed_subfamily {n : ℕ}
+    (s t : Peiffer.Sequence F (RankHeight n))
+    (l : List (Fin s.length)) (hl : l.Nodup)
+    (i : Fin s.length) (hi : i ∉ l)
+    (hcounts : ∀ j, gubaTypeCoordinate t j =
+      gubaTypeCoordinate (l.map (fun i => s[i.val])) j) :
+    descendingCountLT (2*n) gubaTypeCoordinate t s := by
+  classical
+  have hsub : List.Subperm l (List.finRange s.length) :=
+    hl.subperm (fun x _ => List.mem_finRange x)
+  obtain ⟨u,hu,hlsub⟩ := List.subperm_iff.mp hsub
+  obtain ⟨r,hr⟩ := hlsub.exists_perm_append
+  have hp : List.Perm (List.finRange s.length) (l ++ r) := hu.symm.trans hr
+  have hir : i ∈ r := by
+    have hm := hp.mem_iff.mp (List.mem_finRange i)
+    exact (List.mem_append.mp hm).resolve_left hi
+  let get : Fin s.length → Peiffer.Occurrence F (RankHeight n) := fun k => s[k.val]
+  have hall : (List.finRange s.length).map get = s := by
+    rw [← List.ofFn_eq_map]
+    exact List.ofFn_getElem
+  have hperm : List.Perm s (l.map get ++ r.map get) := by
+    have h := hp.map get
+    rw [hall,List.map_append] at h
+    exact h
+  have hsplit (k : ℕ) : gubaTypeCoordinate s k =
+      gubaTypeCoordinate t k + gubaTypeCoordinate (r.map get) k := by
+    calc
+      _ = gubaTypeCoordinate (l.map get ++ r.map get) k :=
+        gubaTypeCoordinate_perm hperm k
+      _ = _ := by rw [gubaTypeCoordinate_append,hcounts k]
+  have hpositive : 0 < rankCount (r.map get) (get i).1.2.1.val := by
+    unfold rankCount
+    apply List.length_pos_iff_exists_mem.mpr
+    refine ⟨get i,List.mem_filter.mpr ⟨List.mem_map.mpr ⟨i,hir,rfl⟩,?_⟩⟩
+    simp
+  have hlt : descendingCountLT (2*n) gubaTypeCoordinate t s := by
+    apply descending_count_lt_of_pointwise
+    · intro k _
+      have h := hsplit k
+      omega
+    · let k := 2*(get i).1.2.1.val+1
+      have hk : k < 2*n := by
+        have hh := (get i).1.2.1.isLt
+        dsimp only [k]
+        omega
+      refine ⟨k,hk,?_⟩
+      have he := hsplit k
+      have hpos : 0 < gubaTypeCoordinate (r.map get) k := by
+        dsimp only [k]
+        rw [gubaTypeCoordinate_count]
+        exact hpositive
+      omega
+  exact hlt
+
+
+/-- The same-cycle endpoints of a loop can be separated by
+cutting at the two corners bordering the loop on one side. -/
+theorem spherical_loop_separating_cut {D : Type} [Fintype D]
+    (P : RibbonMap D) (hE : P.EulerEquality) (c : D)
+    (hloop : P.rotation.SameCycle c (P.edge c))
+    (hne : P.rotation c ≠ P.edge c) :
+    ¬ (P.vertexCut (P.rotation c) (P.edge c)).SameComponent
+      (P.rotation c) (P.edge c) := by
+  have hsame : P.rotation.SameCycle (P.rotation c) (P.edge c) :=
+    (Equiv.Perm.sameCycle_apply_left.mpr hloop)
+  apply (spherical_vertexCut_separates_iff P hE _ _ hne hsame).mpr
+  rw [Equiv.symm_apply_apply]
+  change P.face.SameCycle c (P.face c)
+  exact Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+
+/-- A component of a separating interior cut, not containing
+the original exterior, gives a genuine subfilling with strict
+full-type descent. No assumption on the ranks of the retained
+cells is needed. -/
+theorem gubaType_separating_interior_subfilling
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hs : Peiffer.evaluation (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (hw : w ≠ 1) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let root := boundaryDart rows w s hw
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ (a b c : _) (i : Fin s.length),
+      a ≠ b → P.rotation.SameCycle a b →
+      (idx a).val = i.val+1 →
+      c ∈ [a,b] →
+      let Q := P.vertexCut a b
+      ¬ Q.SameComponent a b → ¬ Q.SameComponent c root →
+      ∃ l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)),
+        (l.map Prod.fst).Nodup ∧
+        i ∉ l.map Prod.fst ∧
+        (∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2) ∧
+        Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+          (FreeGroup.mk ((Q.vertexBoundary c).map read))⁻¹ ∧
+        descendingCountLT (2*n) gubaTypeCoordinate (l.map Prod.snd) s := by
+  classical
+  intro rows P root idx read a b c i hne hsame hi hc Q hsep hroot
+  let tau := Q.rotation
+  have hQ : P.withRotation tau = Q := by
+    apply RibbonMap.ext <;> rfl
+  have href : SplitRefinement P.rotation tau :=
+    SplitRefinement.single P.rotation a b hne hsame
+  have hint : ∀ d, (P.withRotation tau).SameComponent c d →
+      ¬ tau.SameCycle c d →
+      idx d ≠ boundaryOccurrence s ∧
+      (P.withRotation tau).vertexBoundary d = P.vertexBoundary d := by
+    intro d hcd hnot
+    rw [hQ] at hcd ⊢
+    obtain ⟨houtside,hread⟩ := separating_vertexCut_intact P a b hne hsame
+      hsep c hc d hcd hnot
+    refine ⟨?_,hread⟩
+    intro hidx
+    have hrd := (boundaryDart_sameVertex_iff rows w s hs hw d).mpr hidx
+    have hrootoutside : ¬ P.rotation.SameCycle root a := by
+      intro h
+      have hidx' : idx a = boundaryOccurrence s :=
+        (boundaryDart_sameVertex_iff rows w s hs hw a).mp h
+      have hz : (boundaryOccurrence s).val = 0 := rfl
+      rw [hidx',hz] at hi
+      omega
+    have hkeep := vertexCut_other_vertex_read P a b root
+      hrootoutside (fun h => hrootoutside (h.trans hsame.symm))
+    have hrd' : Q.rotation.SameCycle root d :=
+      (sameCycle_iff_of_vertexBoundary_eq P Q root d hkeep).mpr hrd
+    exact hroot (Relation.EqvGen.trans _ _ _ hcd
+      (Q.component_of_vertexCycle hrd'.symm))
+  obtain ⟨l,hn,hl,_,he⟩ := guba23_refined_component_exact_occurrences
+    rows w s hs tau c href hint
+  have hio : i ∉ l.map Prod.fst := by
+    intro hm
+    obtain ⟨t,ht,hti⟩ := List.mem_map.mp hm
+    obtain ⟨_,d,hcd,hnot,hd⟩ := hl t ht
+    rw [hQ] at hcd
+    have hda : idx a = idx d := Fin.ext (by rw [hi,hd,hti])
+    have hcycle : P.rotation.SameCycle a d := (disc_sameCycle_iff _ _ _ _).mpr hda
+    exact (separating_vertexCut_intact P a b hne hsame hsep c hc d hcd hnot).1 hcycle
+  have hprofile (u : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+      (hu : ∀ t ∈ u, t.2.1.2 = s[t.1.val].1.2) (k : ℕ) :
+      gubaTypeCoordinate (u.map Prod.snd) k =
+        gubaTypeCoordinate ((u.map Prod.fst).map (fun i => s[i.val])) k := by
+    induction u with
+    | nil => rfl
+    | cons x xs ih =>
+      change gubaTypeCoordinate ([x.2] ++ xs.map Prod.snd) k =
+        gubaTypeCoordinate ([s[x.1.val]] ++ (xs.map Prod.fst).map (fun i => s[i.val])) k
+      rw [gubaTypeCoordinate_append,gubaTypeCoordinate_append,
+        ih (fun t ht => hu t (List.mem_cons_of_mem _ ht))]
+      have hlabel := hu x List.mem_cons_self
+      have hrank := congrArg (fun j : RankHeight n => j.1.val) hlabel
+      have hheight := congrArg (fun j : RankHeight n => j.2.natAbs) hlabel
+      by_cases h : k%2 = 0
+      · simp only [gubaTypeCoordinate,h,ite_true,rankHeightSum,List.filter_cons,
+          hrank,List.filter_nil]
+        split <;> simp [hheight]
+      · simp only [gubaTypeCoordinate,h,ite_false,rankCount_singleton,hrank]
+  have hlab : ∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2 := fun t ht => (hl t ht).1
+  have heval : Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+      (FreeGroup.mk ((Q.vertexBoundary c).map read))⁻¹ := by
+    rw [hQ] at he
+    simpa only [rows,rankHeightRows_eval] using he
+  exact ⟨l,hn,hio,hlab,heval,
+    gubaType_proper_indexed_subfamily s (l.map Prod.snd) (l.map Prod.fst)
+      hn i hio (hprofile l hlab)⟩
+
+#print axioms gubaType_proper_indexed_subfamily
+#print axioms spherical_loop_separating_cut
+#print axioms gubaType_separating_interior_subfilling
+
 end QuandleResearch.Issue070
