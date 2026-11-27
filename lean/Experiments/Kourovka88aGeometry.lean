@@ -4991,8 +4991,8 @@ theorem spherical_loop_normalize_label {D K : Type} [Fintype D] [Group K]
       ⟨fun hd => hd.trans h,fun he' => he'.trans h.symm⟩
     simp only [g,hi]
   have hp := face_potential_change P v g hg he
-  have hga : g a = v a := if_pos (.refl _ _)
-  have hgb : g (P.edge a) = 1 := if_neg hn
+  have hga : g a = v a  := ite_eq_left (.refl _ _)
+  have hgb : g (P.edge a) = 1 := ite_eq_right hn
   have hwa : w a = 1 := by
     change g (P.edge a) * v a * (g a)⁻¹ = 1
     rw [hga,hgb,one_mul,mul_inv_cancel]
@@ -5310,6 +5310,101 @@ theorem exists_algebraic_internal_edge_free_compression {D K : Type} [Fintype D]
 #print axioms cycleProduct_of_boundary_map
 #print axioms exists_algebraic_internal_edge_removal
 #print axioms exists_algebraic_internal_edge_free_compression
+
+
+
+/-! ## Protected peripheral labels and invariant quantitative data
+
+A singleton peripheral vertex lies on the same face cycle on both
+sides of its incident edge. Thus face potentials conjugate its
+label. A potential can be chosen to leave any one prescribed face
+unchanged, while normalizing a chosen internal loop.
+-/
+
+/-- A fixed rotation point has its label changed only by conjugation. -/
+theorem face_potential_fixed_vertex_label {D K : Type} [Group K]
+    (P : RibbonMap D) (v g : D → K)
+    (hg : ∀ d e, P.face.SameCycle d e → g d = g e)
+    (d : D) (hd : P.rotation d = d) :
+    g (P.edge d) * v d * (g d)⁻¹ = g d * v d * (g d)⁻¹ := by
+  rw [hg _ _ (face_sameCycle_of_fixed_edge_endpoint P d (Or.inl hd)).symm]
+
+/-- The normalization can fix a designated face, even when that
+face is incident to the loop. The protected face need not be an
+outside face of the original ribbon. -/
+theorem spherical_loop_normalize_protected_face {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hE : P.EulerEquality) (a o : D)
+    (hl : P.rotation.SameCycle a (P.edge a)) :
+    ∃ w g : D → K,
+      (∀ d, P.face.SameCycle o d → g d = 1) ∧
+      (∀ d, P.face.SameCycle o d → P.face.SameCycle o (P.edge d) → w d = v d) ∧
+      w a = 1 ∧ w (P.edge a) = 1 ∧
+      (∀ d, w (P.edge d) = (w d)⁻¹) ∧
+      (∀ d, cycleProduct P.rotation w d =
+        g (P.edge d) * cycleProduct P.rotation v d * (g (P.edge d))⁻¹) := by
+  classical
+  have hn := spherical_loop_distinct_faces P hE a hl
+  let g : D → K := if P.face.SameCycle o a then
+      fun d => if P.face.SameCycle (P.edge a) d then (v a)⁻¹ else 1
+    else fun d => if P.face.SameCycle a d then v a else 1
+  let w : D → K := fun d => g (P.edge d) * v d * (g d)⁻¹
+  have hg (d e : D) (h : P.face.SameCycle d e) : g d = g e := by
+    have hi (t : D) : P.face.SameCycle t d ↔ P.face.SameCycle t e :=
+      ⟨fun hd => hd.trans h,fun he' => he'.trans h.symm⟩
+    simp only [g,hi]
+  have hprotect (d : D) (hd : P.face.SameCycle o d) : g d = 1 := by
+    by_cases hoa : P.face.SameCycle o a
+    · have hno : ¬ P.face.SameCycle (P.edge a) d := by
+        intro h
+        exact hn (hoa.symm.trans (hd.trans h.symm))
+      simp only [g,ite_eq_left hoa,ite_eq_right hno]
+    · have hno : ¬ P.face.SameCycle a d := fun h => hoa (hd.trans h.symm)
+      simp only [g,ite_eq_right hoa,ite_eq_right hno]
+  have hp := face_potential_change P v g hg he
+  have hwa : w a = 1 := by
+    change g (P.edge a) * v a * (g a)⁻¹ = 1
+    by_cases hoa : P.face.SameCycle o a
+    · have hna : ¬ P.face.SameCycle (P.edge a) a := fun h => hn h.symm
+      have hself : P.face.SameCycle (P.edge a) (P.edge a) := .refl _ _
+      simp only [g,ite_eq_left hoa,ite_eq_left hself,ite_eq_right hna,
+        inv_mul_cancel,inv_one,one_mul]
+    · have hself : P.face.SameCycle a a := .refl _ _
+      simp only [g,ite_eq_right hoa,ite_eq_left hself,ite_eq_right hn,
+        one_mul,mul_inv_cancel]
+  refine ⟨w,g,hprotect,?_,hwa,?_,hp.1,hp.2⟩
+  · intro d hd he'
+    change g (P.edge d) * v d * (g d)⁻¹ = v d
+    rw [hprotect _ hd,hprotect _ he',inv_one,one_mul,mul_one]
+  · rw [show w (P.edge a) = (w a)⁻¹ from hp.1 a,hwa,inv_one]
+
+/-- A singleton incident to the protected face keeps its exact
+coefficient value under the protected normalization. -/
+theorem protected_face_singleton_value {D K : Type} [Group K]
+    (P : RibbonMap D) (v w : D → K) (o d : D)
+    (h : ∀ e, P.face.SameCycle o e → P.face.SameCycle o (P.edge e) → w e = v e)
+    (hd : P.rotation d = d) (ho : P.face.SameCycle o d) : w d = v d :=
+  h d ho (ho.trans (face_sameCycle_of_fixed_edge_endpoint P d (Or.inl hd)))
+
+/-- Every conjugacy-invariant numerical weight is preserved exactly
+by the peripheral product certificates, including the indicator of
+a nontrivial coefficient. No claim is made for arbitrary raw length. -/
+theorem peripheral_conjugacy_weight {D E K : Type} [Finite D] [Finite E] [Group K]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E → D)
+    (v : D → K) (w : E → K) (keep : D → Prop) (weight : K → ℕ)
+    (hw : ∀ g x, weight (g*x*g⁻¹) = weight x)
+    (hc : ∀ d, ¬ keep (f d) → ∃ g : K,
+      cycleProduct Q.rotation w d = g * cycleProduct P.rotation v (f d) * g⁻¹)
+    (d : E) (hd : ¬ keep (f d)) :
+    weight (cycleProduct Q.rotation w d) = weight (cycleProduct P.rotation v (f d)) := by
+  obtain ⟨g,hg⟩ := hc d hd
+  rw [hg,hw]
+
+#print axioms face_potential_fixed_vertex_label
+#print axioms spherical_loop_normalize_protected_face
+#print axioms protected_face_singleton_value
+#print axioms peripheral_conjugacy_weight
 
 
 end QuandleResearch.Issue070
