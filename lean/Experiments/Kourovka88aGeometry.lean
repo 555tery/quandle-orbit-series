@@ -5597,4 +5597,95 @@ theorem loopless_star_original_outlet_equation {D E K : Type}
 #print axioms loopless_star_original_outlet_equation
 
 
+
+/-! ## Connected coefficient region: an ordered relation on every outlet
+
+Apply the compression separately to a connected component. This
+avoids any implicit assumption that a global compression preserves
+the original component partition. The isolated-edge case is handled
+explicitly, as well as the star case.
+-/
+
+/-- Every connected spherical coefficient region with singleton
+peripheral vertices admits a list enumerating all its original
+outlets, whose suitably conjugated inverse labels multiply to one.
+The list and the conjugators are obtained from actual surgery. -/
+theorem connected_coefficient_outlet_equation {D K : Type}
+    [Fintype D] [Group K] (P : RibbonMap D) (v : D → K)
+    (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (hE : P.EulerEquality) (hconn : P.Connected)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (o : D) (ho : ¬ keep o) :
+    ∃ (l : List D) (g : D → K),
+      l.Nodup ∧ (∀ d, d ∈ l ↔ ¬ keep d) ∧
+      (l.map (fun d => (g d * v d * (g d)⁻¹)⁻¹)).prod = 1 := by
+  classical
+  obtain ⟨E,inst,Q,f,w,hQ,hconnQ,_,hsurv,hread,hcycles,hno,hw,hrel,hconj⟩ :=
+    exists_algebraic_internal_edge_free_compression P v keep hkeep hE he hint
+  have hleafQ : ∀ d, ¬ keep (f d) → Q.rotation d = d :=
+    compressed_peripheral_leaf P Q f keep hread hleaf
+  obtain ⟨a,ha⟩ := hsurv o ho
+  have hka : ¬ keep (f a) := by rw [ha]; exact ho
+  have hco := hconnQ hconn
+  have hlocal : ∃ l : List E, l.Nodup ∧
+      (∀ b, b ∈ l ↔ ¬ keep (f b)) ∧
+      (l.map (fun b => (w b)⁻¹)).prod = 1 := by
+    by_cases h : keep (f (Q.edge a))
+    · obtain ⟨l,hnd,hm,hprod⟩ := loopless_star_outlet_product Q w
+        (fun d => keep (f d)) hcycles hleafQ hno hw hrel (Q.edge a) h
+      exact ⟨l,hnd,fun b => (hm b).trans (and_iff_right (hco _ _)),hprod⟩
+    · refine ⟨[a,Q.edge a],?_,?_,?_⟩
+      · simp [Q.edge_ne a,Ne.symm (Q.edge_ne a)]
+      · intro b
+        have hh := peripheral_edge_component Q a b (hleafQ a hka)
+          (hleafQ _ h)
+        constructor
+        · intro hb
+          rcases (show b = a ∨ b = Q.edge a from by simpa using hb) with rfl | rfl
+          · exact hka
+          · exact h
+        · intro _
+          have hb := hh.mp (hco a b)
+          simpa using hb
+      · simp only [List.map_cons,List.map_nil,List.prod_cons,List.prod_nil,hw,inv_inv,mul_one,inv_mul_cancel]
+  obtain ⟨l,hnd,hm,hprod⟩ := hlocal
+  have hconj' : ∀ d : D, ∃ g : K, ∀ b : E, f b = d → ¬ keep d →
+      w b = g * v d * g⁻¹ := by
+    intro d
+    by_cases hd : ¬ keep d
+    · obtain ⟨b,hb⟩ := hsurv d hd
+      have hkb : ¬ keep (f b) := by rw [hb]; exact hd
+      obtain ⟨g,hg⟩ := hconj b hkb
+      rw [peripheral_singleton_product Q w b (hleafQ b hkb),
+        peripheral_singleton_product P v (f b) (hleaf _ hkb),hb] at hg
+      refine ⟨g,fun e he' _ => ?_⟩
+      have heq : e = b := f.injective (he'.trans hb.symm)
+      rw [heq]
+      exact hg
+    · exact ⟨1,fun _ _ h => (hd h).elim⟩
+  choose g hg using hconj'
+  refine ⟨l.map f,g,hnd.map f.injective,?_,?_⟩
+  · intro d
+    constructor
+    · intro hd
+      obtain ⟨b,hb,hbd⟩ := List.mem_map.mp hd
+      rw [← hbd]
+      exact (hm b).mp hb
+    · intro hd
+      obtain ⟨b,hb⟩ := hsurv d hd
+      exact List.mem_map.mpr ⟨b,(hm b).mpr (by rw [hb]; exact hd),hb⟩
+  · rw [List.map_map]
+    have hh : l.map (fun b => (g (f b) * v (f b) * (g (f b))⁻¹)⁻¹) =
+        l.map (fun b => (w b)⁻¹) := by
+      apply List.map_congr_left
+      intro b hb
+      rw [← hg (f b) b rfl ((hm b).mp hb)]
+    exact (congrArg List.prod hh).trans hprod
+
+#print axioms connected_coefficient_outlet_equation
+
+
 end QuandleResearch.Issue070
