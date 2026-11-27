@@ -875,7 +875,7 @@ theorem mk_eq_a_zpow_of_light (w : RawWord) (hw : rawWeight w < 10^80) :
     subst i
     have hmul : FreeGroup.mk ((0,s)::xs) =
         FreeGroup.mk [(0,s)] * FreeGroup.mk xs := by
-      rw [FreeGroup.mul_mk]
+      exact (FreeGroup.mul_mk (L₁ := [(0,s)]) (L₂ := xs)).symm
     cases s with
     | false =>
       refine ⟨-1+n, ?_⟩
@@ -892,7 +892,7 @@ theorem eq_a_zpow_of_light (w : F) (hw : weightedLength w < 10^80) :
 
 theorem good_a_zpow (N : Subgroup F) (n : ℤ) : Good N (a ^ n) := by
   refine ⟨1, n, ?_⟩
-  simpa using N.one_mem
+  simp
 
 /-- Every bad period has weight at least the weight of b. -/
 theorem weight_ge_of_bad (N : Subgroup F) (C : F) (hbad : ¬ Good N C) :
