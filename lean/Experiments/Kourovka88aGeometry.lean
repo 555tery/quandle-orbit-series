@@ -9813,4 +9813,165 @@ theorem guba21_cut_boundary_smaller_type
 #print axioms guba21_cut_boundary_smaller_type
 
 
+
+/-- Rank counts of an indexed filling depend only on the original
+indices when every relator label is preserved. -/
+theorem indexed_rankCount_eq {n : ℕ}
+    (s : Peiffer.Sequence F (RankHeight n))
+    (l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+    (hl : ∀ x ∈ l, x.2.1.2 = s[x.1.val].1.2) (j : ℕ) :
+    rankCount (l.map Prod.snd) j =
+      rankCount ((l.map Prod.fst).map (fun i => s[i.val])) j := by
+  induction l with
+  | nil => rfl
+  | cons x xs ih =>
+    change rankCount ([x.2] ++ xs.map Prod.snd) j =
+      rankCount ([s[x.1.val]] ++ (xs.map Prod.fst).map (fun i => s[i.val])) j
+    simp only [rankCount_append,rankCount_singleton,hl x List.mem_cons_self,
+      ih (fun y hy => hl y (List.mem_cons_of_mem _ hy))]
+
+/-- An indexed filling of the original boundary using distinct
+original indices is itself rank-minimal, with exactly the original
+rank profile. No hypothesis of surjectivity on indices is required:
+minimality forces it. -/
+theorem rankMinimal_indexed_reassembly
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s)
+    (l : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)))
+    (hn : (l.map Prod.fst).Nodup)
+    (hl : ∀ x ∈ l, x.2.1.2 = s[x.1.val].1.2)
+    (he : Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) = w) :
+    RankMinimalExpression pick X n w (l.map Prod.snd) ∧
+      (∀ j, rankCount s j = rankCount (l.map Prod.snd) j) := by
+  classical
+  have hall := rankMinimal_no_omitted_indices pick X n w s (l.map Prod.snd)
+    hm he (l.map Prod.fst) hn (indexed_rankCount_eq s l hl)
+  have hfin : (List.finRange s.length).Nodup :=
+    List.nodup_ofFn_ofInjective (fun _ _ h => h)
+  have hp : List.Perm (List.finRange s.length) (l.map Prod.fst) :=
+    (List.perm_ext_iff_of_nodup hfin hn).mpr
+      (fun i => ⟨fun _ => hall i,fun _ => List.mem_finRange i⟩)
+  let get : Fin s.length → Peiffer.Occurrence F (RankHeight n) := fun i => s[i.val]
+  have hget : (List.finRange s.length).map get = s := by
+    rw [← List.ofFn_eq_map]
+    exact List.ofFn_getElem
+  have hperm : List.Perm s ((l.map Prod.fst).map get) := by
+    have h := hp.map get
+    rw [hget] at h
+    exact h
+  have hc (j : ℕ) : rankCount s j = rankCount (l.map Prod.snd) j := by
+    rw [indexed_rankCount_eq s l hl j]
+    exact (hperm.filter (fun x => decide (x.1.2.1.val = j))).length_eq
+  exact ⟨rankMinimal_transport_profile pick X n w s _ hm he hc,hc⟩
+
+/-- Exact reassembly for a separating cut of the outer boundary.
+Both actual components, not just new fillings of their boundary
+values, have rank-minimal indexed expressions. The only interior
+vertices allowed in either component are intact original relators.
+The peripheral words concatenate in the original based order. -/
+theorem guba21_separating_boundary_cut_minimal
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w)
+    (tau : Equiv.Perm (DiscDarts (markedRows (rankHeightRows pick X n) w)
+      (boundaryIdentity s))) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let Q := P.withRotation tau
+    let a := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    let idx := discOccurrence (markedRows rows w) (boundaryIdentity s)
+    ∀ b, SplitRefinement P.rotation tau →
+      ¬ Q.SameComponent a b →
+      P.vertexBoundary a = Q.vertexBoundary a ++ Q.vertexBoundary b →
+      (∀ c ∈ [a,b], ∀ d, Q.SameComponent c d → ¬ tau.SameCycle c d →
+        idx d ≠ boundaryOccurrence s ∧ Q.vertexBoundary d = P.vertexBoundary d) →
+      ∃ l r : List (Fin s.length × Peiffer.Occurrence F (RankHeight n)),
+        ((l ++ r).map Prod.fst).Nodup ∧
+        (∀ t ∈ l, t.2.1.2 = s[t.1.val].1.2 ∧
+          ∃ d, Q.SameComponent a d ∧ ¬ tau.SameCycle a d ∧
+            (idx d).val = t.1.val+1) ∧
+        (∀ t ∈ r, t.2.1.2 = s[t.1.val].1.2 ∧
+          ∃ d, Q.SameComponent b d ∧ ¬ tau.SameCycle b d ∧
+            (idx d).val = t.1.val+1) ∧
+        (∀ d, Q.SameComponent a d → ¬ tau.SameCycle a d →
+          ∃ t ∈ l, (idx d).val = t.1.val+1) ∧
+        (∀ d, Q.SameComponent b d → ¬ tau.SameCycle b d →
+          ∃ t ∈ r, (idx d).val = t.1.val+1) ∧
+        RankMinimalExpression pick X n
+          (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹ (l.map Prod.snd) ∧
+        RankMinimalExpression pick X n
+          (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹ (r.map Prod.snd) ∧
+        (∀ j, rankCount s j = rankCount (l.map Prod.snd) j +
+          rankCount (r.map Prod.snd) j) := by
+  classical
+  intro rows P Q a read idx b href hsep hsplit hint
+  obtain ⟨l,hl,hla,hlc,hle⟩ :=
+    guba23_refined_component_exact_occurrences rows w s hs tau a href
+      (hint a (by simp))
+  obtain ⟨r,hr,hrb,hrc,hre⟩ :=
+    guba23_refined_component_exact_occurrences rows w s hs tau b href
+      (hint b (by simp))
+  have hdis (x : Fin s.length) (hx : x ∈ l.map Prod.fst) :
+      x ∉ r.map Prod.fst := by
+    intro hy
+    obtain ⟨u,hu,hux⟩ := List.mem_map.mp hx
+    obtain ⟨v,hv,hvx⟩ := List.mem_map.mp hy
+    obtain ⟨_,d,hd,hda,hdi⟩ := hla u hu
+    obtain ⟨_,e,he,heb,hei⟩ := hrb v hv
+    have hde : idx d = idx e := by
+      apply Fin.ext
+      rw [hdi,hei,hux,hvx]
+    have hcyc : P.rotation.SameCycle d e :=
+      (disc_sameCycle_iff _ _ _ _).mpr hde
+    have hcyc' : Q.rotation.SameCycle d e :=
+      (sameCycle_iff_of_vertexBoundary_eq P Q d e
+        (hint a (by simp) d hd hda).2).mpr hcyc
+    exact hsep (Relation.EqvGen.trans _ _ _ hd
+      (Relation.EqvGen.trans _ _ _ (Q.component_of_vertexCycle hcyc')
+        (Relation.EqvGen.symm _ _ he)))
+  have hn : ((l ++ r).map Prod.fst).Nodup := by
+    rw [List.map_append,List.nodup_append]
+    exact ⟨hl,hr,fun x hx y hy h => hdis x hx (h ▸ hy)⟩
+  have hn' : ((r ++ l).map Prod.fst).Nodup := by
+    rw [List.map_append,List.nodup_append]
+    exact ⟨hr,hl,fun x hx y hy h => hdis y hy (h ▸ hx)⟩
+  have hlabel (x : Fin s.length × Peiffer.Occurrence F (RankHeight n))
+      (hx : x ∈ r ++ l) : x.2.1.2 = s[x.1.val].1.2 := by
+    rcases List.mem_append.mp hx with hx | hx
+    · exact (hrb x hx).1
+    · exact (hla x hx).1
+  have hle' : Peiffer.evaluation (rankHeightRel pick X n) (l.map Prod.snd) =
+      (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹ := by
+    simpa only [rows,rankHeightRows_eval] using hle
+  have hre' : Peiffer.evaluation (rankHeightRel pick X n) (r.map Prod.snd) =
+      (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹ := by
+    simpa only [rows,rankHeightRows_eval] using hre
+  have hw' : FreeGroup.mk ((Q.vertexBoundary a).map read) *
+      FreeGroup.mk ((Q.vertexBoundary b).map read) = w⁻¹ := by
+    rw [FreeGroup.mul_mk,← List.map_append,← hsplit]
+    rw [boundaryRibbon_read rows w s hs hw,← FreeGroup.inv_mk,FreeGroup.mk_toWord]
+  have heval : Peiffer.evaluation (rankHeightRel pick X n) ((r ++ l).map Prod.snd) = w := by
+    rw [List.map_append,peiffer_evaluation_append,hre',hle',← mul_inv_rev,hw',inv_inv]
+  obtain ⟨hmin,hcount⟩ := rankMinimal_indexed_reassembly pick X n w s hm
+    (r ++ l) hn' hlabel heval
+  rw [List.map_append] at hmin
+  have hminL := rankMinimal_subfilling_minimal pick X n w
+    (r.map Prod.snd) (l.map Prod.snd) [] (by simpa using hmin)
+  have hminR := rankMinimal_subfilling_minimal pick X n w
+    [] (r.map Prod.snd) (l.map Prod.snd) (by simpa using hmin)
+  rw [hle'] at hminL
+  rw [hre'] at hminR
+  refine ⟨l,r,hn,hla,hrb,hlc,hrc,hminL,hminR,?_⟩
+  intro j
+  rw [hcount j,List.map_append,rankCount_append,Nat.add_comm]
+
+#print axioms indexed_rankCount_eq
+#print axioms rankMinimal_indexed_reassembly
+#print axioms guba21_separating_boundary_cut_minimal
+
+
 end QuandleResearch.Issue070
