@@ -19205,4 +19205,134 @@ theorem ribbon_lower_end_positive_of_two_retained {D : Type} [Fintype D]
 #print axioms ribbon_closed_bigon_belt_two_cycles
 #print axioms ribbon_lower_end_positive_of_two_retained
 
+
+/-- One essential departure is literally unique, not just a
+bound on the number of maximal strips. -/
+theorem ribbon_one_end_unique {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D)
+    (hcount : ribbonVertexEndCount P (P.vertexOf a) = 1) :
+    ∃ e, P.rotation.SameCycle a e ∧ P.face (P.face e) ≠ e ∧
+      ∀ d, P.rotation.SameCycle a d →
+        P.face (P.face d) ≠ d → d = e := by
+  classical
+  let S := Finset.univ.filter (fun d => P.vertexOf d = P.vertexOf a)
+  have hsum : ∑ d ∈ S, ribbonEndIndicator P d = 1 := hcount
+  have hm (d : D) : d ∈ S ↔ P.rotation.SameCycle a d := by
+    simp only [S,Finset.mem_filter,Finset.mem_univ,true_and]
+    exact ⟨fun h => (Quotient.exact h).symm,fun h => Quotient.sound h.symm⟩
+  have hex : ∃ e ∈ S, P.face (P.face e) ≠ e := by
+    by_contra! hn
+    have hz : ∑ d ∈ S, ribbonEndIndicator P d = 0 := by
+      apply Finset.sum_eq_zero
+      intro d hd
+      simp only [ribbonEndIndicator,if_pos (hn d hd)]
+    omega
+  obtain ⟨e,he,he'⟩ := hex
+  refine ⟨e,(hm e).mp he,he',?_⟩
+  intro d hd hd'
+  by_contra hne
+  have hsub : ({d,e} : Finset D) ⊆ S := by
+    intro b hb
+    simp only [Finset.mem_insert,Finset.mem_singleton] at hb
+    rcases hb with rfl | rfl
+    · exact (hm d).mpr hd
+    · exact he
+  have hle := Finset.sum_le_sum_of_subset_of_nonneg hsub
+    (f := ribbonEndIndicator P) (fun _ _ _ => Nat.zero_le _)
+  rw [Finset.sum_pair hne,hsum] at hle
+  simp only [ribbonEndIndicator,if_neg hd',if_neg he'] at hle
+  omega
+
+/-- A one-end vertex has its ENTIRE cyclic boundary paired with
+one consecutive walk on the opposite vertex. The boundary is
+based just after the unique nonbigon departure; no arbitrary
+linear cut and no loss of a terminal dart are needed. -/
+theorem ribbon_one_end_whole_opposite_walk {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D)
+    (hcount : ribbonVertexEndCount P (P.vertexOf a) = 1) :
+    ∃ (e : D) (u : List D),
+      P.rotation.SameCycle a e ∧ P.face (P.face e) ≠ e ∧
+      P.vertexBoundary (P.rotation e) = u++[e] ∧
+      (∀ d ∈ u, P.face (P.face d) = d) ∧
+      Walk P.rotation (P.edge e) (P.rotation (P.edge (P.rotation e)))
+        (((u++[e]).map P.edge).reverse) := by
+  obtain ⟨e,he,he',hunique⟩ := ribbon_one_end_unique P a hcount
+  obtain ⟨u,hu⟩ := cycleBoundary_cons P.rotation e
+  have hn := cycleBoundary_next P.rotation e u hu
+  change P.vertexBoundary e = e::u at hu
+  change P.vertexBoundary (P.rotation e) = u++[e] at hn
+  have hnd := P.vertexBoundary_nodup e
+  rw [hu] at hnd
+  have he_not : e ∉ u := (List.nodup_cons.mp hnd).1
+  have hbig (d : D) (hd : d ∈ u) : P.face (P.face d) = d := by
+    by_contra h
+    have hs : P.rotation.SameCycle e d :=
+      (P.mem_vertexBoundary_iff e d).mp (by rw [hu]; exact List.mem_cons_of_mem _ hd)
+    have hde := hunique d (he.trans hs) h
+    exact he_not (hde ▸ hd)
+  have hw : Walk P.rotation (P.rotation e) (P.rotation e)
+      (P.vertexBoundary (P.rotation e)) := cycleBoundary_walk _ _
+  rw [hn] at hw
+  obtain ⟨b,hwalk,hlast⟩ := walk_split_departures P.rotation u [e]
+    (P.rotation e) (P.rotation e) hw
+  have hbe : b = e := by
+    cases hlast
+    rfl
+  subst b
+  exact ⟨e,u,he,he',hn,hbig,ribbon_direct_strip_opposite_walk P hwalk hbig⟩
+
+/-- Every edge of a one-end region goes to the SAME opposite
+vertex. In particular, in the compressed map it cannot connect
+two different retained cells. This assertion is purely
+topological and uses no assumption about label preservation. -/
+theorem ribbon_one_end_single_neighbour {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D)
+    (hcount : ribbonVertexEndCount P (P.vertexOf a) = 1) :
+    ∃ e, P.rotation.SameCycle a e ∧
+      ∀ d, P.rotation.SameCycle a d →
+        P.rotation.SameCycle (P.edge e) (P.edge d) := by
+  obtain ⟨e,u,he,_,hu,_,hw⟩ := ribbon_one_end_whole_opposite_walk P a hcount
+  refine ⟨e,he,?_⟩
+  intro d hd
+  have hm : d ∈ P.vertexBoundary (P.rotation e) :=
+    (P.mem_vertexBoundary_iff (P.rotation e) d).mpr
+      (Equiv.Perm.sameCycle_apply_left.mpr (he.symm.trans hd))
+  rw [hu] at hm
+  have hp : P.edge d ∈ (((u++[e]).map P.edge).reverse) := by
+    rw [List.mem_reverse]
+    exact List.mem_map.mpr ⟨d,hm,rfl⟩
+  exact walk_departure_sameCycle P.rotation hw _ hp
+
+/-- The opposite walk is an actual prefix of the based boundary
+at its own initial corner, since the departures are distinct and
+all lie in that vertex cycle. -/
+theorem ribbon_one_end_whole_opposite_prefix {D : Type} [Fintype D]
+    (P : RibbonMap D) (a : D)
+    (hcount : ribbonVertexEndCount P (P.vertexOf a) = 1) :
+    ∃ (e : D) (u r : List D),
+      P.rotation.SameCycle a e ∧
+      P.vertexBoundary (P.rotation e) = u++[e] ∧
+      P.vertexBoundary (P.edge e) = (((u++[e]).map P.edge).reverse)++r := by
+  obtain ⟨e,u,he,_,hu,_,hw⟩ := ribbon_one_end_whole_opposite_walk P a hcount
+  let l := (((u++[e]).map P.edge).reverse)
+  have hnd : l.Nodup := by
+    have hn := P.vertexBoundary_nodup (P.rotation e)
+    rw [hu] at hn
+    exact List.nodup_reverse.mpr (hn.map P.edge.injective)
+  have hsub : ∀ d ∈ l, d ∈ P.vertexBoundary (P.edge e) := by
+    intro d hd
+    exact (P.mem_vertexBoundary_iff (P.edge e) d).mpr
+      (walk_departure_sameCycle P.rotation hw d hd)
+  have hlen : l.length ≤ (P.vertexBoundary (P.edge e)).length :=
+    hnd.length_le_of_subset hsub
+  obtain ⟨r,hr⟩ := List.prefix_iff_exists_append_eq.mp
+    (walk_departures_prefix_of_length_le P.rotation hw
+      (cycleBoundary_walk P.rotation (P.edge e)) hlen)
+  exact ⟨e,u,r,he,hu,hr.symm⟩
+
+#print axioms ribbon_one_end_unique
+#print axioms ribbon_one_end_whole_opposite_walk
+#print axioms ribbon_one_end_single_neighbour
+#print axioms ribbon_one_end_whole_opposite_prefix
+
 end QuandleResearch.Issue070
