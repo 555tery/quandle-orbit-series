@@ -148,7 +148,7 @@ theorem weightedStages_progress (pick : WeightedSelector) (X : ConjugatorChoice)
   have h : ∃ v : F, ¬ Good N v := ⟨w, hw⟩
   let c := (pick N h).val
   refine ⟨c, (pick N h).property, X i N c, 1, ?_⟩
-  rw [zpow_one]
+  rw [zpow_one, ← heightRelator_one (X i N c) c]
   change heightRelator (X i N c) c 1 ∈ adjoin N (weightedRelator pick X i N)
   rw [← weightedRelator_eq pick X i N h]
   exact relator_mem_adjoin _ _
