@@ -11897,4 +11897,134 @@ theorem eventually_character_obstruction (pick : WeightedSelector)
 #print axioms character_obstruction_to_commutator_survival
 #print axioms eventually_character_obstruction
 
+
+/-- A character which detects every nonzero exponent of a rules
+out goodness of any nonidentity word of zero character. -/
+theorem zero_character_bad {K : Type} [CommGroup K] (N : Subgroup F) [N.Normal]
+    (q : F →* K) (hker : N ≤ q.ker)
+    (ha : ∀ k : ℤ, (q a)^k = 1 → k = 0)
+    (w : F) (hw : w ∉ N) (hzero : q w = 1) :
+    ¬ Good N w := by
+  rintro ⟨u,k,hu⟩
+  have he : q (u*w*u⁻¹*(a^k)⁻¹) = 1 := hker hu
+  simp only [map_mul,map_inv,map_zpow,hzero,mul_one,mul_inv_cancel,one_mul] at he
+  have hk : k = 0 := ha k (inv_eq_one.mp he)
+  subst k
+  simp only [zpow_zero,inv_one,mul_one] at hu
+  have h := (inferInstance : N.Normal)
+  -- Normality is needed only to remove the conjugator.
+  apply hw
+  have hh := h.conj_mem _ hu u⁻¹
+  have he : u⁻¹ * (u*w*u⁻¹) * (u⁻¹)⁻¹ = w := by group
+  rwa [he] at hh
+
+/-- At the first positive rank, b*a^-1 is a minimal bad period
+as soon as it survives. The abelian character sends both generators
+to the same infinite-order element. -/
+theorem first_positive_second_minBad (u : F)
+    (hw : b*a⁻¹ ∉ adjoin ⊥ (u*b*u⁻¹*a⁻¹)) :
+    MinBad (adjoin ⊥ (u*b*u⁻¹*a⁻¹)) (b*a⁻¹) := by
+  let N := adjoin ⊥ (u*b*u⁻¹*a⁻¹)
+  let q : F →* Multiplicative ℤ := FreeGroup.lift (fun _ => Multiplicative.ofAdd 1)
+  have ha : q a = Multiplicative.ofAdd 1 := by
+    simp [q,a,FreeGroup.lift_apply_of]
+  have hb : q b = Multiplicative.ofAdd 1 := by
+    simp [q,b,FreeGroup.lift_apply_of]
+  have hker : N ≤ q.ker := by
+    unfold N adjoin
+    apply Subgroup.normalClosure_le_normal
+    intro w hw'
+    rcases hw' with h | h
+    · have he : w = 1 := h
+      rw [he]
+      exact q.ker.one_mem
+    · have he : w = u*b*u⁻¹*a⁻¹ := h
+      change q w = 1
+      rw [he]
+      simp only [map_mul,map_inv,ha,hb]
+      group
+  have hbad : ¬ Good N (b*a⁻¹) := by
+    apply zero_character_bad N q hker _ _ hw
+    · intro k hk
+      rw [ha] at hk
+      change k * 1 = 0 at hk
+      omega
+    · rw [map_mul,map_inv,hb,ha,mul_inv_cancel]
+  have hbGood : Good N b := by
+    refine ⟨u,1,?_⟩
+    rw [zpow_one]
+    exact relator_mem_adjoin _ _
+  have hbiGood : Good N b⁻¹ := by
+    simpa only [zpow_neg_one] using good_integer_power N hbGood (-1)
+  refine ⟨hbad,?_⟩
+  intro w h
+  by_contra! hlt
+  have hbw : weightedLength b = 10^80 := by simpa using weightedLength_b_zpow 1
+  have hai : weightedLength a⁻¹ = 1 := by simpa using weightedLength_a_zpow (-1)
+  have hle := weightedLength_mul_le b a⁻¹
+  have hsmall : rawWeight w.toWord ≤ 10^80 := by
+    change weightedLength w ≤ _
+    omega
+  have hc := rawWord_at_most_heavy_weight w.toWord hsmall
+  rw [FreeGroup.mk_toWord] at hc
+  rcases hc with ⟨k,hk⟩ | hk | hk
+  · exact h (hk.symm ▸ good_a_zpow N k)
+  · exact h (hk.symm ▸ hbGood)
+  · exact h (hk.symm ▸ hbiGood)
+
+/-- Giving priority to b and then b*a^-1 among weight-minimal bad
+words is legitimate at every stage. The second branch is reached
+after the first positive relation whenever b*a^-1 survives. -/
+noncomputable def twoPeriodSelector : WeightedSelector := by
+  classical
+  intro N h
+  exact if hb : MinBad N b then ⟨b,hb⟩
+    else if hd : MinBad N (b*a⁻¹) then ⟨b*a⁻¹,hd⟩
+    else arbitraryWeightedSelector N h
+
+theorem twoPeriodSelector_first (h : ∃ w : F, ¬ Good (⊥ : Subgroup F) w) :
+    (twoPeriodSelector ⊥ h).val = b := by
+  have hb : MinBad (⊥ : Subgroup F) b := by
+    refine ⟨heavy_not_good_bot,?_⟩
+    intro w hw
+    have hweight := weight_ge_of_bad _ _ hw
+    have hbw : weightedLength b = 10^80 := by simpa using weightedLength_b_zpow 1
+    rwa [hbw]
+  simp only [twoPeriodSelector,dite_eq_left hb]
+
+theorem twoPeriodSelector_second (u : F)
+    (hw : b*a⁻¹ ∉ adjoin ⊥ (u*b*u⁻¹*a⁻¹))
+    (h : ∃ w : F, ¬ Good (adjoin ⊥ (u*b*u⁻¹*a⁻¹)) w) :
+    (twoPeriodSelector (adjoin ⊥ (u*b*u⁻¹*a⁻¹)) h).val = b*a⁻¹ := by
+  have hg : Good (adjoin ⊥ (u*b*u⁻¹*a⁻¹)) b := by
+    refine ⟨u,1,?_⟩
+    rw [zpow_one]
+    exact relator_mem_adjoin _ _
+  have hb : ¬ MinBad (adjoin ⊥ (u*b*u⁻¹*a⁻¹)) b := fun h => h.1 hg
+  simp only [twoPeriodSelector,dite_eq_right hb,dite_eq_left (first_positive_second_minBad u hw)]
+
+/-- Two explicit conjugacy relations already imply that if the
+distinguished generator survives, the commutator survives too.
+This holds regardless of every subsequently imposed relation. -/
+theorem two_period_noncollapse (N : Subgroup F) [N.Normal]
+    (u v : F) (h1 : u*b*u⁻¹*a⁻¹ ∈ N)
+    (h2 : v*(b*a⁻¹)*v⁻¹*a⁻¹ ∈ N)
+    (ha : a ∉ N) : commWord ∉ N := by
+  intro hc
+  have hd : b*a⁻¹ ∈ N :=
+    (commWord_mem_iff_initial_period_mem N b u (Or.inl rfl) h1).mp hc
+  let q := QuotientGroup.mk' N
+  have hq : q (b*a⁻¹) = 1 := (QuotientGroup.eq_one_iff _).mpr hd
+  have hr : q (v*(b*a⁻¹)*v⁻¹*a⁻¹) = 1 := (QuotientGroup.eq_one_iff _).mpr h2
+  have hq' : q v*q (b*a⁻¹)*(q v)⁻¹*(q a)⁻¹ = 1 := by
+    simpa only [map_mul,map_inv] using hr
+  rw [hq,mul_one,mul_inv_cancel,one_mul] at hq'
+  exact ha ((QuotientGroup.eq_one_iff _).mp (inv_eq_one.mp hq'))
+
+#print axioms zero_character_bad
+#print axioms first_positive_second_minBad
+#print axioms twoPeriodSelector_first
+#print axioms twoPeriodSelector_second
+#print axioms two_period_noncollapse
+
 end QuandleResearch.Issue070
