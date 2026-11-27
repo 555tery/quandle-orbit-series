@@ -2,10 +2,10 @@ name: Kourovka 8.8(a) geometry integration
 on:
   push:
     branches: ['lean/kourovka-8-8a']
-    paths: ['lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
+    paths: ['lean/scripts/kourovka_paranoid_config.py', 'lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
   pull_request:
     branches: ['lean/mathlib-4.36-q57']
-    paths: ['lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
+    paths: ['lean/scripts/kourovka_paranoid_config.py', 'lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,33 +15,47 @@ concurrency:
 jobs:
   geometry:
     if: github.event_name != 'pull_request' || github.head_ref == 'lean/kourovka-8-8a'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: lean
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - name: Install elan
+      - name: Install sandbox and Lean
         run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify sandbox and bundled kernels
+        run: |
+          set -euo pipefail
+          lean --version
+          lake --version
+          bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev /bin/true
+          sysroot="$(lean --print-prefix)"
+          for exe in leanexport leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
+            test -x "$sysroot/bin/$exe"
+          done
       - name: Prepare pinned upstream in disposable runner
         run: |
-          git clone https://github.com/32805433/Small-Groups.git ../small-groups
-          git -C ../small-groups checkout --detach 4a302a9ce13b5aa39f1db413df511be39df4ef31
-          test "$(git -C ../small-groups rev-parse HEAD)" = 4a302a9ce13b5aa39f1db413df511be39df4ef31
+          mkdir -p .lake
+          git clone https://github.com/32805433/Small-Groups.git .lake/small-groups
+          git -C .lake/small-groups checkout --detach 4a302a9ce13b5aa39f1db413df511be39df4ef31
+          test "$(git -C .lake/small-groups rev-parse HEAD)" = 4a302a9ce13b5aa39f1db413df511be39df4ef31
           # Align only the dependency configuration in this runner, not its proofs.
-          sed -i 's/rev = "v4.35.0"/rev = "v4.36.0"/' ../small-groups/lakefile.toml
-          cp lean-toolchain ../small-groups/lean-toolchain
-          rm -f ../small-groups/lake-manifest.json
+          sed -i 's/rev = "v4.35.0"/rev = "v4.36.0"/' .lake/small-groups/lakefile.toml
+          cp lean-toolchain .lake/small-groups/lean-toolchain
+          rm -f .lake/small-groups/lake-manifest.json
           # Mathlib 4.36 moved Abelianization into the Group namespace.
           # The old alias no longer provides the expected typeclass instances.
           # Only qualify references; never alter theorem statements or proof obligations.
           python3 - <<'PY'
           import re
           from pathlib import Path
-          for p in Path("../small-groups/SmallPresentation").rglob("*.lean"):
+          for p in Path(".lake/small-groups/SmallPresentation").rglob("*.lean"):
               s = p.read_text()
               t = re.sub(r"(?<![\w.])Abelianization\b", "Group.Abelianization", s)
               # Do not change file imports or declarations named Abelianization.
@@ -54,7 +68,7 @@ jobs:
           # original proof of normality and the original conjugation map.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("../small-groups/SmallPresentation/RelationCoordinates.lean")
+          p = Path(".lake/small-groups/SmallPresentation/RelationCoordinates.lean")
           s = p.read_text()
           old = "Subgroup.Normal.conj_mem inferInstance _ n.property f"
           new = "(inferInstance : N.Normal).conj_mem _ n.property f"
@@ -64,18 +78,22 @@ jobs:
           # Lean 4.36 renamed the alternative of Nat.strong_induction_on.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("../small-groups/SmallPresentation/SmallCancellationGeometryCorridorEndpointsEuler.lean")
+          p = Path(".lake/small-groups/SmallPresentation/SmallCancellationGeometryCorridorEndpointsEuler.lean")
           s = p.read_text()
           old = "  | h n ih =>"
           assert s.count(old) == 1
           p.write_text(s.replace(old, "  | ind n ih =>"))
           PY
-          git -C ../small-groups diff --stat
+          git -C .lake/small-groups diff --stat
           cat >> lakefile.toml <<'EOF'
 
           [[require]]
           name = "small_groups"
-          path = "../small-groups"
+          path = ".lake/small-groups"
+
+          [[lean_lib]]
+          name = "KourovkaGeometry"
+          roots = ["Experiments.Kourovka88aGeometry"]
           EOF
           lake update
           lake exe cache get
@@ -119,3 +137,20 @@ jobs:
                   assert re.search(r"'[^']*\." + name + r"' does not depend on any axioms", audit), name
           print(f"Verified {len(names)} bridge declarations with only permitted axioms.")
           PY
+      - name: Replay every audited declaration with all six kernels
+        run: |
+          set -euo pipefail
+          python3 scripts/kourovka_paranoid_config.py geometry kourovka-geometry-comparator.json
+          lake comparator --config kourovka-geometry-comparator.json --paranoid 2>&1 | tee kourovka-geometry-paranoid.log
+          for kernel in "Lean default" "Lean paranoid" lean4lean nanoda con-leche con-ron; do
+            grep -F "$kernel kernel accepts the solution" kourovka-geometry-paranoid.log
+          done
+          grep -F "Your solution is okay!" kourovka-geometry-paranoid.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kourovka-geometry-paranoid
+          path: |
+            lean/kourovka-geometry-comparator.json
+            lean/kourovka-geometry-paranoid.log
+          if-no-files-found: warn
