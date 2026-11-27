@@ -12546,7 +12546,7 @@ theorem top_count_zero_mem_lower
     have h0 : rankCount [x] j = 0 := by omega
     have hx0 : x.1.2.1.val ≠ j := by
       intro h
-      rw [rankCount_singleton,if_pos h] at h0
+      rw [rankCount_singleton,ite_eq_left h] at h0
       omega
     have hlt : x.1.2.1.val < j := by
       have h := x.1.2.1.isLt
@@ -12797,5 +12797,152 @@ theorem oneDart_local_transfer_of_short_sides
 #print axioms rankZero_quadrilateral_inner_weight
 #print axioms minBad_signed_cyclicFactor_quadrilateral_weight
 #print axioms oneDart_local_transfer_of_short_sides
+
+
+/-- The integral character assigning weight one to each generator.
+This is an exponent character, not the weighted free-word metric. -/
+def totalExponentCharacter : F →* Multiplicative ℤ :=
+  FreeGroup.lift (fun _ => Multiplicative.ofAdd 1)
+
+theorem totalExponentCharacter_a :
+    totalExponentCharacter a = Multiplicative.ofAdd 1 := by
+  simp [totalExponentCharacter,a,FreeGroup.lift_apply_of]
+
+theorem totalExponentCharacter_b :
+    totalExponentCharacter b = Multiplicative.ofAdd 1 := by
+  simp [totalExponentCharacter,b,FreeGroup.lift_apply_of]
+
+theorem first_positive_relator_character (u : F) :
+    adjoin ⊥ (u*b*u⁻¹*a⁻¹) ≤ totalExponentCharacter.ker := by
+  let q := totalExponentCharacter
+  change adjoin ⊥ (u*b*u⁻¹*a⁻¹) ≤ q.ker
+  unfold adjoin
+  apply Subgroup.normalClosure_le_normal
+  intro w hw
+  rcases hw with h | h
+  · have he : w = 1 := h
+    rw [he]
+    exact q.ker.one_mem
+  · have he : w = u*b*u⁻¹*a⁻¹ := h
+    change q w = 1
+    rw [he]
+    have ha : q a = Multiplicative.ofAdd 1 := totalExponentCharacter_a
+    have hb : q b = Multiplicative.ofAdd 1 := totalExponentCharacter_b
+    simp only [map_mul,map_inv,ha,hb]
+    rw [mul_comm (q u) (Multiplicative.ofAdd 1),mul_assoc (Multiplicative.ofAdd 1),
+      mul_inv_cancel,mul_one,mul_inv_cancel]
+
+/-- In the actual first stage every nonzero power of the
+distinguished generator survives, not merely a itself. -/
+theorem guba_first_stage_all_light_powers (k : ℤ) (hk : k ≠ 0) :
+    a^k ∉ weightedHeightStage twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) 1 := by
+  intro h
+  rw [weightedHeightStage_eq] at h
+  obtain ⟨hstage,_⟩ := guba_twoPeriod_first_stage
+  rw [hstage] at h
+  have he : totalExponentCharacter (a^k) = 1 :=
+    first_positive_relator_character _ h
+  rw [map_zpow,totalExponentCharacter_a] at he
+  change k * 1 = 0 at he
+  exact hk (by omega)
+
+/-- The exact second-stage height relator has character -k.
+This uses the actual selector and verified noncollapse of the
+two-letter difference at stage one. -/
+theorem guba_second_stage_height_character (k : ℤ) :
+    totalExponentCharacter (weightedRankHeightRelator twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) 1 k) = Multiplicative.ofAdd (-k) := by
+  classical
+  let pick := twoPeriodSelector
+  let X := gubaConjugatorChoice pick
+  let N := weightedStages pick X 1
+  obtain ⟨hstage,hsurv⟩ := guba_twoPeriod_first_stage
+  change N = adjoin ⊥ (X 0 ⊥ b*b*(X 0 ⊥ b)⁻¹*a⁻¹) at hstage
+  change b*a⁻¹ ∉ N at hsurv
+  have hmin : MinBad N (b*a⁻¹) := by
+    rw [hstage]
+    exact first_positive_second_minBad _ (by rw [← hstage]; exact hsurv)
+  have hex : ∃ w : F, ¬ Good N w := ⟨_,hmin.1⟩
+  have hchoose : (pick N hex).val = b*a⁻¹ := by
+    have hb : Good N b := by
+      rw [hstage]
+      refine ⟨X 0 ⊥ b,1,?_⟩
+      rw [zpow_one]
+      exact relator_mem_adjoin _ _
+    have hnb : ¬ MinBad N b := fun h => h.1 hb
+    change (twoPeriodSelector N hex).val = _
+    simp only [twoPeriodSelector,dite_eq_right hnb,dite_eq_left hmin]
+  have hc : totalExponentCharacter (b*a⁻¹) = 1 := by
+    rw [map_mul,map_inv,totalExponentCharacter_b,totalExponentCharacter_a,mul_inv_cancel]
+  change totalExponentCharacter (weightedRankHeightRelator pick X 1 k) = _
+  change totalExponentCharacter (if h : ∃ w : F, ¬ Good N w then
+    heightRelator (X 1 N (pick N h).val) (pick N h).val k else 1) = _
+  rw [dite_eq_left hex,hchoose]
+  simp only [heightRelator,map_mul,map_inv,map_zpow,hc,one_zpow,mul_one,
+    mul_inv_cancel,one_mul,totalExponentCharacter_a]
+  change -(k * 1) = -k
+  omega
+
+/-- If a collapse happens at the second stage, the heights of the
+actual top-rank projected filling sum to -1. In particular a
+single top-rank cell must have height -1, with no alignment
+assumption. The conclusion is restricted to this stage because
+later stages kill the exponent character. -/
+theorem guba_second_stage_height_balance
+    (s : Peiffer.Sequence F (RankHeight 2))
+    (hs : Peiffer.evaluation (rankHeightRel twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) 2) s = a)
+    (hpos : ∀ x ∈ s, x.2 = true) :
+    ∃ l : List (F × ℤ), l.length = rankCount s 1 ∧
+      (l.map Prod.snd).sum = -1 := by
+  let pick := twoPeriodSelector
+  let X := gubaConjugatorChoice pick
+  let N := weightedStages pick X 1
+  let : N.Normal := weightedStages_normal pick X 1
+  let q := QuotientGroup.mk' N
+  let e := totalExponentCharacter
+  have hker : N ≤ e.ker := by
+    obtain ⟨hstage,_⟩ := guba_twoPeriod_first_stage
+    change N = _ at hstage
+    rw [hstage]
+    exact first_positive_relator_character _
+  let Q := QuotientGroup.lift N e hker
+  obtain ⟨l,hl,he⟩ := topRank_project_filling pick X 1 s hpos
+  change q (Peiffer.evaluation (rankHeightRel pick X 2) s) =
+    q ((l.map (fun x => x.1 * weightedRankHeightRelator pick X 1 x.2 * x.1⁻¹)).prod) at he
+  rw [hs] at he
+  have hchar := congrArg Q he
+  change e a = e ((l.map (fun x => x.1 * weightedRankHeightRelator pick X 1 x.2 * x.1⁻¹)).prod) at hchar
+  have hprod (l : List (F × ℤ)) :
+      e ((l.map (fun x => x.1 * weightedRankHeightRelator pick X 1 x.2 * x.1⁻¹)).prod) =
+        Multiplicative.ofAdd (-(l.map Prod.snd).sum) := by
+    induction l with
+    | nil => rfl
+    | cons x xs ih =>
+      have ht : e (x.1 * weightedRankHeightRelator pick X 1 x.2 * x.1⁻¹) =
+          e (weightedRankHeightRelator pick X 1 x.2) := by
+        simp only [map_mul,map_inv]
+        rw [mul_comm (e x.1) (e (weightedRankHeightRelator pick X 1 x.2)),
+          mul_assoc,mul_inv_cancel,mul_one]
+      rw [List.map_cons,List.prod_cons,map_mul,ht,ih]
+      change totalExponentCharacter (weightedRankHeightRelator twoPeriodSelector
+        (gubaConjugatorChoice twoPeriodSelector) 1 x.2) * _ = _
+      rw [guba_second_stage_height_character]
+      change -x.2 + -(xs.map Prod.snd).sum = -(x.2 + (xs.map Prod.snd).sum)
+      omega
+  rw [hprod] at hchar
+  change totalExponentCharacter a = _ at hchar
+  rw [totalExponentCharacter_a] at hchar
+  change (1 : ℤ) = -(l.map Prod.snd).sum at hchar
+  exact ⟨l,hl,by omega⟩
+
+#print axioms totalExponentCharacter
+#print axioms totalExponentCharacter_a
+#print axioms totalExponentCharacter_b
+#print axioms first_positive_relator_character
+#print axioms guba_first_stage_all_light_powers
+#print axioms guba_second_stage_height_character
+#print axioms guba_second_stage_height_balance
 
 end QuandleResearch.Issue070
