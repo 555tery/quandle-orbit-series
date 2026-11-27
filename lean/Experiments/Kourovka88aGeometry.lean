@@ -8337,4 +8337,121 @@ theorem minBad_coherent_power_relations_impossible
 #print axioms minBad_coherent_power_relations_impossible
 
 
+
+/-! ## Rank-one smoothness: pure-a factors of a periodic section
+
+A literal interval of at least one full period contains every letter
+of that period, independently of the starting position. Since a bad
+word cannot consist solely of a-letters, this yields a strict bound
+on pure-a intervals in its periodic repetition. This is the literal
+period-side part of the rank-one smoothness argument.
+-/
+
+/-- Every letter of an initial period occurs in any factor whose
+length is at least that of the period. -/
+theorem periodic_factor_contains_period_letters (c p z r : RawWord)
+    (hp : c <+: p ++ z ++ r)
+    (hper : (p ++ z ++ r).HasPeriod c.length)
+    (hz : c.length ≤ z.length) :
+    ∀ x ∈ c, x ∈ z := by
+  intro x hx
+  obtain ⟨i,hi,hix⟩ := List.mem_iff_getElem.mp hx
+  let d := c.length
+  let j := p.length % d
+  have hd : 0 < d := by omega
+  have hj : j < d := Nat.mod_lt _ hd
+  let t := if j ≤ i then i-j else d+i-j
+  have ht : t < d := by
+    dsimp [t]
+    split <;> omega
+  have hmod : (p.length+t) % d = i := by
+    calc
+      _ = (j+t) % d := by
+        dsimp only [j]
+        rw [Nat.add_mod, Nat.mod_eq_of_lt ht]
+      _ = i := by
+        dsimp only [t]
+        split
+        · rw [show j+(i-j) = i by omega, Nat.mod_eq_of_lt hi]
+        · rw [show j+(d+i-j) = d+i by omega, Nat.add_mod_left,
+            Nat.mod_eq_of_lt hi]
+  let w := p ++ z ++ r
+  have hidx : p.length+t < w.length := by
+    dsimp [w]
+    simp only [List.length_append]
+    omega
+  have hpre : w[i]? = some x := by
+    have h := (List.prefix_iff_getElem?.mp hp) i hi
+    rw [hix] at h
+    exact h
+  have he := hper.getElem?_mod d (p.length+t) w hidx
+  rw [hmod,hpre] at he
+  have hzt : t < z.length := lt_of_lt_of_le ht hz
+  have hread : w[p.length+t]? = z[t]? := by
+    change (p ++ (z ++ r))[p.length+t]? = z[t]?
+    rw [List.getElem?_append_right (by omega : p.length ≤ p.length+t)]
+    rw [show p.length+t-p.length = t by omega]
+    exact List.getElem?_append_left hzt
+  exact List.mem_of_getElem? (hread.symm.trans he.symm)
+
+/-- Unlike a small-weight bound, this recognizes arbitrarily long
+words consisting only of signed a-letters. -/
+theorem pure_a_word_eval (w : RawWord) (hw : ∀ x ∈ w, x.1 = 0) :
+    ∃ n : ℤ, FreeGroup.mk w = a^n := by
+  induction w with
+  | nil => exact ⟨0, by rw [zpow_zero, FreeGroup.one_eq_mk]⟩
+  | cons x xs ih =>
+    have hx := hw x (List.mem_cons_self)
+    obtain ⟨n,hn⟩ := ih (fun y hy => hw y (List.mem_cons_of_mem _ hy))
+    rcases x with ⟨i,s⟩
+    change i = 0 at hx
+    subst i
+    have hmul : FreeGroup.mk ((0,s)::xs) =
+        FreeGroup.mk [(0,s)] * FreeGroup.mk xs := by
+      exact (FreeGroup.mul_mk (L₁ := [(0,s)]) (L₂ := xs)).symm
+    cases s with
+    | false =>
+      refine ⟨-1+n,?_⟩
+      rw [hmul,FreeGroup.mk_eq_inv_of,hn,zpow_add]
+      simp [a]
+    | true =>
+      refine ⟨1+n,?_⟩
+      rw [hmul,FreeGroup.mk_eq_of,hn,zpow_add]
+      simp [a]
+
+theorem pure_a_word_weight (w : RawWord) (hw : ∀ x ∈ w, x.1 = 0) :
+    rawWeight w = w.length := by
+  induction w with
+  | nil => rfl
+  | cons x xs ih =>
+    have hx := hw x List.mem_cons_self
+    have hxs := ih (fun y hy => hw y (List.mem_cons_of_mem _ hy))
+    change letterWeight x + rawWeight xs = xs.length+1
+    rw [hxs]
+    simp [letterWeight,hx,Nat.add_comm]
+
+/-- The pure-a interval of a bad periodic word is shorter in Guba's
+weighted metric than the original period. No restriction on the
+number of repetitions or on the position of the interval is needed. -/
+theorem bad_period_pure_a_factor_bound {N : Subgroup F} {c : F}
+    (hc : ¬ Good N c) (p z r : RawWord)
+    (hp : c.toWord <+: p ++ z ++ r)
+    (hper : (p ++ z ++ r).HasPeriod c.toWord.length)
+    (ha : ∀ x ∈ z, x.1 = 0) :
+    rawWeight z < weightedLength c := by
+  have hlen : z.length < c.toWord.length := by
+    by_contra! h
+    have hall := periodic_factor_contains_period_letters c.toWord p z r hp hper h
+    obtain ⟨n,hn⟩ := pure_a_word_eval c.toWord (fun x hx => ha x (hall x hx))
+    rw [FreeGroup.mk_toWord] at hn
+    exact hc (hn.symm ▸ good_a_zpow N n)
+  rw [pure_a_word_weight z ha]
+  exact hlen.trans_le (length_le_rawWeight c.toWord)
+
+#print axioms periodic_factor_contains_period_letters
+#print axioms pure_a_word_eval
+#print axioms pure_a_word_weight
+#print axioms bad_period_pure_a_factor_bound
+
+
 end QuandleResearch.Issue070
