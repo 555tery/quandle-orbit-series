@@ -1727,7 +1727,6 @@ theorem rothNumberNat_eq_interval (N : ℕ) :
     omega
   rw [he, addRothNumber_Ico]
   congr 1
-  omega
 
 /-- State the improvement directly in terms of finite subsets of the
 conventional interval [1,N], without the extremal function or an
