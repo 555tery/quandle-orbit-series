@@ -11796,4 +11796,104 @@ theorem first_positive_relator_survival (xs : List (Fin 2)) :
 #print axioms affineFreeMap_positive
 #print axioms first_positive_relator_survival
 
+
+/-! ## Obstruction to solving the entire problem by abelian-kernel
+representations. These results explain why an affine certificate
+for rank one cannot simply be kept unchanged at every rank. -/
+
+/-- If a group is covered by conjugates of a cyclic subgroup and
+is cyclic modulo an abelian normal subgroup, then it is cyclic
+in the stronger sense that every element is already a power of A. -/
+theorem cyclic_cover_abelian_kernel_collapse {K : Type} [Group K]
+    (N : Subgroup K) [N.Normal] (A : K)
+    (hab : ∀ x ∈ N, ∀ y ∈ N, Commute x y)
+    (hmod : ∀ g : K, ∃ m : ℤ, g * (A^m)⁻¹ ∈ N)
+    (hcover : ∀ g : K, ∃ (u : K) (k : ℤ), u*g*u⁻¹ = A^k) :
+    ∀ g : K, ∃ k : ℤ, g = A^k := by
+  have hcentral (k : ℤ) (hk : A^k ∈ N) (g : K) :
+      Commute g (A^k) := by
+    obtain ⟨m,hm⟩ := hmod g
+    have h1 := hab (g*(A^m)⁻¹) hm (A^k) hk
+    have h2 : Commute (A^m) (A^k) :=
+      (Commute.refl A).zpow_zpow m k
+    have h := h1.mul_left h2
+    have he : (g*(A^m)⁻¹)*A^m = g := by group
+    rwa [he] at h
+  have hn (g : K) (hg : g ∈ N) : ∃ k : ℤ, g = A^k := by
+    obtain ⟨u,k,he⟩ := hcover g
+    have hk : A^k ∈ N := by
+      rw [← he]
+      exact (inferInstance : N.Normal).conj_mem g hg u
+    have hc := (hcentral k hk u).eq
+    refine ⟨k,?_⟩
+    calc
+      g = u⁻¹*(u*g*u⁻¹)*u := by group
+      _ = u⁻¹*(A^k)*u := by rw [he]
+      _ = A^k := by
+        calc
+          _ = u⁻¹*((A^k)*u) := by group
+          _ = u⁻¹*(u*(A^k)) := by rw [hc]
+          _ = A^k := by group
+  intro g
+  obtain ⟨m,hm⟩ := hmod g
+  obtain ⟨k,hk⟩ := hn _ hm
+  refine ⟨k+m,?_⟩
+  calc
+    g = (g*(A^m)⁻¹)*A^m := by group
+    _ = A^k*A^m := by rw [hk]
+    _ = A^(k+m) := (zpow_add A k m).symm
+
+/-- For a normal subgroup containing the conjugacy relation for
+the commutator, a representation whose distinguished generator
+has faithful powers under a character cannot detect that commutator.
+The character target is abelian; the representation target need
+not be abelian. -/
+theorem character_obstruction_to_commutator_survival
+    {K L : Type} [Group K] [CommGroup L]
+    (N : Subgroup F) (q : F →* K) (chi : K →* L)
+    (hker : N ≤ q.ker)
+    (hgood : Good N commWord)
+    (hfaith : ∀ k : ℤ, chi ((q a)^k) = 1 → (q a)^k = 1) :
+    q commWord = 1 := by
+  obtain ⟨u,k,hu⟩ := hgood
+  have hrel : q (u*commWord*u⁻¹*(a^k)⁻¹) = 1 := hker hu
+  have he : q u*q commWord*(q u)⁻¹ = (q a)^k := by
+    simp only [map_mul,map_inv,map_zpow] at hrel
+    calc
+      _ = (q u*q commWord*(q u)⁻¹*((q a)^k)⁻¹)*(q a)^k := by group
+      _ = _ := by rw [hrel,one_mul]
+  have hchi : chi (q commWord) = 1 := by
+    change chi (q (a*b*a⁻¹*b⁻¹)) = 1
+    simp only [map_mul,map_inv]
+    rw [mul_comm (chi (q a)) (chi (q b))]
+    group
+  have hc := congrArg chi he
+  simp only [map_mul,map_inv,hchi,mul_one,mul_inv_cancel] at hc
+  have hpow := hfaith k hc.symm
+  calc
+    q commWord = (q u)⁻¹*(q u*q commWord*(q u)⁻¹)*q u := by group
+    _ = _ := by rw [he,hpow]; group
+
+/-- There is a finite rank beyond which every representation with
+the above character property kills the commutator, regardless of
+the conjugator choice. The bound depends on the actual greedy chain,
+not on the representation or its target group. -/
+theorem eventually_character_obstruction (pick : WeightedSelector)
+    (X : ConjugatorChoice) :
+    ∃ n : ℕ, ∀ m ≥ n, ∀ (K L : Type) [Group K] [CommGroup L]
+      (q : F →* K) (chi : K →* L),
+      weightedStages pick X m ≤ q.ker →
+      (∀ k : ℤ, chi ((q a)^k) = 1 → (q a)^k = 1) →
+      q commWord = 1 := by
+  obtain ⟨n,hn⟩ := weightedStages_cover pick X commWord
+  refine ⟨n,?_⟩
+  intro m hm K L iK iL q chi hker hfaith
+  exact character_obstruction_to_commutator_survival
+    (weightedStages pick X m) q chi hker
+    (good_mono (weightedStages_mono pick X hm) hn) hfaith
+
+#print axioms cyclic_cover_abelian_kernel_collapse
+#print axioms character_obstruction_to_commutator_survival
+#print axioms eventually_character_obstruction
+
 end QuandleResearch.Issue070
