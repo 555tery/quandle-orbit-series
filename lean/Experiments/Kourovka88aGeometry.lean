@@ -3894,11 +3894,10 @@ theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
       (P.withRotation S.rotation).SameComponent a b → ¬ S.rotation.SameCycle a b →
       (∀ d, (P.withRotation S.rotation).SameComponent a d → ¬ S.rotation.SameCycle a d →
         ¬ S.rotation.SameCycle b d → keep d) →
-      ∃ g : F ⧸ weightedHeightStage pick X j,
-        QuotientGroup.mk' (weightedHeightStage pick X j)
-          (FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary a).map read)) * g *
-        QuotientGroup.mk' (weightedHeightStage pick X j)
-          (FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary b).map read)) * g⁻¹ = 1 := by
+      ∃ g : F,
+        FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary a).map read) * g *
+        FreeGroup.mk (((P.withRotation S.rotation).vertexBoundary b).map read) * g⁻¹ ∈
+          weightedHeightStage pick X j := by
   classical
   intro rows P keep S read a b hout href hab hne hint
   have hkeep : ∀ d, keep (P.rotation d) ↔ keep d := by
@@ -3909,12 +3908,17 @@ theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
   have hE : P.EulerEquality := boundaryRibbon_euler rows w s hs
   let T := P.withRotation S.rotation
   have hET : T.EulerEquality := P.splitRefinement_preserves_euler href hE
-  apply component_two_boundary_inverse_conjugacy T read _ _ hET a b hab hne
-  · intro d
-    change read (P.edge d) = reverseLetter (read d)
-    exact relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
-      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d
-  · intro d hc hd1 hd2
+  let N := weightedHeightStage pick X j
+  let : N.Normal := by
+    unfold N
+    rw [← rankHeight_normalClosure]
+    infer_instance
+  have he : ∀ d, read (T.edge d) = reverseLetter (read d) :=
+    relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)
+  have hinside : ∀ d, T.SameComponent a d → ¬ T.rotation.SameCycle a d →
+      ¬ T.rotation.SameCycle b d → FreeGroup.mk ((T.vertexBoundary d).map read) ∈ N := by
+    intro d hc hd1 hd2
     have hd := hint d hc hd1 hd2
     have hrot : ∀ e, P.rotation.SameCycle d e → S.rotation e = P.rotation e :=
       fun e he => hag e ((lowerRankDart_sameCycle pick X n j w s hs d e he).mp hd)
@@ -3923,6 +3927,11 @@ theorem rankRibbon_protected_two_arc_conjugacy (pick : WeightedSelector)
     rw [refined_vertex_read_of_agreement P S.rotation d hrot]
     obtain ⟨i,hi,hlt⟩ := hd
     exact rankRibbon_lower_vertex_mem pick X n j w s hs d i hi hlt
+  obtain ⟨g,hg⟩ := component_two_boundary_inverse_conjugacy T read N he hET a b hab hne hinside
+  obtain ⟨u,rfl⟩ := QuotientGroup.mk'_surjective N g
+  refine ⟨u,(QuotientGroup.eq_one_iff N).mp ?_⟩
+  simp only [map_mul, map_inv]
+  exact hg
 
 #print axioms component_two_boundary_inverse_conjugacy
 #print axioms rankRibbon_protected_two_arc_conjugacy
@@ -4009,6 +4018,59 @@ theorem guba19_total_vertex_dart_weight {D : Type} [Fintype D]
 #print axioms ribbonVertexPerimeter
 #print axioms ribbonVertexPerimeter_at
 #print axioms guba19_total_vertex_dart_weight
+
+
+/-! ## Exact edge accounting on a ribbon
+
+Every geometric edge has two actual incidence darts. The endpoint
+weights can differ because of the different perimeter denominators.
+Their sum is well defined on the edge quotient, even for loops.
+-/
+
+/-- Sum of the endpoint weights of a geometric edge. -/
+noncomputable def ribbonEdgeWeight {D : Type} [Fintype D]
+    (P : RibbonMap D) (weight : D → ℝ) : P.Edge → ℝ :=
+  Quotient.lift (fun d => weight d + weight (P.edge d)) (by
+    intro a b hab
+    rcases (P.edge_sameCycle_iff a b).mp hab with rfl | h
+    · rfl
+    · rw [h, P.edge_involutive, add_comm])
+
+theorem ribbonEdgeWeight_at {D : Type} [Fintype D]
+    (P : RibbonMap D) (weight : D → ℝ) (d : D) :
+    ribbonEdgeWeight P weight (P.edgeOf d) = weight d + weight (P.edge d) := rfl
+
+/-- The exact sum over geometric edges equals the sum over darts:
+both ends are included once, including at loop edges. -/
+theorem ribbon_total_edge_weight {D : Type} [Fintype D]
+    (P : RibbonMap D) (weight : D → ℝ) :
+    (∑ e : P.Edge, ribbonEdgeWeight P weight e) = ∑ d : D, weight d := by
+  classical
+  rw [← Finset.sum_fiberwise Finset.univ P.edgeOf weight]
+  apply Finset.sum_congr rfl
+  intro e _
+  obtain ⟨d,rfl⟩ := Quotient.exists_rep e
+  have hset : Finset.univ.filter (fun x => P.edgeOf x = P.edgeOf d) =
+      {d, P.edge d} := by
+    ext x
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and,
+      Finset.mem_insert, Finset.mem_singleton, P.edgeOf_eq_iff]
+  rw [ribbonEdgeWeight_at, hset, Finset.sum_pair (Ne.symm (P.edge_ne d))]
+
+/-- Both descriptions of the total normalized weight agree on the
+actual ribbon; the geometric edges are not a hypothetical index set. -/
+theorem guba19_total_vertex_edge_weight {D : Type} [Fintype D]
+    (P : RibbonMap D) (read : D → Letter) :
+    (∑ v : P.Vertex, (ribbonVertexPerimeter P read v : ℝ) ^ (2/3 : ℝ)) =
+      ∑ e : P.Edge, ribbonEdgeWeight P
+        (fun d => guba19Weight (ribbonVertexPerimeter P read (P.vertexOf d) : ℝ)
+          [read d]) e := by
+  rw [ribbon_total_edge_weight, guba19_total_vertex_dart_weight]
+
+#print axioms ribbonEdgeWeight
+#print axioms ribbonEdgeWeight_at
+#print axioms ribbon_total_edge_weight
+#print axioms guba19_total_vertex_edge_weight
 
 
 end QuandleResearch.Issue070
