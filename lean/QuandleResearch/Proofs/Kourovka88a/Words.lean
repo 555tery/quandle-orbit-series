@@ -963,8 +963,8 @@ theorem thueFactor_period_bound (n d : ℕ) (p v r : List (Fin 2))
     rw [hshift j (by omega), show p.length+j+d = p.length+(j+d) by omega,
       hshift (j+d) (by omega)]
     exact hper
-  rw [getElem?_pos (by rw [thuePrefix_length]; omega),
-    getElem?_pos (by rw [thuePrefix_length]; omega)] at heq
+  rw [getElem?_pos (thuePrefix n) (p.length+j) (by rw [thuePrefix_length]; omega),
+    getElem?_pos (thuePrefix n) (p.length+j+d) (by rw [thuePrefix_length]; omega)] at heq
   exact Option.some.inj heq
 
 /-- If two periods of such a factor satisfy the Fine–Wilf threshold,
@@ -1074,7 +1074,8 @@ theorem thuePrefix_no_tripleB (n i : ℕ) :
     (show i+j ≤ i+2 by omega)
   have h2 := tripleBAt_letter ht (show i ≤ i+j+1 by omega)
     (show i+j+1 ≤ i+2 by omega)
-  rw [getElem?_pos (by rw [thuePrefix_length]; omega)] at h1 h2
+  rw [getElem?_pos (thuePrefix n) (i+j) (by rw [thuePrefix_length]; omega)] at h1
+  rw [getElem?_pos (thuePrefix n) (i+j+1) (by rw [thuePrefix_length]; omega)] at h2
   exact (Option.some.inj h1).trans (Option.some.inj h2).symm
 
 theorem gubaPrefix_no_tripleB (m i : ℕ) :
@@ -1083,7 +1084,7 @@ theorem gubaPrefix_no_tripleB (m i : ℕ) :
 
 theorem gubaPrefix_head_zero (m : ℕ) :
     (gubaPrefix m)[0]? = some 0 := by
-  rw [getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
+  rw [getElem?_pos (gubaPrefix m) 0 (by rw [gubaPrefix, thuePrefix_length]; omega)]
   exact congrArg some (gubaPrefix_first m)
 
 theorem gubaPrefix_last_zero (m : ℕ) :
@@ -1091,7 +1092,7 @@ theorem gubaPrefix_last_zero (m : ℕ) :
   have he : (gubaPrefix m).length-1 = prefixEnd m := by
     rw [gubaPrefix, thuePrefix_length]
     omega
-  rw [he, getElem?_pos (by rw [gubaPrefix, thuePrefix_length]; omega)]
+  rw [he, getElem?_pos (gubaPrefix m) (prefixEnd m) (by rw [gubaPrefix, thuePrefix_length]; omega)]
   exact congrArg some (gubaPrefix_last m)
 
 /-- Repeated copies of a word with a protected last letter introduce
@@ -1141,6 +1142,7 @@ theorem separator_tripleB_iff (i : ℕ) :
     simp at hf
     omega
   · rintro rfl
+    unfold TripleBAt
     decide
 
 /-- Inside each long block bbb Q^(j+1), the only bbb starts at zero. -/
@@ -1379,6 +1381,7 @@ theorem repeat_hasPeriod (q : List (Fin 2)) (k : ℕ) :
     rw [List.HasPeriod, repeat_take_base]
     apply List.prefix_iff_exists_append_eq.mpr
     refine ⟨q, ?_⟩
+    symm
     calc
       q ++ (List.replicate (k+1) q).flatten =
           (List.replicate ((k+1)+1) q).flatten := by
