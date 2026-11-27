@@ -110,7 +110,7 @@ jobs:
       - name: Compile imported geometry and local prerequisites
         run: |
           set -o pipefail
-          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity SmallPresentation.SmallCancellationGeometryIdentityVertexWords SmallPresentation.SmallCancellationGeometryBoundaryTheorem SmallPresentation.SmallCancellationGeometryRelativeRestriction SmallPresentation.SmallCancellationGeometryCorridorCuts SmallPresentation.SmallCancellationGeometryEdgeContractionTopology QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
+          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity SmallPresentation.SmallCancellationGeometryIdentityVertexWords SmallPresentation.SmallCancellationGeometryBoundaryTheorem SmallPresentation.SmallCancellationGeometryRelativeRestriction SmallPresentation.SmallCancellationGeometryCorridorCuts SmallPresentation.SmallCancellationGeometryEdgeContractionTopology SmallPresentation.SmallCancellationGeometryRelativeRegions QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
       - name: Verify marked identity and ribbon bridge
         run: |
           set -o pipefail
@@ -148,7 +148,8 @@ jobs:
                    "edgeSplice_vertex_read", "edgeSplice_boundary_mem_normal", "refined_two_boundary_region_mem",
                    "vertexCut_partition", "vertexCut_other_vertex_read", "exists_two_vertex_cut_refinement", "vertexCut_prescribed_interval",
                    "ribbon_vertex_mem_sameCycle", "boundaryRibbon_vertex_mem_of_label", "rankRibbon_lower_vertex_mem", "refined_vertex_read_of_agreement", "rankRibbon_refined_two_boundary_mem",
-                   "vertexCut_rotation_eq_on_protected", "vertexCut_protected_invariant", "protected_splitRefinement_agreement", "lowerRankDart", "lowerRankDart_sameCycle", "rankRibbon_protected_cuts_boundary_mem"]
+                   "vertexCut_rotation_eq_on_protected", "vertexCut_protected_invariant", "protected_splitRefinement_agreement", "lowerRankDart", "lowerRankDart_sameCycle", "rankRibbon_protected_cuts_boundary_mem",
+                   "fixed_vertex_read_singleton", "coefficientRegions_no_unique_outlet", "rankRibbon_lower_regions_no_unique_outlet"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
