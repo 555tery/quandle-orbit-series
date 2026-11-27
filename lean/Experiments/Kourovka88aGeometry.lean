@@ -5123,4 +5123,193 @@ theorem normalized_loop_removal_product_one {D K : Type} [Fintype D] [Group K]
 #print axioms normalized_loop_removal_product_one
 
 
+
+/-! ## Algebraic compression with peripheral conjugacy certificates
+
+The literal embedding of surviving darts is tracked independently of
+their changed coefficient values. Peripheral cycle products are
+preserved up to conjugacy, not necessarily literally. This distinction
+is essential before any quantitative application.
+-/
+
+/-- Transporting a complete based dart list transports its product. -/
+theorem cycleProduct_of_boundary_map {D E K : Type} [Finite D] [Finite E] [Group K]
+    (P : RibbonMap D) (Q : RibbonMap E) (f : E → D) (v : D → K) (d : E)
+    (h : (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) :
+    cycleProduct Q.rotation (fun e => v (f e)) d =
+      cycleProduct P.rotation v (f d) := by
+  change ((Q.vertexBoundary d).map (fun e => v (f e))).prod =
+    ((P.vertexBoundary (f d)).map v).prod
+  rw [← h,List.map_map]
+  rfl
+
+/-- Delete one internal edge with all interior products still equal to
+one and an explicit conjugacy certificate at each peripheral vertex. -/
+theorem exists_algebraic_internal_edge_removal {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (a : D) (ha : keep a) (hb : keep (P.edge a)) :
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D) (w : E → K),
+      Fintype.card E < Fintype.card D ∧ Q.EulerEquality ∧
+      (P.Connected → Q.Connected) ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) → (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) ∧
+      (∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e))) ∧
+      (∀ d, w (Q.edge d) = (w d)⁻¹) ∧
+      (∀ d, keep (f d) → cycleProduct Q.rotation w d = 1) ∧
+      (∀ d, ¬ keep (f d) → ∃ g : K,
+        cycleProduct Q.rotation w d = g * cycleProduct P.rotation v (f d) * g⁻¹) := by
+  classical
+  have prep : ∃ (R : RibbonMap D) (z : D → K), R.edge = P.edge ∧
+      R.EulerEquality ∧ (P.Connected → R.Connected) ∧
+      (∀ d e, R.rotation.SameCycle d e → (keep d ↔ keep e)) ∧
+      (∀ d, ¬ keep d → R.vertexBoundary d = P.vertexBoundary d) ∧
+      ¬ R.rotation.SameCycle a (R.edge a) ∧
+      (∀ d : R.ContractDart a, z ((R.contractEdge a).edge d).val = (z d.val)⁻¹) ∧
+      (∀ d : R.ContractDart a, keep d.val →
+        cycleProduct (R.contractEdge a).rotation (fun e => z e.val) d = 1) ∧
+      (∀ d, ∃ g : K, cycleProduct P.rotation z d = g * cycleProduct P.rotation v d * g⁻¹) := by
+    by_cases hl : P.rotation.SameCycle a (P.edge a)
+    · let R := P.vertexCut a (P.edge a)
+      have hn : a ≠ P.edge a := (P.edge_ne a).symm
+      obtain ⟨z,g,hza,_,hze,hzg⟩ := spherical_loop_normalize_label P v he hE a hl
+      have hi := conjugated_vertex_relations P v z (fun d => g (P.edge d)) keep hzg hint
+      have hcut := interior_vertexCut_preserves P keep hkeep a (P.edge a) ha hb
+      have hp := normalized_loop_removal_product_one P z keep hze hi a ha hl hza
+      refine ⟨R,z,rfl,P.vertexCut_preserves_euler a (P.edge a) hn hl hE,
+        ?_,hcut.1,hcut.2,?_,hp.1,hp.2,?_⟩
+      · intro hc d e
+        exact (paired_vertexCut_sameComponent P a d e).mpr (hc d e)
+      · exact cutAt_not_sameCycle_of_sameCycle P.rotation a (P.edge a) hn hl
+      · intro d
+        exact ⟨g (P.edge d),hzg d⟩
+    · have hp := interior_contractEdge_product_one P v keep hkeep he hint a ha hb hl
+      refine ⟨P,v,rfl,hE,fun h => h,hkeep,fun _ _ => rfl,hl,hp.1,hp.2,?_⟩
+      intro d
+      exact ⟨1,by simp⟩
+  obtain ⟨R,z,heR,hR,hconn,hI,hread,hn,hzinv,hzone,hzg⟩ := prep
+  have hbR : keep (R.edge a) := by rw [heR]; exact hb
+  let Q := R.contractEdge a
+  let f : R.ContractDart a ↪ D := ⟨Subtype.val,Subtype.val_injective⟩
+  have hboundary (d : R.ContractDart a) (hd : ¬ keep d.val) :
+      (Q.vertexBoundary d).map Subtype.val = P.vertexBoundary d.val :=
+    (contractEdge_peripheral_boundary R keep hI a ha hbR d hd).trans (hread d.val hd)
+  refine ⟨R.ContractDart a,inferInstance,Q,f,fun d => z d.val,?,
+    R.contractEdge_euler a hn hR,?_,?_,?_,hboundary,
+    contractEdge_keep_sameVertex R keep hI a ha hbR hn,hzinv,hzone,?_⟩
+  · have hh := R.contractEdge_card_darts a
+    omega
+  · intro hc
+    exact R.contractEdge_connected (hconn hc) a hn
+  · intro d
+    change (Q.edge d).val = P.edge d.val
+    rw [R.contractEdge_edge_val a]
+    exact congrFun (congrArg (fun e : Equiv.Perm D => (e : D → D)) heR) d.val
+  · intro d hd
+    exact ⟨⟨d,fun h => hd (h ▸ ha),fun h => hd (h ▸ hbR)⟩,rfl⟩
+  · intro d hd
+    obtain ⟨g,hg⟩ := hzg d.val
+    refine ⟨g,?_⟩
+    exact (cycleProduct_of_boundary_map P Q Subtype.val z d (hboundary d hd)).trans hg
+
+/-- Terminate the algebraic surgery by strict induction on the number
+of darts. The result is an interior-edge-free spherical ribbon, with
+all interior relations valid and each old peripheral product retained
+up to an individual conjugation. -/
+theorem exists_algebraic_internal_edge_free_compression {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (hkeep : ∀ d e, P.rotation.SameCycle d e → (keep d ↔ keep e))
+    (hE : P.EulerEquality)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1) :
+    ∃ (E : Type) (_ : Fintype E) (Q : RibbonMap E) (f : E ↪ D) (w : E → K),
+      Q.EulerEquality ∧ (P.Connected → Q.Connected) ∧
+      (∀ d, f (Q.edge d) = P.edge (f d)) ∧
+      (∀ d, ¬ keep d → ∃ e, f e = d) ∧
+      (∀ d, ¬ keep (f d) → (Q.vertexBoundary d).map f = P.vertexBoundary (f d)) ∧
+      (∀ d e, Q.rotation.SameCycle d e → (keep (f d) ↔ keep (f e))) ∧
+      (∀ d, keep (f d) → ¬ keep (f (Q.edge d))) ∧
+      (∀ d, w (Q.edge d) = (w d)⁻¹) ∧
+      (∀ d, keep (f d) → cycleProduct Q.rotation w d = 1) ∧
+      (∀ d, ¬ keep (f d) → ∃ g : K,
+        cycleProduct Q.rotation w d = g * cycleProduct P.rotation v (f d) * g⁻¹) := by
+  classical
+  have main : ∀ (n : ℕ) (A : Type) [Fintype A] (R : RibbonMap A)
+      (z : A → K) (interior : A → Prop), Fintype.card A = n →
+      (∀ d e, R.rotation.SameCycle d e → (interior d ↔ interior e)) →
+      R.EulerEquality → (∀ d, z (R.edge d) = (z d)⁻¹) →
+      (∀ d, interior d → cycleProduct R.rotation z d = 1) →
+      ∃ (B : Type) (_ : Fintype B) (T : RibbonMap B) (j : B ↪ A) (u : B → K),
+        T.EulerEquality ∧ (R.Connected → T.Connected) ∧
+        (∀ d, j (T.edge d) = R.edge (j d)) ∧
+        (∀ d, ¬ interior d → ∃ e, j e = d) ∧
+        (∀ d, ¬ interior (j d) → (T.vertexBoundary d).map j = R.vertexBoundary (j d)) ∧
+        (∀ d e, T.rotation.SameCycle d e → (interior (j d) ↔ interior (j e))) ∧
+        (∀ d, interior (j d) → ¬ interior (j (T.edge d))) ∧
+        (∀ d, u (T.edge d) = (u d)⁻¹) ∧
+        (∀ d, interior (j d) → cycleProduct T.rotation u d = 1) ∧
+        (∀ d, ¬ interior (j d) → ∃ g : K,
+          cycleProduct T.rotation u d = g * cycleProduct R.rotation z (j d) * g⁻¹) := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | ind n ih =>
+      intro A inst R z interior hcard hinv hEuler hz hrel
+      by_cases hex : ∃ a, interior a ∧ interior (R.edge a)
+      · obtain ⟨a,ha,hb⟩ := hex
+        obtain ⟨C,instC,U,k,y,hlt,hU,hconnU,hedgeU,hsurvU,hreadU,hcyclesU,hy,hrelU,hconjU⟩ :=
+          exists_algebraic_internal_edge_removal R z interior hinv hEuler hz hrel a ha hb
+        let inside : C → Prop := fun d => interior (k d)
+        have hn : Fintype.card C < n := by omega
+        obtain ⟨B,instB,T,j,u,hT,hconn,hedge,hsurv,hread,hcycles,hterminal,hu,hrelT,hconj⟩ :=
+          ih (Fintype.card C) hn C U y inside rfl hcyclesU hU hy hrelU
+        let f : B ↪ A := j.trans k
+        refine ⟨B,instB,T,f,u,hT,?_,?_,?_,?_,hcycles,hterminal,hu,hrelT,?_⟩
+        · intro hc
+          exact hconn (hconnU hc)
+        · intro d
+          change k (j (T.edge d)) = R.edge (k (j d))
+          rw [hedge,hedgeU]
+        · intro d hd
+          obtain ⟨c,hc⟩ := hsurvU d hd
+          have hci : ¬ inside c := by
+            change ¬ interior (k c)
+            rw [hc]
+            exact hd
+          obtain ⟨b,hb'⟩ := hsurv c hci
+          exact ⟨b,(congrArg k hb').trans hc⟩
+        · intro d hd
+          change (T.vertexBoundary d).map (fun b => k (j b)) = R.vertexBoundary (k (j d))
+          calc
+            _ = ((T.vertexBoundary d).map j).map k := by rw [List.map_map]; rfl
+            _ = (U.vertexBoundary (j d)).map k := congrArg (List.map k) (hread d hd)
+            _ = _ := hreadU (j d) hd
+        · intro d hd
+          obtain ⟨g,hg⟩ := hconj d hd
+          obtain ⟨l,hl⟩ := hconjU (j d) hd
+          refine ⟨g*l,?_⟩
+          change cycleProduct T.rotation u d =
+            (g*l) * cycleProduct R.rotation z (k (j d)) * (g*l)⁻¹
+          rw [hg,hl]
+          group
+      · refine ⟨A,inst,R,Function.Embedding.refl A,z,hEuler,
+          fun h => h,fun _ => rfl,?_,?_,hinv,?_,hz,hrel,?_⟩
+        · intro d _
+          exact ⟨d,rfl⟩
+        · intro d _
+          exact List.map_id _
+        · intro d hd hd'
+          exact hex ⟨d,hd,hd'⟩
+        · intro d _
+          exact ⟨1,by simp⟩
+  exact main (Fintype.card D) D P v keep rfl hkeep hE he hint
+
+#print axioms cycleProduct_of_boundary_map
+#print axioms exists_algebraic_internal_edge_removal
+#print axioms exists_algebraic_internal_edge_free_compression
+
+
 end QuandleResearch.Issue070
