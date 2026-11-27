@@ -1238,7 +1238,7 @@ theorem repeated_length (q : List (Fin 2)) (k : ℕ) :
 
 theorem longBlock_length (q : List (Fin 2)) (j : ℕ) :
     (longBlock q j).length = 3+(j+1)*q.length := by
-  simp [longBlock, repeated_length]
+  simp only [longBlock, List.length_append, List.length_replicate, repeated_length]
 
 theorem longRaw_length_step (q : List (Fin 2)) (j : ℕ) :
     (longRaw q (j+1)).length = (longRaw q j).length + (3+(j+1)*q.length) := by
@@ -1305,8 +1305,9 @@ theorem resolvent_occurrence_gap (q v p s : List (Fin 2))
   have hconsecutive : t = j+1 := by
     by_contra hne
     have hlt : j+1 < t := by omega
-    have hmidL := hmono (Nat.lt_succ_self j)
-    have hmidR := hmono hlt
+    have hmidL : (longRaw q j).length < (longRaw q (j+1)).length :=
+      hmono (Nat.lt_succ_self j)
+    have hmidR : (longRaw q (j+1)).length < (longRaw q t).length := hmono hlt
     let i := (longRaw q (j+1)).length-p.length
     have hi : p.length+i = (longRaw q (j+1)).length := by dsimp [i]; omega
     have hip : 0 < i := by dsimp [i]; omega
