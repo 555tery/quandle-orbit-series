@@ -17125,10 +17125,10 @@ theorem guba23_no_heavy_actual_opposite_long_blocks
   classical
   intro X rows R root read idx x y c index index' hi hj bs cs l U r l' r'
     hxidx hyidx hxy hxb hyb hread hread' hb hc hheavy
-  let i := s[index.val].1.2.1
-  let j := s[index'.val].1.2.1
-  let k := s[index.val].1.2.2
-  let m := s[index'.val].1.2.2
+  let i : Fin n := (s[index.val]'index.isLt).1.2.1
+  let j : Fin n := (s[index'.val]'index'.isLt).1.2.1
+  let k : ℤ := (s[index.val]'index.isLt).1.2.2
+  let m : ℤ := (s[index'.val]'index'.isLt).1.2.2
   let ds := U++[c]
   let dt := (ds.map R.edge).reverse
   have hx : FreeGroup.mk ((R.vertexBoundary x).map read) =
@@ -17203,11 +17203,11 @@ theorem guba23_no_heavy_actual_opposite_long_blocks
   have hic : (idx c).val = index.val+1 := by
     have h := (disc_sameCycle_iff _ _ _ _).mp hxc
     change idx x = idx c at h
-    rwa [← h]
+    exact (congrArg Fin.val h).symm.trans hxidx
   have hie : (idx (R.edge c)).val = index'.val+1 := by
     have h := (disc_sameCycle_iff _ _ _ _).mp hye
     change idx y = idx (R.edge c) at h
-    rwa [← h]
+    exact (congrArg Fin.val h).symm.trans hyidx
   have hroot (d : _) (v : Fin s.length) (hv : (idx d).val = v.val+1) :
       ¬ R.rotation.SameCycle root d := by
     intro h
@@ -17601,8 +17601,8 @@ theorem gubaType_actual_self_long_pair_minimal_power_filling
   intro X rows R idx read x c i h bs l U r l' r' hidx hxb hread hb hc hne hheavy
   let ds := U++[c]
   let dt := (ds.map R.edge).reverse
-  let C := (pick (gubaState pick s[i.val].1.2.1.val).1 h).val
-  let k := s[i.val].1.2.2
+  let C : F := (pick (gubaState pick (s[i.val]'i.isLt).1.2.1.val).1 h).val
+  let k : ℤ := (s[i.val]'i.isLt).1.2.2
   obtain ⟨U₁,V₁,W₁,A₁,hbs,hU,hV,hW,hA⟩ := hread
   rw [hbs] at hb hc
   change some U₁ = some (l++ds++r) at hb
@@ -17641,7 +17641,7 @@ theorem gubaType_actual_self_long_pair_minimal_power_filling
   have hi : (idx (R.rotation c)).val = i.val+1 := by
     have he := (disc_sameCycle_iff _ _ _ _).mp hxi
     change idx x = idx (R.rotation c) at he
-    rwa [← he]
+    exact (congrArg Fin.val he).symm.trans hidx
   let A := (l.map read)++ds.map read
   let B := r.map read
   have hleft : (L++[c]).map read = A := by
