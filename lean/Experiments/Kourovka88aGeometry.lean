@@ -4403,4 +4403,58 @@ theorem exists_coefficient_star_compression {D : Type} [Fintype D]
 #print axioms exists_coefficient_star_compression
 
 
+/-! ## Coefficient regions without an interior vertex
+
+If both ends of an edge are peripheral singleton vertices, its
+connected component consists of exactly its two darts. This is the
+other terminal possibility besides an interior star with loops.
+-/
+
+theorem peripheral_edge_component {D : Type} (P : RibbonMap D) (a b : D)
+    (ha : P.rotation a = a)
+    (he : P.rotation (P.edge a) = P.edge a) :
+    P.SameComponent a b ↔ b = a ∨ b = P.edge a := by
+  constructor
+  · intro hab
+    let reach : D → Prop := fun d => d = a ∨ d = P.edge a
+    have step (d : D) (hd : reach d) : reach (P.edge d) := by
+      rcases hd with h | h
+      · exact Or.inr (congrArg P.edge h)
+      · exact Or.inl ((congrArg P.edge h).trans (P.edge_involutive a))
+    have hedge (d : D) : reach (P.edge d) ↔ reach d := by
+      constructor
+      · intro hd
+        have hh := step (P.edge d) hd
+        rwa [P.edge_involutive] at hh
+      · exact step d
+    have hrot (d : D) : reach (P.rotation d) ↔ reach d := by
+      constructor
+      · rintro (h | h)
+        · exact Or.inl (P.rotation.injective (h.trans ha.symm))
+        · exact Or.inr (P.rotation.injective (h.trans he.symm))
+      · rintro (h | h)
+        · exact Or.inl ((congrArg P.rotation h).trans ha)
+        · exact Or.inr ((congrArg P.rotation h).trans he)
+    exact (P.invariant_on_component reach hedge hrot hab).mp (Or.inl rfl)
+  · rintro (rfl | rfl)
+    · exact Relation.EqvGen.refl _
+    · exact P.component_edge a
+
+/-- A peripheral dart either belongs to an isolated two-dart
+edge or has an interior neighbor. This conclusion uses actual
+edge pairings rather than a hypothetical contiguity graph. -/
+theorem coefficient_peripheral_edge_or_interior {D : Type} (P : RibbonMap D)
+    (keep : D → Prop) (hleaf : ∀ d, ¬ keep d → P.rotation d = d)
+    (a : D) (ha : ¬ keep a) :
+    (¬ keep (P.edge a) ∧ ∀ b, P.SameComponent a b ↔ b = a ∨ b = P.edge a) ∨
+      keep (P.edge a) := by
+  classical
+  by_cases h : keep (P.edge a)
+  · exact Or.inr h
+  · exact Or.inl ⟨h,fun b => peripheral_edge_component P a b (hleaf a ha) (hleaf _ h)⟩
+
+#print axioms peripheral_edge_component
+#print axioms coefficient_peripheral_edge_or_interior
+
+
 end QuandleResearch.Issue070
