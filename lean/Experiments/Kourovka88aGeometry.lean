@@ -9113,8 +9113,10 @@ theorem guba23_boundary_component_exact_factors (rows : I → RawWord) (w : F)
   have he : ∀ d, v (C.edge d) = (v d)⁻¹ := by
     intro d
     change FreeGroup.mk [read (P.edge d.val)] = (FreeGroup.mk [read d.val])⁻¹
-    rw [relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
-      (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs)]
+    have hread : read (P.edge d.val) = reverseLetter (read d.val) :=
+      relatorRibbon_edge_read (chosenSection (Fin 2)) (markedRows rows w)
+        (boundaryIdentity s) (boundaryIdentity_evaluation rows w s hs) d.val
+    rw [hread]
     exact signedLetterValue_reverse _
   have hEC : C.EulerEquality := by
     change Fintype.card C.Vertex + Fintype.card C.Face =
@@ -9123,9 +9125,9 @@ theorem guba23_boundary_component_exact_factors (rows : I → RawWord) (w : F)
     exact P.componentRibbon_sphere (boundaryRibbon_euler rows w s hs) z
   have same (d e : {d // P.SameComponent z d}) :
       C.rotation.SameCycle d e ↔ idx d.val = idx e.val := by
-    rw [P.restrict_sameVertex_iff (P.SameComponent z)
-      (P.component_membership_edge z) (P.component_membership_rotation z)]
-    exact disc_sameCycle_iff _ _ _ _
+    have h := P.restrict_sameVertex_iff (P.SameComponent z)
+      (P.component_membership_edge z) (P.component_membership_rotation z) d e
+    exact h.trans (disc_sameCycle_iff _ _ _ _)
   have hidx : idx a.val = boundaryOccurrence s := boundaryDart_occurrence rows w s hw
   have hv (d : {d // P.SameComponent z d}) :
       cycleProduct C.rotation v d =
