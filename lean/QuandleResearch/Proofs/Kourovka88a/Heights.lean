@@ -44,13 +44,13 @@ theorem normalClosure_all_heights (S : Set F) (X C : F) :
     Subgroup.normalClosure (S ∪ Set.range (heightRelator X C)) =
       Subgroup.normalClosure (S ∪ {heightRelator X C 1}) := by
   apply le_antisymm
-  · apply Subgroup.normalClosure_le.mpr
+  · apply Subgroup.normalClosure_le_normal
     intro w hw
     rcases hw with hw | ⟨k, rfl⟩
     · exact Subgroup.subset_normalClosure (Or.inl hw)
     · exact heightRelator_mem_of_one _ X C
         (Subgroup.subset_normalClosure (Or.inr rfl)) k
-  · apply Subgroup.normalClosure_le.mpr
+  · apply Subgroup.normalClosure_le_normal
     intro w hw
     rcases hw with hw | hw
     · exact Subgroup.subset_normalClosure (Or.inl hw)
