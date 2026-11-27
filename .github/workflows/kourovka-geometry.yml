@@ -1,0 +1,194 @@
+name: Kourovka 8.8(a) geometry integration
+on:
+  push:
+    branches: ['lean/kourovka-8-8a']
+    paths: ['lean/scripts/kourovka_paranoid_config.py', 'lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
+  pull_request:
+    branches: ['lean/mathlib-4.36-q57']
+    paths: ['lean/scripts/kourovka_paranoid_config.py', 'lean/Experiments/Kourovka88aGeometry.lean', 'lean/QuandleResearch/Proofs/Kourovka88a/**', '.github/workflows/kourovka-geometry.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kourovka-geometry-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  geometry:
+    if: github.event_name != 'pull_request' || github.head_ref == 'lean/kourovka-8-8a'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: lean
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install sandbox and Lean
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Verify sandbox and bundled kernels
+        run: |
+          set -euo pipefail
+          lean --version
+          lake --version
+          bwrap --unshare-all --ro-bind / / --proc /proc --dev /dev /bin/true
+          sysroot="$(lean --print-prefix)"
+          for exe in leanexport leanchecker leanchecker-paranoid lean4lean nanoda_bin con-leche con-ron; do
+            test -x "$sysroot/bin/$exe"
+          done
+      - name: Prepare pinned upstream in disposable runner
+        run: |
+          mkdir -p .lake
+          git clone https://github.com/32805433/Small-Groups.git .lake/small-groups
+          git -C .lake/small-groups checkout --detach 4a302a9ce13b5aa39f1db413df511be39df4ef31
+          test "$(git -C .lake/small-groups rev-parse HEAD)" = 4a302a9ce13b5aa39f1db413df511be39df4ef31
+          # Align only the dependency configuration in this runner, not its proofs.
+          sed -i 's/rev = "v4.35.0"/rev = "v4.36.0"/' .lake/small-groups/lakefile.toml
+          cp lean-toolchain .lake/small-groups/lean-toolchain
+          rm -f .lake/small-groups/lake-manifest.json
+          # Mathlib 4.36 moved Abelianization into the Group namespace.
+          # The old alias no longer provides the expected typeclass instances.
+          # Only qualify references; never alter theorem statements or proof obligations.
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          for p in Path(".lake/small-groups/SmallPresentation").rglob("*.lean"):
+              s = p.read_text()
+              t = re.sub(r"(?<![\w.])Abelianization\b", "Group.Abelianization", s)
+              # Do not change file imports or declarations named Abelianization.
+              if t != s:
+                  p.write_text(t)
+                  print("Qualified Abelianization in", p)
+          PY
+          # Normal.conj_mem in 4.36 takes its Normal instance implicitly.
+          # Use the explicit instance through dot notation, preserving the
+          # original proof of normality and the original conjugation map.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(".lake/small-groups/SmallPresentation/RelationCoordinates.lean")
+          s = p.read_text()
+          old = "Subgroup.Normal.conj_mem inferInstance _ n.property f"
+          new = "(inferInstance : N.Normal).conj_mem _ n.property f"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
+          # Lean 4.36 renamed the alternative of Nat.strong_induction_on.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(".lake/small-groups/SmallPresentation/SmallCancellationGeometryCorridorEndpointsEuler.lean")
+          s = p.read_text()
+          old = "  | h n ih =>"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, "  | ind n ih =>"))
+          PY
+          # First-return induction uses the same renamed strong-induction constructor.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(".lake/small-groups/SmallPresentation/SmallCancellationGeometryRelativeRegionBoundary.lean")
+          s = p.read_text()
+          old = "  | h n ih =>"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, "  | ind n ih =>"))
+          PY
+          # Simplification leaves one arithmetic goal on Lean 4.36.
+          # Avoid redundant goal-distribution combinators.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(".lake/small-groups/SmallPresentation/SmallCancellationGeometryRelativeMetric.lean")
+          s = p.read_text()
+          old = "    cases hx : sign x <;> cases hy : sign y <;> simp_all\n    all_goals omega"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, "    cases hx : sign x <;> cases hy : sign y <;> simp_all\n    omega"))
+          PY
+          git -C .lake/small-groups diff --stat
+          cat >> lakefile.toml <<'EOF'
+
+          [[require]]
+          name = "small_groups"
+          path = ".lake/small-groups"
+
+          [[lean_lib]]
+          name = "KourovkaGeometry"
+          roots = ["Experiments.Kourovka88aGeometry"]
+          EOF
+          lake update
+          lake exe cache get
+      - name: Compile imported geometry and local prerequisites
+        run: |
+          set -o pipefail
+          lake build SmallPresentation.SmallCancellationDipoleIdentityRibbon SmallPresentation.SmallCancellationGeometryIdentityPlanarity SmallPresentation.SmallCancellationGeometryIdentityVertexWords SmallPresentation.SmallCancellationGeometryBoundaryTheorem SmallPresentation.SmallCancellationGeometryRelativeRestriction SmallPresentation.SmallCancellationGeometryCorridorCuts SmallPresentation.SmallCancellationGeometryEdgeContractionTopology SmallPresentation.SmallCancellationGeometryRelativeRegions SmallPresentation.SmallCancellationGeometryRelativeRegionBoundary QuandleResearch.Proofs.Kourovka88a.WeightedGreedy 2>&1 | tee geometry-build.log
+      - name: Verify marked identity and ribbon bridge
+        run: |
+          set -o pipefail
+          lake env lean Experiments/Kourovka88aGeometry.lean 2>&1 | tee geometry-audit.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          ansi = re.compile(r"\x1b\[[0-9;]*m")
+          build, audit = [ansi.sub("", Path(f).read_text()) for f in
+                         ["geometry-build.log", "geometry-audit.log"]]
+          for line in (build + "\n" + audit).splitlines():
+              if "warning:" in line.lower():
+                  assert re.search(r"imports `[^\x60]+` from package `mathlib`, which is designed for use with the module system; consider adding `module` to the start of this file$", line), line
+          allowed = {"propext", "Classical.choice", "Quot.sound"}
+          names = ["exists_peiffer_expression", "marked_evaluation",
+                   "boundaryIdentity_evaluation", "boundaryIdentity_only_marked",
+                   "boundaryRibbon", "rankHeight_normalClosure", "rankHeightRows_eval",
+                   "exists_rankHeight_identity", "rankHeightRibbon", "boundaryRibbon_euler", "rankHeightRibbon_euler",
+                   "boundaryOccurrence_pos", "boundaryDart_occurrence",
+                   "boundaryDart_sameVertex_iff", "boundaryRibbon_read", "boundaryComponent",
+                   "boundaryComponent_connected", "boundaryComponent_sphere",
+                   "markedRows", "markOccurrence", "boundaryIdentity", "RankHeight", "rankHeightRel", "rankHeightRows", "boundaryOccurrence", "boundaryDart",
+                   "guba_rankHeightRows_active", "guba_rankHeightRows_nonempty", "boundaryRibbon_interior_read", "orientedWord_rawWeight", "boundaryRibbon_inverse_read",
+                   "read_factor_lift", "boundaryRibbon_interior_factor", "boundaryRibbon_paired_positive_eq", "boundaryRibbon_direct_long_overlap",
+                   "guba_rankHeightRows_weight", "guba_rankHeightRows_large", "answer_of_guba_large_cell",
+                   "MinimalExpression", "exists_minimalExpression", "peiffer_evaluation_append", "minimalExpression_block_length", "minimalExpression_no_cancel_pair", "minimalExpression_no_trivial_term", "exists_minimal_rankHeight_expression", "minimal_rankHeight_no_merge_pair",
+                   "rankHeightRel_neg", "positiveHeightOccurrence", "positiveHeightOccurrence_term", "positiveHeightOccurrence_sign", "positiveHeightOccurrence_rank", "positiveHeightOccurrence_evaluation", "exists_positive_minimal_rankHeight_expression", "minimal_rankHeight_nonzero_height",
+                   "shiftOccurrence", "shiftOccurrence_term", "peiffer_move_occurrence", "minimalExpression_of_equal_value_length", "minimalExpression_move_pair", "minimal_rankHeight_no_separated_merge_pair",
+                   "exists_descending_count_min", "rankCount", "rankCount_append", "RankMinimalExpression", "exists_rankMinimalExpression", "rankMinimal_block_no_reduction", "rankCount_positiveHeightOccurrence", "exists_positive_rankMinimalExpression",
+                   "liftRankOccurrence", "liftRankOccurrence_term", "liftRankOccurrence_evaluation", "rankCount_liftRankOccurrence_zero", "exists_lowerRank_filling", "rankMinimal_block_no_reduction_mod_lower", "exists_rankMinimal_ribbon_expression",
+                   "rankCount_singleton", "rankMinimal_no_separated_merge_mod_lower",
+                   "signedLetterValue_reverse", "rawWord_eval_prod", "ribbon_boundary_mem_normal", "rotated_word_mem_normal", "lowerRank_rotated_row_mem", "lowerRank_region_boundary_mem", "activePeriod_region_quadrilateral_weight",
+                   "component_vertex_read", "component_boundary_mem_normal", "boundaryComponent_read",
+                   "vertexCut_interval_read", "vertexCut_comm", "vertexCut_separated_boundary_mem",
+                   "edgeSplice_vertex_read", "edgeSplice_boundary_mem_normal", "refined_two_boundary_region_mem",
+                   "vertexCut_partition", "vertexCut_other_vertex_read", "exists_two_vertex_cut_refinement", "vertexCut_prescribed_interval",
+                   "ribbon_vertex_mem_sameCycle", "boundaryRibbon_vertex_mem_of_label", "rankRibbon_lower_vertex_mem", "refined_vertex_read_of_agreement", "rankRibbon_refined_two_boundary_mem",
+                   "vertexCut_rotation_eq_on_protected", "vertexCut_protected_invariant", "protected_splitRefinement_agreement", "lowerRankDart", "lowerRankDart_sameCycle", "rankRibbon_protected_cuts_boundary_mem",
+                   "fixed_vertex_read_singleton", "coefficientRegions_no_unique_outlet", "rankRibbon_lower_regions_no_unique_outlet",
+                   "guba23_firstKind_weight", "guba23_perimeter_arithmetic", "guba23_row_perimeter_of_coverage",
+                   "guba23_sublist_weight", "guba23_flatMap_weight", "guba23_outer_arcs_weight", "guba23_arc_transfer_sum", "guba23_boundary_transfer", "guba23_row_perimeter_of_arcs",
+                   "guba22_component_support", "guba22_mem_component_support", "guba22_component_support_disjoint", "guba22_exists_component_representatives", "guba22_component_partition_weight", "guba22_second_kind_card", "guba22_prune_coverage", "guba22_prune_preserves_geometry",
+                   "guba22_coefficient_preserved_read", "guba22_two_outlet_mem_of_other", "guba22_two_outlet_mem_iff", "guba22_component_support_pair", "guba22_exists_unique_other_outlet",
+                   "guba22_cycleProduct_conjugator", "guba22_exists_leaving_edge", "guba22_edgeSplice_connected", "guba22_two_boundary_product", "guba22_two_outlet_inverse_conjugacy",
+                   "guba22_other_cycle_iterate", "guba22_two_interval_refinement", "guba22_connected_interval_refinement",
+                   "guba22_face_length_ge_three", "guba22_no_monogon_of_no_loop", "guba22_reduced_ribbon_edge_bound", "guba22_reduced_ribbon_edge_bound_except_face", "rankRibbon_boundary_component_has_high_cell", "guba_boundary_component_large_row", "coefficient_region_crosses_vertex", "rankRibbon_outer_region_has_top_outlet", "signed_letter_survives_of_commWord", "rankRibbon_outlet_weight_partition", "guba19Weight", "guba19Weight_append", "guba19Weight_map_sum", "guba19Weight_total", "guba19_vertex_weight", "guba19_normalized_transfer", "guba19_outer_weight_arithmetic", "component_two_boundary_inverse_conjugacy", "rankRibbon_protected_two_arc_conjugacy", "ribbon_perimeter_sameCycle", "ribbonVertexPerimeter", "ribbonVertexPerimeter_at", "guba19_total_vertex_dart_weight", "ribbonEdgeWeight", "ribbonEdgeWeight_at", "ribbon_total_edge_weight", "guba19_total_vertex_edge_weight", "contractEdge_peripheral_sameVertex", "contractEdge_peripheral_boundary", "contractEdge_peripheral_read", "contractEdge_keep_sameVertex", "exists_interior_edge_compression", "compressed_region_star", "compressed_peripheral_leaf", "exists_coefficient_star_compression", "peripheral_edge_component", "coefficient_peripheral_edge_or_interior", "face_sameCycle_of_fixed_edge_endpoint", "face_sameCycle_of_fixed_edge_endpoints", "peripheral_face_two_steps", "coefficient_loopless_component_one_face", "spherical_loop_distinct_faces", "coefficient_one_face_iff_no_internal_edges", "paired_vertexCut_sameComponent", "interior_vertexCut_preserves", "exists_internal_edge_removal", "exists_internal_edge_free_compression", "interior_edgeSplice_product_one", "interior_contractEdge_product_one", "adjacent_internal_product_one", "internal_loop_twisted_product", "walk_potential_product", "face_potential_change", "spherical_loop_normalize_label", "conjugated_vertex_relations", "cycleProduct_next_of_one", "normalized_loop_splice_product_one", "normalized_loop_removal_product_one", "cycleProduct_of_boundary_map", "exists_algebraic_internal_edge_removal", "exists_algebraic_internal_edge_free_compression", "face_potential_fixed_vertex_label", "spherical_loop_normalize_protected_face", "protected_face_singleton_value", "peripheral_conjugacy_weight", "compressed_peripheral_equiv", "compressed_peripheral_card", "compressed_peripheral_weight_sum", "compressed_peripheral_nontrivial_iff", "loopless_star_outlet_list", "loopless_star_outlet_product", "peripheral_singleton_product", "loopless_star_original_outlet_equation", "connected_coefficient_outlet_equation", "component_coefficient_outlet_equation", "coefficientRegions_original_outlet_equation", "rankRibbon_coefficient_outlet_equation", "coefficient_component_prefix", "coefficient_component_runs", "coefficient_runs_weight", "walk_split_departures", "walk_predecessor_mem", "exists_coefficient_transition", "cyclic_coefficient_component_runs", "vertex_run_is_walk", "marked_list_split_unique", "vertexCut_exact_blocks", "vertex_partition_splitRefinement", "sameCycle_iff_of_vertexBoundary_eq", "simultaneous_vertex_partition_splitRefinement", "protected_simultaneous_vertex_partitions", "ribbon_component_of_steps", "coefficient_partition_sameComponent", "vertex_cycle_representatives", "exists_global_coefficient_interval_refinement", "descendingCountLT", "descending_count_induction", "rankCount_le_of_sublist", "descending_count_lt_of_pointwise", "rank_type_lt_of_omitted_occurrence", "guba19_from_nine_categories", "guba13_transcribed_parameter_square_check", "guba13_short_section_exact_bound", "guba13_relaxed_bound", "guba14_relaxed_budget", "guba17_18_relaxed_factors", "guba19_relaxed_budget", "guba22_relaxed_arc_bound", "guba22_relaxed_pruning_budget", "dart_read_weight_sum", "guba23_disjoint_dart_arcs_weight", "guba23_dart_boundary_transfer", "guba23_perimeter_arithmetic_six", "guba23_marked_boundary_transfer_darts", "firstReturn_paths_disjoint", "firstReturn_retained_departure", "coefficient_region_ordered_paths", "coefficient_two_block_relation", "coefficient_one_block_mem", "minBad_positive_factor_not_mem", "coefficient_minBad_block_has_other_outlet", "minBad_factor_inverse_conjugacy_weight", "exists_minimal_inverse_conjugator_weight", "walk_cycleProduct_transport", "edgeSplice_explicit_inverse_conjugator", "cycleProduct_cutAt_trivial_insert", "two_boundary_adjacent_reduction", "vertex_two_complementary_walks", "vertex_short_corner_connector", "guba1_bond_connector_arithmetic", "guba1_long_section_connector_arithmetic", "adjacent_short_inverse_conjugator", "two_vertex_perimeters_le_total", "two_boundary_weighted_inverse_conjugator", "component_weighted_inverse_conjugator", "rankRibbon_protected_two_arc_weighted_conjugacy", "minBad_cyclicFactor_inverse_conjugacy_weight", "minBad_two_cyclicFactors_transfer", "rawWord_eq_pow_of_dividing_period", "minBad_dividing_period", "minBad_literal_period_alignment", "selected_period_good_next", "good_raw_rotation_iff", "distinct_rank_literal_period_overlap", "good_of_quotient_conj", "distinct_rank_quotient_power_separation", "distinct_rank_power_relation_not_mem", "good_integer_power", "coherent_power_conjugacy_bezout", "minBad_coherent_power_relations_impossible", "periodic_factor_contains_period_letters", "pure_a_word_eval", "pure_a_word_weight", "bad_period_pure_a_factor_bound", "guba_prefix_zero_factor_bound", "zero_prefix_repeat_bound", "zero_factor_repeat_bound", "zero_factor_longBlock_bound", "zero_prefix_longBlock_empty", "guba_longRaw_zero_factor_bound", "activeLongWord_pure_a_weight_bound", "activeLongWord_pure_a_relative_bound", "invRev_infix_of_infix", "invRev_pure_a", "activeLongWord_signed_pure_a_bound", "activeLongWord_either_side_pure_a_bound", "guba23_delete_cell_minimal_type", "guba23_delete_cell_variable_base_minimal", "rankMinimal_no_trivial_occurrence", "rankMinimal_designated_row_nonempty", "guba23_designated_boundary_cycle", "guba23_splice_expand_vertex_product", "guba23_splice_keep_vertex_product", "guba23_component_exact_vertex_product", "guba23_boundary_component_exact_factors", "rankMinimal_no_omitted_indices", "guba23_vertex_factor_as_occurrence", "guba23_rankMinimal_ribbon_connected", "guba23_delete_cell_two_boundary_package", "rankMinimal_subfilling_minimal", "rankMinimal_proper_subfilling", "rankMinimal_transport_profile", "guba23_regrouped_region_induction", "guba23_refined_component_exact_occurrences", "rank_type_lt_of_omitted_index", "descending_count_trans", "rankMinimal_exists_below_type", "guba21_cut_boundary_smaller_type", "indexed_rankCount_eq", "rankMinimal_indexed_reassembly", "guba21_separating_boundary_cut_minimal"]
+          assert len(names) == len(set(names)), "duplicate audit names"
+          for name in names:
+              match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
+              if match:
+                  assert {a.strip() for a in match.group(1).split(",") if a.strip()} <= allowed, name
+              else:
+                  assert re.search(r"'[^']*\." + name + r"' does not depend on any axioms", audit), name
+          print(f"Verified {len(names)} bridge declarations with only permitted axioms.")
+          PY
+      - name: Replay every audited declaration with all six kernels
+        run: |
+          set -euo pipefail
+          python3 scripts/kourovka_paranoid_config.py geometry kourovka-geometry-comparator.json
+          lake comparator --config kourovka-geometry-comparator.json --paranoid 2>&1 | tee kourovka-geometry-paranoid.log
+          for kernel in "Lean default" "Lean paranoid" lean4lean nanoda con-leche con-ron; do
+            grep -F "$kernel kernel accepts the solution" kourovka-geometry-paranoid.log
+          done
+          grep -F "Your solution is okay!" kourovka-geometry-paranoid.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kourovka-geometry-paranoid
+          path: |
+            lean/kourovka-geometry-comparator.json
+            lean/kourovka-geometry-paranoid.log
+          if-no-files-found: warn
