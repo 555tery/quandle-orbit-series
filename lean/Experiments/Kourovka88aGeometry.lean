@@ -13684,4 +13684,151 @@ theorem guba_marked_leaf_direct_runs_end
 #print axioms guba_rankRibbon_interior_large
 #print axioms guba_marked_leaf_direct_runs_end
 
+
+/-! ## Counting direct-strip ends without graph surgery -/
+
+theorem face_two_step_sameCycle {D : Type} (P : RibbonMap D)
+    {a b : D} (h : P.face.SameCycle a b) :
+    (P.face (P.face a) = a ↔ P.face (P.face b) = b) := by
+  have forward (a b : D) (h : P.face.SameCycle a b)
+      (ha : P.face (P.face a) = a) : P.face (P.face b) = b := by
+    obtain ⟨m,hm⟩ := h.exists_nat_pow_eq
+    rw [← hm]
+    clear hm h
+    induction m with
+    | zero => exact ha
+    | succ m ih =>
+      rw [pow_succ',Equiv.Perm.mul_apply]
+      exact congrArg P.face ih
+  exact ⟨forward a b h,forward b a h.symm⟩
+
+theorem ribbon_face_length_ge_two {D : Type} [Fintype D]
+    (P : RibbonMap D) (d : D) (h : P.face d ≠ d) :
+    2 ≤ (P.faceBoundary d).length := by
+  have hp := Function.minimalPeriod_pos_of_mem_periodicPts
+    (P.face.injective.mem_periodicPts d)
+  have hret := Function.iterate_minimalPeriod (f := (P.face : D → D)) (x := d)
+  have hn : Function.minimalPeriod P.face d ≠ 1 := by
+    intro he
+    rw [he,Function.iterate_one] at hret
+    exact h hret
+  simp only [RibbonMap.faceBoundary,List.length_ofFn]
+  omega
+
+noncomputable def ribbonEndIndicator {D : Type} (P : RibbonMap D) (d : D) : ℕ := by
+  classical
+  exact if P.face (P.face d) = d then 0 else 1
+
+noncomputable def ribbonVertexEndCount {D : Type} [Fintype D]
+    (P : RibbonMap D) (v : P.Vertex) : ℕ := by
+  classical
+  exact ∑ d ∈ Finset.univ.filter (fun d => P.vertexOf d = v), ribbonEndIndicator P d
+
+/-- Bigon darts have weight three and other darts weight two.
+Every face contributes at least six. Combining the resulting
+inequality with Euler counts strip ends on the original ribbon,
+without constructing a compressed graph. -/
+theorem ribbon_nonbigon_dart_bound {D : Type} [Fintype D]
+    (P : RibbonMap D) (z : D) (hc : P.Connected)
+    (hE : P.EulerEquality) (h1 : ∀ d, P.face d ≠ d) :
+    (∑ d : D, ribbonEndIndicator P d) + 12 ≤
+      6 * Fintype.card P.Vertex := by
+  classical
+  let weight : D → ℕ := fun d => if P.face (P.face d) = d then 3 else 2
+  have hface : ∀ f : P.Face,
+      6 ≤ ∑ d ∈ Finset.univ.filter (fun d => P.faceOf d = f), weight d := by
+    intro f
+    obtain ⟨a,rfl⟩ := Quotient.exists_rep f
+    let S := Finset.univ.filter (fun d => P.faceOf d = P.faceOf a)
+    change 6 ≤ ∑ d ∈ S, weight d
+    have hcard : S.card = (P.faceBoundary a).length := by
+      change incidenceDegree P.faceOf (P.faceOf a) = _
+      rw [P.face_incidenceDegree]
+    by_cases ha : P.face (P.face a) = a
+    · have hdeg := ribbon_face_length_ge_two P a (h1 a)
+      have he : (∑ d ∈ S, weight d) = 3 * S.card := by
+        calc
+          _ = ∑ _d ∈ S, (3 : ℕ) := by
+            apply Finset.sum_congr rfl
+            intro d hd
+            have hsame : P.face.SameCycle a d :=
+              (Quotient.exact (Finset.mem_filter.mp hd).2).symm
+            simp only [weight,ite_eq_left ((face_two_step_sameCycle P hsame).mp ha)]
+          _ = _ := by simp [Nat.mul_comm]
+      rw [he,hcard]
+      omega
+    · have hdeg := guba22_face_length_ge_three P a (h1 a) ha
+      have he : (∑ d ∈ S, weight d) = 2 * S.card := by
+        calc
+          _ = ∑ _d ∈ S, (2 : ℕ) := by
+            apply Finset.sum_congr rfl
+            intro d hd
+            have hsame : P.face.SameCycle a d :=
+              (Quotient.exact (Finset.mem_filter.mp hd).2).symm
+            simp only [weight,ite_eq_right (fun h => ha ((face_two_step_sameCycle P hsame).mpr h))]
+          _ = _ := by simp [Nat.mul_comm]
+      rw [he,hcard]
+      omega
+  have hsum : 6 * Fintype.card P.Face ≤ ∑ d : D, weight d := by
+    rw [← Finset.sum_fiberwise Finset.univ P.faceOf weight]
+    calc
+      _ = ∑ _f : P.Face, (6 : ℕ) := by simp [Nat.mul_comm]
+      _ ≤ _ := Finset.sum_le_sum (fun f _ => hface f)
+  have htotal : (∑ d : D, weight d) + (∑ d : D, ribbonEndIndicator P d) =
+      3 * Fintype.card D := by
+    rw [← Finset.sum_add_distrib]
+    calc
+      _ = ∑ _d : D, (3 : ℕ) := by
+        apply Finset.sum_congr rfl
+        intro d _
+        by_cases h : P.face (P.face d) = d <;> simp [weight,ribbonEndIndicator,h]
+      _ = _ := by simp [Nat.mul_comm]
+  have hd := P.card_darts
+  have hcc := P.card_components_of_connected hc z
+  change Fintype.card P.Vertex + Fintype.card P.Face =
+    Fintype.card P.Edge + 2 * Fintype.card P.Component at hE
+  omega
+
+theorem ribbon_vertex_end_sum {D : Type} [Fintype D]
+    (P : RibbonMap D) :
+    (∑ v : P.Vertex, ribbonVertexEndCount P v) =
+      ∑ d : D, ribbonEndIndicator P d := by
+  classical
+  unfold ribbonVertexEndCount
+  exact Finset.sum_fiberwise Finset.univ P.vertexOf (ribbonEndIndicator P)
+
+/-- Some nonmarked vertex has at most five direct-strip ends.
+This is a planar low-degree conclusion without a compressed map. -/
+theorem ribbon_low_end_vertex {D : Type} [Fintype D]
+    (P : RibbonMap D) (z : D) (hc : P.Connected)
+    (hE : P.EulerEquality) (h1 : ∀ d, P.face d ≠ d) :
+    ∃ v : P.Vertex, v ≠ P.vertexOf z ∧ ribbonVertexEndCount P v ≤ 5 := by
+  classical
+  have hb := ribbon_nonbigon_dart_bound P z hc hE h1
+  have he := ribbon_vertex_end_sum P
+  by_contra! hn
+  have hsum : 6 * ((Finset.univ : Finset P.Vertex).erase (P.vertexOf z)).card ≤
+      ∑ v ∈ (Finset.univ : Finset P.Vertex).erase (P.vertexOf z), ribbonVertexEndCount P v := by
+    calc
+      _ = ∑ _v ∈ (Finset.univ : Finset P.Vertex).erase (P.vertexOf z), (6 : ℕ) := by
+        simp [Nat.mul_comm]
+      _ ≤ _ := Finset.sum_le_sum (fun v hv => by
+        have h := hn v (Finset.mem_erase.mp hv).1
+        omega)
+  have hs : (∑ v ∈ (Finset.univ : Finset P.Vertex).erase (P.vertexOf z), ribbonVertexEndCount P v) ≤
+      ∑ v : P.Vertex, ribbonVertexEndCount P v :=
+    Finset.sum_le_sum_of_subset (Finset.erase_subset _ _)
+  have hcard := Finset.card_erase_add_one (s := (Finset.univ : Finset P.Vertex))
+    (Finset.mem_univ (P.vertexOf z))
+  rw [Finset.card_univ] at hcard
+  omega
+
+#print axioms face_two_step_sameCycle
+#print axioms ribbon_face_length_ge_two
+#print axioms ribbonEndIndicator
+#print axioms ribbonVertexEndCount
+#print axioms ribbon_nonbigon_dart_bound
+#print axioms ribbon_vertex_end_sum
+#print axioms ribbon_low_end_vertex
+
 end QuandleResearch.Issue070
