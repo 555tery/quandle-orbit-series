@@ -4716,7 +4716,8 @@ theorem exists_internal_edge_removal {D : Type} [Fintype D]
     exact R.contractEdge_connected (hconn hc) a hn
   · intro d
     change (Q.edge d).val = P.edge d.val
-    rw [R.contractEdge_edge_val a, he]
+    rw [R.contractEdge_edge_val a]
+    exact congrFun (congrArg (fun e : Equiv.Perm D => (e : D → D)) he) d.val
   · intro d hd
     exact ⟨⟨d,fun h => hd (h ▸ ha),fun h => hd (h ▸ hbR)⟩,rfl⟩
   · intro d hd
@@ -5013,6 +5014,113 @@ theorem conjugated_vertex_relations {D K : Type} [Fintype D] [Group K]
 #print axioms face_potential_change
 #print axioms spherical_loop_normalize_label
 #print axioms conjugated_vertex_relations
+
+
+
+/-! ## Algebraically sound removal of a normalized internal loop
+
+The cut splits one vertex product into two factors, not necessarily
+individual relations. Splicing them back after normalizing the loop
+label preserves their product. Only then delete the consecutive pair.
+-/
+
+/-- Advancing the based vertex reading by one incidence of value one
+leaves the product literally unchanged. -/
+theorem cycleProduct_next_of_one {D K : Type} [Finite D] [Group K]
+    (sigma : Equiv.Perm D) (v : D → K) (a : D) (ha : v a = 1) :
+    cycleProduct sigma v (sigma a) = cycleProduct sigma v a := by
+  obtain ⟨l,hl⟩ := cycleBoundary_cons sigma a
+  simp only [cycleProduct,cycleBoundary_next sigma a l hl,hl,
+    List.map_append,List.map_cons,List.map_nil,List.prod_append,
+    List.prod_cons,List.prod_nil,ha,one_mul,mul_one]
+
+/-- Cut a loop into two vertices and splice it back. If its label has
+been made trivial, the merged vertex is still a relation. Other
+vertices retain their original products. -/
+theorem normalized_loop_splice_product_one {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (a : D) (ha : keep a) (hloop : P.rotation.SameCycle a (P.edge a))
+    (hv : v a = 1) :
+    let R := P.vertexCut a (P.edge a)
+    ∀ d, keep d → cycleProduct (R.edgeSplice a).rotation v d = 1 := by
+  classical
+  intro R d hd
+  let b := P.edge a
+  have hn : ¬ R.rotation.SameCycle a b :=
+    cutAt_not_sameCycle_of_sameCycle P.rotation a b (P.edge_ne a).symm hloop
+  have hn' : ¬ R.rotation.SameCycle (R.rotation a) b := by
+    simpa only [Equiv.Perm.sameCycle_apply_left] using hn
+  let S := R.edgeSplice a
+  have hpart : cycleProduct P.rotation v a =
+      cycleProduct R.rotation v a * cycleProduct R.rotation v b := by
+    change ((P.vertexBoundary a).map v).prod =
+      ((R.vertexBoundary a).map v).prod * ((R.vertexBoundary b).map v).prod
+    rw [vertexCut_partition P a b (P.edge_ne a).symm hloop,
+      List.map_append,List.prod_append]
+  have hmerge : cycleProduct S.rotation v (R.rotation a) = 1 := by
+    change cycleProduct (cutAt R.rotation (R.rotation a) b) v (R.rotation a) = 1
+    rw [cycleProduct_cutAt_merge R.rotation v _ _ hn',
+      cycleProduct_next_of_one R.rotation v a hv,← hpart]
+    exact hint a ha
+  have hra : R.rotation.SameCycle a (R.rotation a) :=
+    Equiv.Perm.sameCycle_apply_right.mpr (.refl _ _)
+  by_cases hs : S.rotation.SameCycle (R.rotation a) d
+  · exact (cycleProduct_eq_one_of_sameCycle S.rotation v hs).mp hmerge
+  · have hda : ¬ R.rotation.SameCycle d (R.rotation a) := by
+      intro h
+      exact hs ((R.edgeSplice_sameVertex_iff a hn _ _).mpr (Or.inl h.symm))
+    have hdb : ¬ R.rotation.SameCycle d b := by
+      intro h
+      exact hs ((R.edgeSplice_sameVertex_iff a hn _ _).mpr
+        (Or.inr ⟨Or.inl hra.symm,Or.inr h⟩))
+    have hdaOld : ¬ P.rotation.SameCycle a d := by
+      intro h
+      have hm := (P.mem_vertexBoundary_iff a d).mpr h
+      rw [vertexCut_partition P a b (P.edge_ne a).symm hloop,List.mem_append] at hm
+      rcases hm with hm | hm
+      · exact hda (((R.mem_vertexBoundary_iff a d).mp hm).symm.trans hra)
+      · exact hdb ((R.mem_vertexBoundary_iff b d).mp hm).symm
+    have hread : R.vertexBoundary d = P.vertexBoundary d :=
+      vertexCut_other_vertex_read P a b d (fun h => hdaOld h.symm)
+        (fun h => hdaOld (hloop.trans h.symm))
+    change cycleProduct (cutAt R.rotation (R.rotation a) b) v d = 1
+    rw [cycleProduct_cutAt_unchanged R.rotation v _ _ _ hda hdb]
+    change ((R.vertexBoundary d).map v).prod = 1
+    rw [hread]
+    exact hint d hd
+
+/-- The actual loop removal preserves all interior identity products
+after the face-coordinate normalization. The remaining labels are
+inverse along the original surviving edge pairs. -/
+theorem normalized_loop_removal_product_one {D K : Type} [Fintype D] [Group K]
+    (P : RibbonMap D) (v : D → K) (keep : D → Prop)
+    (he : ∀ d, v (P.edge d) = (v d)⁻¹)
+    (hint : ∀ d, keep d → cycleProduct P.rotation v d = 1)
+    (a : D) (ha : keep a) (hloop : P.rotation.SameCycle a (P.edge a))
+    (hv : v a = 1) :
+    let R := P.vertexCut a (P.edge a)
+    (∀ d : R.ContractDart a, v ((R.contractEdge a).edge d).val = (v d.val)⁻¹) ∧
+      (∀ d : R.ContractDart a, keep d.val →
+        cycleProduct (R.contractEdge a).rotation (fun e => v e.val) d = 1) := by
+  intro R
+  constructor
+  · intro d
+    rw [R.contractEdge_edge_val]
+    exact he d.val
+  · intro d hd
+    let C := R.spliceCancellation a
+    have hinv : v C.left * v C.right = 1 := by
+      change v a * v (P.edge a) = 1
+      rw [he,mul_inv_cancel]
+    change (((R.contractEdge a).vertexBoundary d).map (fun e => v e.val)).prod = 1
+    rw [show (((R.contractEdge a).vertexBoundary d).map (fun e => v e.val)).prod =
+      (((R.edgeSplice a).vertexBoundary d.val).map v).prod from C.vertex_product v hinv d]
+    exact normalized_loop_splice_product_one P v keep hint a ha hloop hv d.val hd
+
+#print axioms cycleProduct_next_of_one
+#print axioms normalized_loop_splice_product_one
+#print axioms normalized_loop_removal_product_one
 
 
 end QuandleResearch.Issue070
