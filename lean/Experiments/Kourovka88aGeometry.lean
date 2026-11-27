@@ -13139,7 +13139,9 @@ theorem fourBlocks_cyclicallyReduced
   have h2 : y.1 = (0 : Fin 2) → y.2 = false := by
     rcases y with ⟨i,b⟩
     fin_cases i <;> cases b <;> simp_all
-  have h3 : (1 : Fin 2) = 0 → false = sg := by decide
+  have h3 : (1 : Fin 2) = 0 → false = sg := by
+    intro h
+    exact ((by decide : (1 : Fin 2) ≠ 0) h).elim
   have hr1 := rawReduced_append_of_ends hu hv hru hrv h1
   have he1 := rawEnds_append hu hv
   have hr2 := rawReduced_append_of_ends he1 hi hr1 (rawReduced_invRev hru) h2
@@ -13155,7 +13157,8 @@ theorem fourBlocks_cyclicallyReduced
   have hf : b = (1,true) := by simpa using hhead
   subst a
   subst b
-  decide
+  intro h
+  exact ((by decide : (0 : Fin 2) ≠ 1) h).elim
 
 /-- The signed powers of a normalized minimal bad period preserve
 its forbidden-endpoint convention, for every nonzero height. -/
@@ -13202,5 +13205,90 @@ theorem rankHeightRows_exact_weight_of_reduced
 #print axioms fourBlocks_cyclicallyReduced
 #print axioms minBad_signed_power_ends
 #print axioms rankHeightRows_exact_weight_of_reduced
+
+
+/-- The actual recursively chosen positive conjugator begins with
+b and ends with a; the enormous block count remains symbolic. -/
+theorem activeLongWord_rawEnds (pick : WeightedSelector) (j : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick j).1 w) :
+    RawEnds ((activeLongWord pick j h).map (fun i => (i,true)))
+      (1,true) (0,true) := by
+  let m := chooseEvenPrefixIndex (pick (gubaState pick j).1 h).val (gubaState pick j).2
+  let q := gubaEvenPrefix m
+  change RawEnds ((longRaw q (10^20)).map (fun i => (i,true))) (1,true) (0,true)
+  obtain ⟨xs,hxs⟩ := guba_longRaw_bbba m
+  have hlast : q[q.length-1]? = some 0 := gubaPrefix_last_zero (2*m+1)
+  have hk := longRaw_last_zero q hlast (10^20-1)
+  have he : (10^20-1 : ℕ)+1 = 10^20 := by norm_num
+  rw [he,← List.getLast?_eq_getElem?] at hk
+  obtain ⟨ys,hys⟩ := List.getLast?_eq_some_iff.mp hk
+  constructor
+  · change ((longRaw (gubaEvenPrefix m) (10^20)).map
+        (fun i => (i,true))).head? = _
+    rw [hxs]
+    rfl
+  · apply List.getLast?_eq_some_iff.mpr
+    refine ⟨ys.map (fun i => (i,true)),?_⟩
+    rw [hys,List.map_append]
+    rfl
+
+/-- A nonzero height yields a nonempty light block with equal
+endpoint signs, with no cancellation inside that block. -/
+theorem light_power_inverse_rawEnds (k : ℤ) (hk : k ≠ 0) :
+    ∃ sg : Bool, RawEnds (FreeGroup.invRev (rawIntPow a.toWord k)) (0,sg) (0,sg) ∧
+      FreeGroup.IsReduced (FreeGroup.invRev (rawIntPow a.toWord k)) := by
+  have ha : a.toWord = [(0,true)] := by decide
+  have hend : RawEnds a.toWord (0,true) (0,true) := by
+    rw [ha]
+    exact ⟨rfl,rfl⟩
+  have hcyc : FreeGroup.IsCyclicallyReduced a.toWord := by
+    rw [ha]
+    apply FreeGroup.isCyclicallyReduced_iff.mpr
+    constructor
+    · rw [← ha]
+      exact FreeGroup.isReduced_toWord
+    · simp
+  have hred (m : ℕ) : FreeGroup.IsReduced (rawNatPow a.toWord m) := by
+    rw [rawNatPow_eq_flatten_replicate]
+    exact (hcyc.flatten_replicate m).isReduced
+  cases k with
+  | ofNat m =>
+    cases m with
+    | zero => exact (hk rfl).elim
+    | succ m =>
+      exact ⟨false,rawEnds_invRev (rawEnds_natPow hend m),
+        rawReduced_invRev (hred (m+1))⟩
+  | negSucc m =>
+    change ∃ sg : Bool, RawEnds (FreeGroup.invRev (FreeGroup.invRev
+      (rawNatPow a.toWord (m+1)))) (0,sg) (0,sg) ∧
+      FreeGroup.IsReduced (FreeGroup.invRev (FreeGroup.invRev (rawNatPow a.toWord (m+1))))
+    rw [FreeGroup.invRev_invRev]
+    exact ⟨true,rawEnds_natPow hend m,hred (m+1)⟩
+
+/-- The actual nonempty normalized rank-height rows are cyclically
+reduced in the free group. The selected period and long conjugator
+are exactly those of the terminal one-letter construction. -/
+theorem guba_normalized_rows_cyclicallyReduced
+    (n : ℕ) (i : RankHeight n)
+    (hne : rankHeightRows twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) n i ≠ []) :
+    FreeGroup.IsCyclicallyReduced (rankHeightRows twoPeriodSelector
+      (gubaConjugatorChoice twoPeriodSelector) n i) := by
+  obtain ⟨h,hk⟩ := guba_rankHeightRows_nonempty twoPeriodSelector n i hne
+  obtain ⟨x,y,hends,hx,hy,hred⟩ := minBad_signed_power_ends
+    (twoPeriodSelector (gubaState twoPeriodSelector i.1.val).1 h).property
+    (twoPeriodSelector_ends _ h) i.2 hk
+  obtain ⟨sg,ha,hra⟩ := light_power_inverse_rawEnds i.2 hk
+  have hu := activeLongWord_rawEnds twoPeriodSelector i.1.val h
+  have hr : FreeGroup.IsReduced ((activeLongWord twoPeriodSelector i.1.val h).map
+      (fun i => (i,true))) := by
+    rw [← toWord_positiveWord]
+    exact FreeGroup.isReduced_toWord
+  rw [guba_rankHeightRows_active twoPeriodSelector n i h hk]
+  exact fourBlocks_cyclicallyReduced _ _ _ x y sg hu hends ha hr hred hra hx hy
+
+#print axioms activeLongWord_rawEnds
+#print axioms light_power_inverse_rawEnds
+#print axioms guba_normalized_rows_cyclicallyReduced
 
 end QuandleResearch.Issue070
