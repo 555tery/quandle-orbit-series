@@ -104,7 +104,8 @@ jobs:
                    "boundaryOccurrence_pos", "boundaryDart_occurrence",
                    "boundaryDart_sameVertex_iff", "boundaryRibbon_read", "boundaryComponent",
                    "boundaryComponent_connected", "boundaryComponent_sphere",
-                   "markedRows", "markOccurrence", "boundaryIdentity", "RankHeight", "rankHeightRel", "rankHeightRows", "boundaryOccurrence", "boundaryDart"]
+                   "markedRows", "markOccurrence", "boundaryIdentity", "RankHeight", "rankHeightRel", "rankHeightRows", "boundaryOccurrence", "boundaryDart",
+                   "guba_rankHeightRows_active", "guba_rankHeightRows_nonempty", "boundaryRibbon_interior_read", "orientedWord_rawWeight", "boundaryRibbon_inverse_read"]
           assert len(names) == len(set(names)), "duplicate audit names"
           for name in names:
               match = re.search(r"'[^']*\." + name + r"' depends on axioms:\s*\[([^\]]*)\]", audit)
