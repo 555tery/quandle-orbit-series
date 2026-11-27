@@ -10538,7 +10538,7 @@ theorem guba23_perimeter_reduce_to_based_nonseparating
         exact guba23_perimeter_at_separating_cut pick X n w s hm hw hs
           smaller b hne hsame hsep x hx
       · apply step w s hm hw hs smaller _ x hx
-        intro b hne hsame hf
+        intro P' a' b hne hsame hf
         exact hface ⟨b,hne,hsame,hf⟩)
   intro w s hm
   exact all s w hm
@@ -10578,7 +10578,8 @@ theorem answer_of_guba_based_nonseparating_step
   obtain ⟨p,r,he⟩ := List.mem_iff_append.mp hx
   have hnon : rankHeightRows pick (gubaConjugatorChoice pick) n x.1.2 ≠ [] := by
     apply rankMinimal_designated_row_nonempty pick (gubaConjugatorChoice pick) n w p r x
-    simpa only [he,List.append_assoc] using hm
+    have hsplit : s = p ++ [x] ++ r := by simpa using he
+    exact hsplit ▸ hm
   exact ⟨x.1.2,hnon,hper⟩
 
 #print axioms guba23_perimeter_at_separating_cut
