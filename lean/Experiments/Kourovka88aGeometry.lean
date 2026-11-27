@@ -9974,4 +9974,154 @@ theorem guba21_separating_boundary_cut_minimal
 #print axioms guba21_separating_boundary_cut_minimal
 
 
+
+/-- A separating single cut of one vertex cannot alter any interior
+vertex of either component. The two new peripheral cycles are the
+only pieces of the old vertex. -/
+theorem separating_vertexCut_intact {D : Type} [Fintype D]
+    (P : RibbonMap D) (a b : D) (hne : a ≠ b)
+    (hsame : P.rotation.SameCycle a b) :
+    let Q := P.vertexCut a b
+    ¬ Q.SameComponent a b →
+    ∀ c ∈ [a,b], ∀ d, Q.SameComponent c d →
+      ¬ Q.rotation.SameCycle c d →
+      ¬ P.rotation.SameCycle a d ∧
+        Q.vertexBoundary d = P.vertexBoundary d := by
+  intro Q hsep c hc d hcd hnot
+  have hpart := vertexCut_partition P a b hne hsame
+  have hold : ¬ P.rotation.SameCycle a d := by
+    intro hh
+    have hd := (P.mem_vertexBoundary_iff a d).mpr hh
+    rw [hpart,List.mem_append] at hd
+    have hc' : c = a ∨ c = b := by simpa using hc
+    rcases hc' with rfl | rfl
+    · rcases hd with hd | hd
+      · exact hnot ((Q.mem_vertexBoundary_iff a d).mp hd)
+      · have hbd := Q.component_of_vertexCycle
+          ((Q.mem_vertexBoundary_iff b d).mp hd)
+        exact hsep (Relation.EqvGen.trans _ _ _ hcd
+          (Relation.EqvGen.symm _ _ hbd))
+    · rcases hd with hd | hd
+      · have had := Q.component_of_vertexCycle
+          ((Q.mem_vertexBoundary_iff a d).mp hd)
+        exact hsep (Relation.EqvGen.trans _ _ _ had
+          (Relation.EqvGen.symm _ _ hcd))
+      · exact hnot ((Q.mem_vertexBoundary_iff b d).mp hd)
+  exact ⟨hold,vertexCut_other_vertex_read P a b d
+    (fun h => hold h.symm) (fun h => hold (hsame.trans h.symm))⟩
+
+/-- If a rank profile is the sum of two nonempty fillings, both
+fillings have strictly smaller descending type than the parent. -/
+theorem guba21_separating_profiles_strict {n : ℕ}
+    (s l r : Peiffer.Sequence F (RankHeight n))
+    (hl : l ≠ []) (hr : r ≠ [])
+    (hc : ∀ j, rankCount s j = rankCount l j + rankCount r j) :
+    descendingCountLT n rankCount l s ∧
+    descendingCountLT n rankCount r s := by
+  have pos (t : Peiffer.Sequence F (RankHeight n)) (ht : t ≠ []) :
+      ∃ j < n, 0 < rankCount t j := by
+    obtain ⟨x,hx⟩ := List.length_pos_iff_exists_mem.mp
+      (List.length_pos_iff.mpr ht)
+    refine ⟨x.1.2.1.val,x.1.2.1.isLt,?_⟩
+    unfold rankCount
+    apply List.length_pos_iff_exists_mem.mpr
+    exact ⟨x,List.mem_filter.mpr ⟨hx,by simp⟩⟩
+  obtain ⟨i,hi,hli⟩ := pos l hl
+  obtain ⟨j,hj,hrj⟩ := pos r hr
+  constructor
+  · apply descending_count_lt_of_pointwise
+    · intro k _
+      rw [hc k]
+      omega
+    · exact ⟨j,hj,by rw [hc j]; omega⟩
+  · apply descending_count_lt_of_pointwise
+    · intro k _
+      rw [hc k]
+      omega
+    · exact ⟨i,hi,by rw [hc i]; omega⟩
+
+/-- An actual separating cut of the outer vertex yields minimal
+fillings of the two literal boundary values. If both values are
+nonidentity, both fillings have strictly smaller type. The
+refinement, exact partition and intact-cell hypotheses of the
+general reassembly theorem are derived from the single cut. -/
+theorem guba21_actual_separating_cut_induction
+    (pick : WeightedSelector) (X : ConjugatorChoice) (n : ℕ) (w : F)
+    (s : Peiffer.Sequence F (RankHeight n))
+    (hm : RankMinimalExpression pick X n w s) (hw : w ≠ 1)
+    (hs : Peiffer.evaluation
+      (fun i => FreeGroup.mk (rankHeightRows pick X n i)) s = w) :
+    let rows := rankHeightRows pick X n
+    let P := boundaryRibbon rows w s hs
+    let a := boundaryDart rows w s hw
+    let read := discRead (chosenSection (Fin 2)) (markedRows rows w) (boundaryIdentity s)
+    ∀ b, a ≠ b → P.rotation.SameCycle a b →
+      let Q := P.vertexCut a b
+      ¬ Q.SameComponent a b →
+      let u := (FreeGroup.mk ((Q.vertexBoundary a).map read))⁻¹
+      let v := (FreeGroup.mk ((Q.vertexBoundary b).map read))⁻¹
+      u ≠ 1 → v ≠ 1 →
+      ∃ l r : Peiffer.Sequence F (RankHeight n),
+        RankMinimalExpression pick X n u l ∧
+        RankMinimalExpression pick X n v r ∧
+        (∀ j, rankCount s j = rankCount l j + rankCount r j) ∧
+        descendingCountLT n rankCount l s ∧
+        descendingCountLT n rankCount r s := by
+  classical
+  intro rows P a read b hne hsame Q hsep u v hu hv
+  let tau := Q.rotation
+  have hQ : P.withRotation tau = Q := by
+    apply RibbonMap.ext <;> rfl
+  have href : SplitRefinement P.rotation tau :=
+    SplitRefinement.single P.rotation a b hne hsame
+  have hpart : P.vertexBoundary a =
+      (P.withRotation tau).vertexBoundary a ++
+        (P.withRotation tau).vertexBoundary b := by
+    rw [hQ]
+    exact vertexCut_partition P a b hne hsame
+  have hint : ∀ c ∈ [a,b], ∀ d, (P.withRotation tau).SameComponent c d →
+      ¬ tau.SameCycle c d →
+      discOccurrence (markedRows rows w) (boundaryIdentity s) d ≠
+        boundaryOccurrence s ∧
+        (P.withRotation tau).vertexBoundary d = P.vertexBoundary d := by
+    intro c hc d hcd hnot
+    rw [hQ] at hcd ⊢
+    obtain ⟨hold,hread⟩ := separating_vertexCut_intact P a b hne hsame
+      hsep c hc d hcd hnot
+    refine ⟨?_,hread⟩
+    intro he
+    exact hold ((boundaryDart_sameVertex_iff rows w s hs hw d).mpr he)
+  have hsep' : ¬ (P.withRotation tau).SameComponent a b := by
+    rw [hQ]
+    exact hsep
+  obtain ⟨l,r,_,_,_,_,_,hl,hr,hcount⟩ :=
+    guba21_separating_boundary_cut_minimal pick X n w s hm hw hs tau
+      b href hsep' hpart hint
+  change RankMinimalExpression pick X n
+    (FreeGroup.mk (((P.withRotation tau).vertexBoundary a).map read))⁻¹
+      (l.map Prod.snd) at hl
+  change RankMinimalExpression pick X n
+    (FreeGroup.mk (((P.withRotation tau).vertexBoundary b).map read))⁻¹
+      (r.map Prod.snd) at hr
+  rw [hQ] at hl hr
+  have hln : l.map Prod.snd ≠ [] := by
+    intro he
+    apply hu
+    have h := hl.1
+    rw [he] at h
+    exact h.symm
+  have hrn : r.map Prod.snd ≠ [] := by
+    intro he
+    apply hv
+    have h := hr.1
+    rw [he] at h
+    exact h.symm
+  obtain ⟨hlt,hrt⟩ := guba21_separating_profiles_strict s
+    (l.map Prod.snd) (r.map Prod.snd) hln hrn hcount
+  exact ⟨l.map Prod.snd,r.map Prod.snd,hl,hr,hcount,hlt,hrt⟩
+
+#print axioms separating_vertexCut_intact
+#print axioms guba21_separating_profiles_strict
+#print axioms guba21_actual_separating_cut_induction
+
 end QuandleResearch.Issue070
