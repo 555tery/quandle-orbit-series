@@ -437,4 +437,104 @@ theorem minBad_not_literal_power {N : Subgroup F} [N.Normal] {c : F}
   rw [hpow]
   exact good_pow N hg m
 
+
+/-! ## Coupled choice of special prefixes and quotient stages
+
+The preceding algebraic construction allows arbitrary conjugators.
+Here we explicitly retain the previous prefix weight in the recursive
+state, so the next special prefix is chosen by both inequalities.
+This is not yet the paper's full admissibility theorem or tie order.
+-/
+
+/-- Stage data: the normal subgroup and the weight of the last chosen
+special prefix. At a stationary stage retain the previous weight. -/
+noncomputable def gubaState (pick : WeightedSelector) :
+    ℕ → Subgroup F × ℕ
+  | 0 => (⊥, 0)
+  | i+1 => by
+    classical
+    let S := gubaState pick i
+    exact if h : ∃ w : F, ¬ Good S.1 w then
+      let c := (pick S.1 h).val
+      let q := gubaEvenPrefix (chooseEvenPrefixIndex c S.2)
+      (adjoin S.1 (heightRelator (positiveWord (longRaw q (10^20))) c 1),
+        positiveWeight q)
+    else S
+
+noncomputable def gubaConjugatorChoice (pick : WeightedSelector) : ConjugatorChoice :=
+  fun i _ c =>
+    positiveWord (longRaw
+      (gubaEvenPrefix (chooseEvenPrefixIndex c (gubaState pick i).2)) (10^20))
+
+theorem gubaState_stage (pick : WeightedSelector) (i : ℕ) :
+    (gubaState pick i).1 = weightedStages pick (gubaConjugatorChoice pick) i := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    classical
+    by_cases h : ∃ w : F, ¬ Good (gubaState pick i).1 w
+    · have h' : ∃ w : F, ¬ Good (weightedStages pick (gubaConjugatorChoice pick) i) w :=
+        ih ▸ h
+      simp only [gubaState, weightedStages, weightedRelator, dite_eq_left h,
+        dite_eq_left h', gubaConjugatorChoice]
+      -- Transport the chosen period along the equality of preceding subgroups.
+      rw [← ih]
+    · have h' : ¬ ∃ w : F, ¬ Good (weightedStages pick (gubaConjugatorChoice pick) i) w :=
+        ih ▸ h
+      simp only [gubaState, weightedStages, weightedRelator, dite_eq_right h,
+        dite_eq_right h']
+      rw [← ih]
+      apply le_antisymm
+      · exact le_adjoin _ _
+      · have hn := weightedStages_normal pick (gubaConjugatorChoice pick) i
+        rw [← ih] at hn
+        letI : (gubaState pick i).1.Normal := hn
+        apply Subgroup.normalClosure_le_normal
+        intro w hw
+        rcases hw with hw | hw
+        · exact hw
+        · have he : w = 1 := hw
+          subst w
+          exact Subgroup.one_mem _
+
+theorem gubaState_weight_mono (pick : WeightedSelector) :
+    Monotone (fun i => (gubaState pick i).2) := by
+  apply monotone_nat_of_le_succ
+  intro i
+  classical
+  by_cases h : ∃ w : F, ¬ Good (gubaState pick i).1 w
+  · simp only [gubaState, dite_eq_left h]
+    have hs := chooseEvenPrefixIndex_spec ((pick (gubaState pick i).1 h).val)
+      (gubaState pick i).2
+    exact le_of_lt (lt_of_le_of_lt (le_max_right _ _) hs)
+  · simp only [gubaState, dite_eq_right h]
+    exact le_rfl
+
+theorem gubaState_active_weight_lt (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) :
+    (gubaState pick i).2 < (gubaState pick (i+1)).2 := by
+  classical
+  simp only [gubaState, dite_eq_left h]
+  exact lt_of_le_of_lt (le_max_right _ _)
+    (chooseEvenPrefixIndex_spec ((pick (gubaState pick i).1 h).val) (gubaState pick i).2)
+
+/-- At every active stage, the stored weight is exactly the weight
+of the prefix used in the actual conjugator choice. -/
+theorem gubaState_active_weight (pick : WeightedSelector) (i : ℕ)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w) :
+    (gubaState pick (i+1)).2 =
+      positiveWeight (gubaEvenPrefix
+        (chooseEvenPrefixIndex ((pick (gubaState pick i).1 h).val) (gubaState pick i).2)) := by
+  classical
+  simp only [gubaState, dite_eq_left h]
+
+/-- Distinct active stages have distinct special prefix weights.
+Stationary stages need not have a new prefix, and are excluded. -/
+theorem gubaState_active_weights_distinct (pick : WeightedSelector)
+    {i j : ℕ} (hij : i < j)
+    (hj : ∃ w : F, ¬ Good (gubaState pick j).1 w) :
+    (gubaState pick (i+1)).2 < (gubaState pick (j+1)).2 :=
+  lt_of_le_of_lt (gubaState_weight_mono pick (show i+1 ≤ j by omega))
+    (gubaState_active_weight_lt pick j hj)
+
 end QuandleResearch.Issue070
