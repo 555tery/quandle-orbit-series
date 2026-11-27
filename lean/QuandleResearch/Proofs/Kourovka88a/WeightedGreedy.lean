@@ -612,4 +612,78 @@ theorem activeLongWord_overlap_bound_both (pick : WeightedSelector) (i j : ℕ)
     · exact Or.inl (Ne.symm h)
     · exact Or.inr (Ne.symm h)
 
+
+/-! ## Replacement of a minimal-period segment through earlier ranks
+
+A minimal bad period is a shortest representative in the preceding
+quotient. Hence every literal factor admits no shorter representative
+there either. This is a necessary length comparison for a lower-rank
+contiguity path; it makes no assumption of a particular diagram.
+-/
+
+/-- A two-sided boundary relation in a normal subgroup identifies the
+two path readings in the quotient. -/
+theorem quotient_paths_eq {N : Subgroup F} [N.Normal] (v u : RawWord)
+    (h : FreeGroup.mk (v ++ FreeGroup.invRev u) ∈ N) :
+    QuotientGroup.mk' N (FreeGroup.mk v) =
+      QuotientGroup.mk' N (FreeGroup.mk u) := by
+  have he := (QuotientGroup.eq_one_iff _).mpr h
+  change QuotientGroup.mk' N (FreeGroup.mk (v ++ FreeGroup.invRev u)) = 1 at he
+  rw [← FreeGroup.mul_mk, ← FreeGroup.inv_mk, map_mul, map_inv] at he
+  calc
+    _ = (QuotientGroup.mk' N (FreeGroup.mk v) *
+          (QuotientGroup.mk' N (FreeGroup.mk u))⁻¹) *
+          QuotientGroup.mk' N (FreeGroup.mk u) := by group
+    _ = _ := by rw [he, one_mul]
+
+/-- Every literal factor of a chosen minimal bad word is weight-minimal
+among all words with the same value in the preceding quotient. -/
+theorem minBad_factor_weight_min {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) (p v r u : RawWord)
+    (hword : c.toWord = p ++ v ++ r)
+    (heq : QuotientGroup.mk' N (FreeGroup.mk v) =
+      QuotientGroup.mk' N (FreeGroup.mk u)) :
+    rawWeight v ≤ rawWeight u := by
+  have hreplace : QuotientGroup.mk' N c =
+      QuotientGroup.mk' N (FreeGroup.mk (p ++ u ++ r)) := by
+    calc
+      _ = QuotientGroup.mk' N (FreeGroup.mk (p ++ v ++ r)) := by
+        rw [← hword, FreeGroup.mk_toWord]
+      _ = _ := by simp only [← FreeGroup.mul_mk, map_mul, heq]
+  have hmin := minBad_quotient_length hc hreplace
+  have hle := weightedLength_mk_le (p ++ u ++ r)
+  have hweight : weightedLength c = rawWeight p + rawWeight v + rawWeight r := by
+    unfold weightedLength
+    rw [hword, rawWeight_append, rawWeight_append]
+  rw [rawWeight_append, rawWeight_append] at hle
+  omega
+
+/-- The same comparison when the two paths bound a word trivial at
+lower rank. The normal subgroup membership is the algebraic boundary
+condition, not an assumption that the paths are geometrically adjacent. -/
+theorem minBad_factor_boundary_weight {N : Subgroup F} [N.Normal] {c : F}
+    (hc : MinBad N c) (p v r u : RawWord)
+    (hword : c.toWord = p ++ v ++ r)
+    (hboundary : FreeGroup.mk (v ++ FreeGroup.invRev u) ∈ N) :
+    rawWeight v ≤ rawWeight u :=
+  minBad_factor_weight_min hc p v r u hword (quotient_paths_eq v u hboundary)
+
+/-- Instantiate the replacement inequality with the actual selected
+period and any all-height presentation of earlier ranks. -/
+theorem activePeriod_factor_boundary_weight (pick : WeightedSelector)
+    (i j : ℕ) (hji : j ≤ i)
+    (h : ∃ w : F, ¬ Good (gubaState pick i).1 w)
+    (p v r u : RawWord)
+    (hword : (pick (gubaState pick i).1 h).val.toWord = p ++ v ++ r)
+    (hboundary : FreeGroup.mk (v ++ FreeGroup.invRev u) ∈
+      weightedHeightStage pick (gubaConjugatorChoice pick) j) :
+    rawWeight v ≤ rawWeight u := by
+  have hn := weightedStages_normal pick (gubaConjugatorChoice pick) i
+  rw [← gubaState_stage pick i] at hn
+  let _ : (gubaState pick i).1.Normal := hn
+  apply minBad_factor_boundary_weight (pick (gubaState pick i).1 h).property p v r u hword
+  rw [gubaState_stage pick i]
+  rw [weightedHeightStage_eq] at hboundary
+  exact weightedStages_mono pick (gubaConjugatorChoice pick) hji hboundary
+
 end QuandleResearch.Issue070
