@@ -15133,4 +15133,114 @@ theorem gubaTypeMinimal_no_separated_coefficient_pair
 
 #print axioms gubaTypeMinimal_no_separated_coefficient_pair
 
+
+/-- Guba's coefficient-pair contour computation (p. 241, (6)).
+The hypotheses are the four cut-side equalities in the earlier
+quotient. No boundary identity for the proposed replacement is
+assumed. Conjugating the product of the two based contours
+by X*t₂ gives the product of two redistributed height relators. -/
+theorem coefficient_pair_cut_contours {K : Type*} [Group K]
+    (X C B t₁ s₁ t₂ s₂ : K) (d f u v : ℤ)
+    (h₁ : t₁*s₁ = C^d) (h₂ : t₂*s₂ = C^(-f))
+    (hu : t₂*s₁ = C^u) (hv : t₁*s₂ = C^v)
+    (h : u+v = d-f) :
+    let R := fun k : ℤ => X*C^k*X⁻¹*(B^k)⁻¹
+    let P := X*t₂
+    ((X*t₁)⁻¹ * R d * (X*t₁)) *
+      (P⁻¹ * R (-f) * P) =
+      P⁻¹ * (R u * B^(u-d) * R v * (B^(u-d))⁻¹) * P := by
+  dsimp only
+  have e₁ : C^d = t₁*s₁ := h₁.symm
+  have e₂ : C^(-f) = t₂*s₂ := h₂.symm
+  have hneg : (B^(-f))⁻¹ = B^f := by rw [zpow_neg,inv_inv]
+  have hpow (k : ℤ) : X*C^k*X⁻¹ = (X*C*X⁻¹)^k := by
+    rw [conj_zpow]
+  calc
+    _ = (X*t₂)⁻¹ *
+        ((X*(t₂*s₁)*X⁻¹) * (B^d)⁻¹ *
+          (X*(t₁*s₂)*X⁻¹) * B^f) * (X*t₂) := by
+      rw [e₁,e₂,hneg]
+      group
+    _ = _ := by
+      rw [hu,hv,hpow u,hpow v]
+      have he := coefficient_pair_height_redistribution (X*C*X⁻¹) B d f u v h
+      rw [he,← hpow u,← hpow v]
+
+/-- Use the actual cut data, in the lower quotient, to contradict
+full-type minimality. The relative transport of the two corners is
+the image of the connecting path condition. The strict height
+inequality is the length consequence of compatible cuts. This
+statement is deliberately about two specified Peiffer occurrences;
+the remaining topological obligation is obtaining those occurrences
+and their transport condition from an embedded j-pair. -/
+theorem gubaTypeMinimal_no_compatible_coefficient_cuts
+    (pick : WeightedSelector)
+    (n : ℕ) (w : F) (j : Fin n)
+    (p m r : Peiffer.Sequence F (RankHeight n))
+    (a₁ a₂ g t₁ s₁ t₂ s₂ : F) (d f u v : ℤ)
+    (hactive : ∃ z : F, ¬ Good (gubaState pick j.val).1 z) :
+    let X := gubaConjugatorChoice pick
+    let L := positiveWord (activeLongWord pick j.val hactive)
+    let C := (pick (gubaState pick j.val).1 hactive).val
+    let N := weightedStages pick X j.val
+    letI : N.Normal := weightedStages_normal pick X j.val
+    let q := QuotientGroup.mk' N
+    let rel := rankHeightRel pick X n
+    GubaTypeMinimalExpression pick X n w
+      (p++([((a₁,(j,d)),true)]++m++[((a₂,(j,-f)),true)])++r) →
+    q (t₁*s₁) = q (C^d) →
+    q (t₂*s₂) = q (C^(-f)) →
+    q (t₂*s₁) = q (C^u) →
+    q (t₁*s₂) = q (C^v) →
+    q a₁ = q (g*(L*t₁)⁻¹) →
+    q (Peiffer.evaluation rel m*a₂) = q (g*(L*t₂)⁻¹) →
+    u+v = d-f →
+    u.natAbs+v.natAbs < d.natAbs+f.natAbs → False := by
+  intro X L C N hN q rel hm h₁ h₂ hu hv ha₁ ha₂ hsum hstrict
+  let b₁ := g*(L*t₂)⁻¹
+  let b₂ := b₁*a^(u-d)
+  apply gubaTypeMinimal_no_separated_coefficient_pair pick X n w j p m r
+    a₁ a₂ b₁ b₂ d f u v hm
+  · rw [weightedHeightStage_eq]
+    change _ ∈ N
+    apply (QuotientGroup.eq_one_iff _).mp
+    rw [map_mul,map_inv]
+    have hrel (k : ℤ) : q (rel (j,k)) =
+        q L*(q C)^k*(q L)⁻¹*((q a)^k)⁻¹ := by
+      change q (rankHeightRel pick (gubaConjugatorChoice pick) n (j,k)) = _
+      rw [guba_rankHeightRel_active pick n j hactive k,heightRelator]
+      simp only [map_mul,map_inv,map_zpow]
+    have hcuts := coefficient_pair_cut_contours (q L) (q C) (q a)
+      (q t₁) (q s₁) (q t₂) (q s₂) d f u v
+      (by simpa only [map_mul,map_zpow] using h₁)
+      (by simpa only [map_mul,map_zpow] using h₂)
+      (by simpa only [map_mul,map_zpow] using hu)
+      (by simpa only [map_mul,map_zpow] using hv) hsum
+    dsimp only at hcuts
+    have hs (x y : F) (k l : ℤ) :
+        q (Peiffer.evaluation rel [((x,(j,k)),true),((y,(j,l)),true)]) =
+          (q x * q (rel (j,k)) * (q x)⁻¹) *
+          (q y * q (rel (j,l)) * (q y)⁻¹) := by
+      simp only [Peiffer.evaluation,List.map_cons,List.map_nil,List.prod_cons,
+        List.prod_nil,mul_one,Peiffer.term,Bool.cond_true,map_mul,map_inv]
+    rw [hs,hs,ha₁,ha₂]
+    simp only [b₁,b₂,map_mul,map_inv,map_zpow,hrel]
+    have he : (q g * (q L*q t₁)⁻¹) *
+        (q L*(q C)^d*(q L)⁻¹*((q a)^d)⁻¹) *
+        (q g * (q L*q t₁)⁻¹)⁻¹ *
+        ((q g * (q L*q t₂)⁻¹) *
+          (q L*(q C)^(-f)*(q L)⁻¹*((q a)^(-f))⁻¹) *
+          (q g * (q L*q t₂)⁻¹)⁻¹) =
+        q g * (((q L*q t₁)⁻¹ *
+          (q L*(q C)^d*(q L)⁻¹*((q a)^d)⁻¹) * (q L*q t₁)) *
+          ((q L*q t₂)⁻¹ *
+          (q L*(q C)^(-f)*(q L)⁻¹*((q a)^(-f))⁻¹) * (q L*q t₂))) *
+          (q g)⁻¹ := by group
+    rw [he,hcuts]
+    group
+  · exact hstrict
+
+#print axioms coefficient_pair_cut_contours
+#print axioms gubaTypeMinimal_no_compatible_coefficient_cuts
+
 end QuandleResearch.Issue070
