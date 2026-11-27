@@ -1457,8 +1457,8 @@ theorem boundaryComponent_read (rows : I → RawWord) (w : F)
 
 A vertex cut switches the incoming arrows at two distinct corners.
 The upstream theorem proves that it preserves spherical Euler equality.
-The following lemmas retain the literal words and apply the boundary
-theorem to a component separated by this actual permutation surgery.
+The following lemmas retain the literal words and apply the boundary theorem
+to a component separated by this actual permutation surgery.
 -/
 
 /-- An interval ending at the predecessor of the other cut corner
@@ -2323,7 +2323,8 @@ a system or per-arc geometric estimate is asserted.
 
 theorem guba23_sublist_weight {u v : RawWord} (h : u.Sublist v) :
     rawWeight u ≤ rawWeight v := by
-  induction h <;> simp_all [rawWeight] <;> omega
+  induction h <;> simp_all [rawWeight]
+  omega
 
 theorem guba23_flatMap_weight {A : Type} (xs : List A) (f : A → RawWord) :
     rawWeight (xs.flatMap f) = (xs.map (fun x => rawWeight (f x))).sum := by

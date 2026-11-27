@@ -84,15 +84,15 @@ jobs:
           assert s.count(old) == 1
           p.write_text(s.replace(old, "  | ind n ih =>"))
           PY
-          # Combine the case simplifier with omega: the arithmetic cases need
-          # omega, but a separate all_goals wrapper triggers the 4.36 linter.
+          # Simplification leaves one arithmetic goal on Lean 4.36.
+          # Avoid redundant goal-distribution combinators.
           python3 - <<'PY'
           from pathlib import Path
           p = Path(".lake/small-groups/SmallPresentation/SmallCancellationGeometryRelativeMetric.lean")
           s = p.read_text()
           old = "    cases hx : sign x <;> cases hy : sign y <;> simp_all\n    all_goals omega"
           assert s.count(old) == 1
-          p.write_text(s.replace(old, "    cases hx : sign x <;> cases hy : sign y <;> simp_all <;> omega"))
+          p.write_text(s.replace(old, "    cases hx : sign x <;> cases hy : sign y <;> simp_all\n    omega"))
           PY
           git -C .lake/small-groups diff --stat
           cat >> lakefile.toml <<'EOF'
